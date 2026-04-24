@@ -1,12 +1,12 @@
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { ThemeToggle } from "@/components/shared/theme";
 import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
-import { Noto_Sans } from "next/font/google";
+import { Inter } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 
-const sans = Noto_Sans({ subsets: ["latin"], variable: "--font-sans" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
     title: "Elixir Cloud Registry",
@@ -21,7 +21,7 @@ export default function RootLayout({
     return (
         <html
             lang="en"
-            className={cn("h-full", "antialiased", "font-sans", sans.variable)}
+            className={cn("h-full", "antialiased", "font-sans", inter.variable)}
             suppressHydrationWarning
         >
             <body className="min-h-full flex flex-col">
