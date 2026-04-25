@@ -33,7 +33,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         </BreadcrumbList>
                     </Breadcrumb>
                 </header>
-                <main className="px-4 pt-4">{children}</main>
+                <main className="relative px-4 py-4 h-full">{children}</main>
             </SidebarInset>
         </SidebarProvider>
     );
