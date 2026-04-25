@@ -14,7 +14,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     return (
         <SidebarProvider>
             <AppSidebar />
-            <SidebarInset>
+            <SidebarInset className="flex flex-col h-screen">
                 <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
                     <SidebarTrigger className="-ml-1" />
                     <Separator
@@ -33,7 +33,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         </BreadcrumbList>
                     </Breadcrumb>
                 </header>
-                <main className="relative px-4 py-4 h-full">{children}</main>
+                <main className="relative px-4 py-4 h-full overflow-y-auto">{children}</main>
             </SidebarInset>
         </SidebarProvider>
     );
