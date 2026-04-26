@@ -15,7 +15,6 @@ type Props = {
 };
 
 function ServicesTableBody({ services }: Props) {
-
     if (services.length === 0)
         return (
             <TableBody>

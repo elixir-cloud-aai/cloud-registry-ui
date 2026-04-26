@@ -12,11 +12,9 @@ export function useUserInfo() {
         setError(false);
 
         try {
-            const userResp = await getUserInfo()
-            if(userResp.error === false)
-                setUser(userResp.user);
-            else
-                setError(true)
+            const userResp = await getUserInfo();
+            if (userResp.error === false) setUser(userResp.user);
+            else setError(true);
         } catch (e: any) {
             e = e as AxiosError;
             setError(true);
@@ -26,7 +24,7 @@ export function useUserInfo() {
     }, []);
 
     useEffect(() => {
-        fetchUserInfo()
+        fetchUserInfo();
     }, [fetchUserInfo]);
 
     return { user, loading, error, refetch: fetchUserInfo };

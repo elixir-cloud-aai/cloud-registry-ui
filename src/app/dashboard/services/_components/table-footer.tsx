@@ -1,6 +1,5 @@
 import { TableCell, TableFooter, TableRow } from "@/components/ui/table";
 
-
 function ServicesTableFooter() {
     return (
         <TableFooter>
@@ -8,8 +7,7 @@ function ServicesTableFooter() {
                 <TableCell colSpan={6}>{"-"}</TableCell>
             </TableRow>
         </TableFooter>
-    )
+    );
 }
-
 
 export default ServicesTableFooter;

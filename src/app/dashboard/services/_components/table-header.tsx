@@ -1,6 +1,5 @@
 import { TableCell, TableHeader, TableRow } from "@/components/ui/table";
 
-
 function ServicesTableHeader() {
     return (
         <TableHeader>
@@ -13,7 +12,7 @@ function ServicesTableHeader() {
                 <TableCell>Actions</TableCell>
             </TableRow>
         </TableHeader>
-    )
+    );
 }
 
-export default ServicesTableHeader
+export default ServicesTableHeader;

@@ -2,9 +2,9 @@ import { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-re
 import { getAccessToken } from "@/lib/get-access-token";
 import { useEffect, useState } from "react";
 
-
 function useCloudRegistry() {
-    const [cloudRegistryProvider, setCloudRegistryProvider] = useState<AuthenticatedCloudRegistryProvider | null>(null);
+    const [cloudRegistryProvider, setCloudRegistryProvider] =
+        useState<AuthenticatedCloudRegistryProvider | null>(null);
     const [token, setToken] = useState("");
 
     useEffect(() => {
@@ -29,4 +29,3 @@ function useCloudRegistry() {
 }
 
 export { useCloudRegistry };
-

@@ -19,7 +19,7 @@ function Page() {
         cloudRegistryProvider
             ?.getServices()
             .then((_val) => {
-                setServices(_val)
+                setServices(_val);
             })
             .catch((err) => {})
             .finally(() => {

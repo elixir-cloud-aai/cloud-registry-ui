@@ -208,4 +208,3 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
 }
 
 export { AuthenticatedCloudRegistryProvider };
-
