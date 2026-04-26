@@ -6,6 +6,7 @@ import { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { PlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
     ServicesTableBody,
     ServicesTableFooter,
@@ -25,7 +26,10 @@ function Page() {
             .then((_val) => {
                 setServices(_val);
             })
-            .catch((err) => {})
+            .catch((err) => {
+                console.error("Failed to load services from cloud registry provider:", err);
+                toast.error("We are having trouble loading services. Please refresh or try again later.")
+            })
             .finally(() => {
                 setLoading(false);
             });
@@ -37,7 +41,7 @@ function Page() {
                 <div>
                     <h2 className="text-3xl font-semibold tracking-tight mt-2">Services</h2>
                     <p className="leading-7 mt-2">
-                        Manage and monitor registered services across all envirnoments
+                        Manage and monitor registered services across all environments
                     </p>
                 </div>
                 <div className="hidden md:block space-x-2">

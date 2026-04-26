@@ -28,8 +28,8 @@ function ServicesTableBody({ services }: Props) {
 
     return (
         <TableBody>
-            {services.map((val, idx) => (
-                <TableRow key={idx + Math.random()}>
+            {services.map((val) => (
+                <TableRow key={val.id}>
                     <TableCell className="font-medium">{val.id}</TableCell>
                     <TableCell>{val.name}</TableCell>
                     <TableCell>{val.organization.name}</TableCell>
