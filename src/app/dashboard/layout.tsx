@@ -1,9 +1,11 @@
-import { AppSidebar } from "@/components/shared/app-sidebar";
+import { AppSidebar, BreadcrumbClient } from "@/components/shared/app-sidebar";
 import {
     Breadcrumb,
     BreadcrumbItem,
     BreadcrumbLink,
     BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -12,7 +14,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     return (
         <SidebarProvider>
             <AppSidebar />
-            <SidebarInset>
+            <SidebarInset className="flex flex-col h-screen">
                 <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
                     <SidebarTrigger className="-ml-1" />
                     <Separator
@@ -22,12 +24,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                     <Breadcrumb>
                         <BreadcrumbList>
                             <BreadcrumbItem className="hidden md:block">
-                                <BreadcrumbLink>All Services</BreadcrumbLink>
+                                <BreadcrumbLink href="/dashboard">Cloud Registry</BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator className="hidden md:block" />
+                            <BreadcrumbItem>
+                                <BreadcrumbPage>{<BreadcrumbClient />}</BreadcrumbPage>
                             </BreadcrumbItem>
                         </BreadcrumbList>
                     </Breadcrumb>
                 </header>
-                <main className="px-4 pt-4">{children}</main>
+                <main className="relative px-4 md:px-8 py-4 h-full overflow-y-auto">
+                    {children}
+                </main>
             </SidebarInset>
         </SidebarProvider>
     );

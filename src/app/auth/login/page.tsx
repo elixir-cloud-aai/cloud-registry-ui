@@ -1,9 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { redirect } from "next/navigation";
 import { toast } from "sonner";
-import { generateLoginRedirectLink } from "../_server";
 
 function Page() {
     return (
@@ -11,10 +9,9 @@ function Page() {
             <Button
                 className="cursor-pointer"
                 size={"icon-lg"}
-                onClick={async () => {
+                onClick={() => {
                     toast.loading("Redirecting to LS Login...");
-                    const redirectUrl = await generateLoginRedirectLink();
-                    redirect(redirectUrl);
+                    window.location.href = "/auth/api/login-redirect";
                 }}
             >
                 <Image
