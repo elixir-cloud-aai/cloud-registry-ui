@@ -1,8 +1,8 @@
-"use server";
 import { setCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
-async function generateLoginRedirectLink() {
+export async function GET() {
     const baseUrl = `${process.env.LS_LOGIN_URL}/oidc/authorize`;
     const authState = crypto.randomUUID();
     const scope = "openid profile email";
@@ -16,11 +16,10 @@ async function generateLoginRedirectLink() {
         path: "/",
     });
 
-    return (
+    const redirectUrl =
         baseUrl +
         `?response_type=code&client_id=${process.env.OIDC_CLIENT_ID}&redirect_uri=${process.env.OIDC_REDIRECT_URI}` +
-        `&scope=${scope}&state=${authState}`
-    );
-}
+        `&scope=${scope}&state=${authState}`;
 
-export default generateLoginRedirectLink;
+    return NextResponse.redirect(redirectUrl);
+}

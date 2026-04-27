@@ -1,6 +1,10 @@
-import { default as getUserInfo } from "@/lib/get-user-info";
 import { AxiosError } from "axios";
 import { useCallback, useEffect, useState } from "react";
+
+type UserInfoResponse = {
+    error: boolean;
+    user: User | null;
+};
 
 export function useUserInfo() {
     const [user, setUser] = useState<User | null>(null);
@@ -12,7 +16,9 @@ export function useUserInfo() {
         setError(false);
 
         try {
-            const userResp = await getUserInfo();
+            const userRawResp = await fetch("/auth/api/user-info");
+            const userResp: UserInfoResponse = await userRawResp.json();
+
             if (userResp.error === false) setUser(userResp.user);
             else setError(true);
         } catch (e: any) {

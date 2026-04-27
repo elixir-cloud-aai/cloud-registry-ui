@@ -28,7 +28,9 @@ function Page() {
             })
             .catch((err) => {
                 console.error("Failed to load services from cloud registry provider:", err);
-                toast.error("We are having trouble loading services. Please refresh or try again later.")
+                toast.error(
+                    "We are having trouble loading services. Please refresh or try again later.",
+                );
             })
             .finally(() => {
                 setLoading(false);

@@ -1,14 +1,9 @@
-"use server";
 import axios from "axios";
 import { getCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
-type Res = {
-    error: boolean;
-    user: User | null;
-};
-
-async function getUserInfo(): Promise<Res> {
+export async function GET() {
     const accessToken = await getCookie("access_token", { cookies });
 
     try {
@@ -23,16 +18,8 @@ async function getUserInfo(): Promise<Res> {
             throw new Error("Invalid JSON response");
         }
 
-        return {
-            error: false,
-            user: res.data,
-        };
+        return NextResponse.json({ error: false, user: res.data });
     } catch {
-        return {
-            error: true,
-            user: null,
-        };
+        return NextResponse.json({ error: true, user: null }, { status: 401 });
     }
 }
-
-export default getUserInfo;

@@ -1,19 +1,13 @@
 import { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
-import { getAccessToken } from "@/lib/get-access-token";
+import { getCookie } from "cookies-next/client";
 import { useEffect, useState } from "react";
 
 function useCloudRegistry() {
     const [cloudRegistryProvider, setCloudRegistryProvider] =
         useState<AuthenticatedCloudRegistryProvider | null>(null);
-    const [token, setToken] = useState("");
 
     useEffect(() => {
-        getAccessToken().then((token) => {
-            setToken(token as string);
-        });
-    }, []);
-
-    useEffect(() => {
+        const token = getCookie("access_token");
         if (!token) return;
 
         const provider = new AuthenticatedCloudRegistryProvider(
@@ -21,7 +15,7 @@ function useCloudRegistry() {
             token as string,
         );
         setCloudRegistryProvider(provider);
-    }, [token]);
+    }, []);
 
     return {
         cloudRegistryProvider,
