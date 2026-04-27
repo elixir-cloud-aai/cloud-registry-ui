@@ -1,6 +1,5 @@
 import axios from "axios";
-import { getCookie } from "cookies-next";
-import { setCookie } from "cookies-next/server";
+import { getCookie, setCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { NextRequest } from "next/server";
@@ -30,6 +29,7 @@ export async function GET(request: NextRequest) {
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded",
                 },
+                validateStatus: (status) => status === 200,
             },
         );
 
