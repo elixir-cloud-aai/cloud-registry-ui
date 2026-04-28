@@ -1,5 +1,7 @@
+import { redirect } from "next/navigation";
+
 function Page() {
-    return <div></div>;
+    redirect("/dashboard/services");
 }
 
 export default Page;

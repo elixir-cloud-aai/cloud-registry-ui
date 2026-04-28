@@ -17,6 +17,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserInfo } from "@/hooks";
 import { ChevronsUpDown, LogOut } from "lucide-react";
+import Link from "next/link";
 
 export function AppSidebarFooter() {
     const { isMobile } = useSidebar();
@@ -86,9 +87,11 @@ export function AppSidebarFooter() {
                             </div>
                         </DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
-                            <LogOut />
-                            Log out
+                        <DropdownMenuItem asChild>
+                            <Link href={"/auth/api/logout"}>
+                                <LogOut />
+                                Log out
+                            </Link>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
