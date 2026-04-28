@@ -1,20 +1,19 @@
-import { Button } from "@/components/ui/button";
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { useCloudRegistry } from "@/hooks";
 import { ExternalService } from "@elixir-cloud/cloud-registry/providers";
-import { MoreHorizontalIcon } from "lucide-react";
+import { useState } from "react";
+import ActionDropdown from "./actions-dropdown";
+import ServiceDetailsDialog from "./view-service-dailog";
 
 type Props = {
     services: ExternalService[];
+    fetchServices: () => void;
 };
 
-function ServicesTableBody({ services }: Props) {
+function ServicesTableBody({ services, fetchServices }: Props) {
+    const { cloudRegistryProvider } = useCloudRegistry();
+    const [selectedService, setSelectedService] = useState<ExternalService | null>(null);
+
     if (services.length === 0)
         return (
             <TableBody>
@@ -27,33 +26,32 @@ function ServicesTableBody({ services }: Props) {
         );
 
     return (
-        <TableBody>
-            {services.map((val) => (
-                <TableRow key={val.id}>
-                    <TableCell className="font-medium">{val.id}</TableCell>
-                    <TableCell>{val.name}</TableCell>
-                    <TableCell>{val.organization.name}</TableCell>
-                    <TableCell>{val.environment}</TableCell>
-                    <TableCell>{val.version}</TableCell>
-                    <TableCell>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="size-8">
-                                    <MoreHorizontalIcon />
-                                    <span className="sr-only">Open menu</span>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuItem>View</DropdownMenuItem>
-                                <DropdownMenuItem>Edit</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </TableCell>
-                </TableRow>
-            ))}
-        </TableBody>
+        <>
+            <TableBody>
+                {services.map((val) => (
+                    <TableRow key={val.id}>
+                        <TableCell className="font-medium">{val.id}</TableCell>
+                        <TableCell>{val.name}</TableCell>
+                        <TableCell>{val.organization.name}</TableCell>
+                        <TableCell>{val.environment}</TableCell>
+                        <TableCell>{val.version}</TableCell>
+                        <TableCell>
+                            <ActionDropdown
+                                cloudRegistryProvider={cloudRegistryProvider}
+                                rowData={val}
+                                fetchServices={fetchServices}
+                                onViewDetails={setSelectedService}
+                            />
+                        </TableCell>
+                    </TableRow>
+                ))}
+            </TableBody>
+            <ServiceDetailsDialog
+                service={selectedService}
+                open={selectedService}
+                onOpenChange={(open) => !open && setSelectedService(null)}
+            />
+        </>
     );
 }
 
