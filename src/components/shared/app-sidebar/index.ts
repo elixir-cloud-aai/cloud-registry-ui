@@ -1,4 +1,5 @@
-import { AppSidebar } from "./app-sidebar";
-import { BreadcrumbClient } from "./breadcrumb-client";
+import AppBreadcrumb from "./app-breadcrumb";
+import AppSidebar from "./app-sidebar";
+import AppTopbarActions from "./app-topbar-actions";
 
-export { AppSidebar, BreadcrumbClient };
+export { AppBreadcrumb, AppSidebar, AppTopbarActions };

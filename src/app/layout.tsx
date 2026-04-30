@@ -1,5 +1,4 @@
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import { ThemeToggle } from "@/components/shared/theme";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
@@ -34,7 +33,6 @@ export default function RootLayout({
                 >
                     <TooltipProvider>{children}</TooltipProvider>
                     <Toaster />
-                    <ThemeToggle />
                 </ThemeProvider>
             </body>
         </html>
