@@ -9,7 +9,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Layers, Pencil, PlusCircle, Wrench } from "lucide-react";
+import { Layers, Wrench } from "lucide-react";
 import Link from "next/link";
 import { AppSidebarFooter } from "./app-sidebar-footer";
 import AppSidebarHeader from "./app-sidebar-header";
@@ -17,8 +17,6 @@ import AppSidebarHeader from "./app-sidebar-header";
 const data = [
     { title: "Services", url: "/dashboard/services", icon: Wrench },
     { title: "Service Types", url: "/dashboard/service-types", icon: Layers },
-    { title: "Create Service", url: "/dashboard/create-service", icon: PlusCircle },
-    { title: "Update Service", url: "/dashboard/update-service", icon: Pencil },
 ];
 
 function AppSidebar() {
