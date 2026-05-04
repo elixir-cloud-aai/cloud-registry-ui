@@ -2,7 +2,6 @@ import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useCloudRegistry } from "@/hooks";
 import { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { useState } from "react";
-import ActionDropdown from "./actions-dropdown";
 import ServiceDetailsDialog from "./view-service-dailog";
 
 type Props = {
@@ -13,7 +12,7 @@ type Props = {
 function ServicesTableBody({ services, fetchServices }: Props) {
     const { cloudRegistryProvider } = useCloudRegistry();
     const [selectedService, setSelectedService] = useState<ExternalService | null>(null);
-
+    
     if (services.length === 0)
         return (
             <TableBody>
@@ -29,26 +28,25 @@ function ServicesTableBody({ services, fetchServices }: Props) {
         <>
             <TableBody>
                 {services.map((val) => (
-                    <TableRow key={val.id}>
+                    <TableRow
+                        key={val.id}
+                        onClick={() => setSelectedService(val)}
+                        className="cursor-pointer"
+                    >
                         <TableCell className="font-medium">{val.id}</TableCell>
                         <TableCell>{val.name}</TableCell>
                         <TableCell>{val.organization.name}</TableCell>
+                        <TableCell>{val.type.artifact}</TableCell>
                         <TableCell>{val.environment}</TableCell>
                         <TableCell>{val.version}</TableCell>
-                        <TableCell>
-                            <ActionDropdown
-                                cloudRegistryProvider={cloudRegistryProvider}
-                                rowData={val}
-                                fetchServices={fetchServices}
-                                onViewDetails={setSelectedService}
-                            />
-                        </TableCell>
                     </TableRow>
                 ))}
             </TableBody>
             <ServiceDetailsDialog
                 service={selectedService}
                 open={selectedService}
+                fetchServices={fetchServices}
+                cloudRegistryProvider={cloudRegistryProvider}
                 onOpenChange={(open) => !open && setSelectedService(null)}
             />
         </>

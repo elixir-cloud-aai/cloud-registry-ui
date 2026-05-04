@@ -4,6 +4,8 @@ import {
     SidebarContent,
     SidebarFooter,
     SidebarGroup,
+    SidebarGroupContent,
+    SidebarGroupLabel,
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
@@ -15,8 +17,13 @@ import { AppSidebarFooter } from "./app-sidebar-footer";
 import AppSidebarHeader from "./app-sidebar-header";
 
 const data = [
-    { title: "Services", url: "/dashboard/services", icon: Wrench },
-    { title: "Service Types", url: "/dashboard/service-types", icon: Layers },
+    {
+        title: "Resources",
+        items: [
+            { title: "Services", url: "/dashboard/services", icon: Wrench },
+            { title: "Service Types", url: "/dashboard/service-types", icon: Layers },
+        ],
+    },
 ];
 
 function AppSidebar() {
@@ -29,23 +36,28 @@ function AppSidebar() {
 
             {/* Sidebar Content */}
             <SidebarContent>
-                <SidebarGroup>
-                    <SidebarMenu>
-                        {data.map((item) => (
-                            <SidebarMenuItem key={item.title}>
-                                <SidebarMenuButton asChild>
-                                    <Link
-                                        href={item.url}
-                                        className="flex items-center gap-2 font-medium"
-                                    >
-                                        <item.icon className="h-4 w-4" />
-                                        <span>{item.title}</span>
-                                    </Link>
-                                </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        ))}
-                    </SidebarMenu>
-                </SidebarGroup>
+                {data.map((item) => (
+                    <SidebarGroup key={item.title}>
+                        <SidebarGroupLabel>{item.title}</SidebarGroupLabel>
+                        <SidebarGroupContent>
+                            <SidebarMenu>
+                                {item.items.map((item) => (
+                                    <SidebarMenuItem key={item.title}>
+                                        <SidebarMenuButton asChild>
+                                            <Link
+                                                href={item.url}
+                                                className="flex items-center gap-2 font-medium"
+                                            >
+                                                <item.icon className="h-4 w-4" />
+                                                <span>{item.title}</span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                ))}
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                ))}
             </SidebarContent>
 
             {/* Sidebar footer */}
