@@ -25,7 +25,7 @@ function Page() {
 
     useEffect(() => {
         fetchServiceInfo();
-    }, [cloudRegistryProvider]);
+    }, [fetchServiceInfo]);
 
     if (loading) return <CardSkeleton />;
 

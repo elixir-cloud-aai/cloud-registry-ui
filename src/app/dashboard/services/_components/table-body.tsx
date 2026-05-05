@@ -44,7 +44,7 @@ function ServicesTableBody({ services, fetchServices }: Props) {
             </TableBody>
             <ServiceDetailsDialog
                 service={selectedService}
-                open={selectedService}
+                open={!!selectedService}
                 fetchServices={fetchServices}
                 cloudRegistryProvider={cloudRegistryProvider}
                 onOpenChange={(open) => !open && setSelectedService(null)}

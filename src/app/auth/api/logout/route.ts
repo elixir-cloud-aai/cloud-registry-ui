@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
         await deleteCookie("id_token", { cookies });
     } catch (err) {
         console.log(err);
-        redirect("/auth/error?state=logout-err");
+        redirect("/auth/error?type=logout-err");
     }
     redirect("/auth/login");
 }
