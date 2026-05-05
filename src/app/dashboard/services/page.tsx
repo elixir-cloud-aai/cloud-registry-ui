@@ -20,7 +20,7 @@ function Page() {
     const [services, setServices] = useState<ExternalService[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+    const fetchServices = () => {
         cloudRegistryProvider
             ?.getServices()
             .then((_val) => {
@@ -35,6 +35,10 @@ function Page() {
             .finally(() => {
                 setLoading(false);
             });
+    };
+
+    useEffect(() => {
+        fetchServices();
     }, [cloudRegistryProvider]);
 
     return (
@@ -46,13 +50,7 @@ function Page() {
                         Manage and monitor registered services across all environments
                     </p>
                 </div>
-                <div className="hidden md:block space-x-2">
-                    <Button
-                        variant={"ghost"}
-                        onClick={() => router.push("/dashboard/service-types")}
-                    >
-                        View Service Types
-                    </Button>
+                <div className="hidden md:flex flex-wrap gap-2 justify-end">
                     <Button onClick={() => router.push("/dashboard/create-service")}>
                         <PlusIcon />
                         Register Service
@@ -65,7 +63,7 @@ function Page() {
                     {loading === true ? (
                         <ServiceTableBodySkeleton />
                     ) : (
-                        <ServicesTableBody services={services} />
+                        <ServicesTableBody services={services} fetchServices={fetchServices} />
                     )}
                     <ServicesTableFooter />
                 </Table>

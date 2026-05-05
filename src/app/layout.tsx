@@ -1,5 +1,5 @@
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import { ThemeToggle } from "@/components/shared/theme";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
@@ -31,9 +31,8 @@ export default function RootLayout({
                     enableSystem
                     disableTransitionOnChange={false}
                 >
-                    {children}
+                    <TooltipProvider>{children}</TooltipProvider>
                     <Toaster />
-                    <ThemeToggle />
                 </ThemeProvider>
             </body>
         </html>

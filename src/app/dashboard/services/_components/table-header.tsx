@@ -6,10 +6,10 @@ function ServicesTableHeader() {
             <TableRow>
                 <TableHead>ID</TableHead>
                 <TableHead>Name</TableHead>
+                <TableHead>Artifact</TableHead>
                 <TableHead>Organization</TableHead>
                 <TableHead>Environment</TableHead>
                 <TableHead>Version</TableHead>
-                <TableHead>Actions</TableHead>
             </TableRow>
         </TableHeader>
     );
