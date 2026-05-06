@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import { ExternalService } from "@elixir-cloud/cloud-registry/providers";
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import ViewServiceDialogBody from "./view-service-dailog-body";
@@ -67,8 +68,11 @@ function ServiceDetailsDialog({
                 <ViewServiceDialogBody service={service} />
 
                 <DialogFooter className="px-4 py-4 border-t">
-                    <Button size="sm" onClick={() => onOpenChange(false)}>
-                        Close
+                    <Button size="sm" asChild>
+                        <Link href={`/dashboard/update-service/${service.id}`}>
+                        
+                        Edit
+                        </Link>
                     </Button>
                     <Button
                         size="sm"
