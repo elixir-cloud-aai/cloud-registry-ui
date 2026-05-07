@@ -1,8 +1,9 @@
 import { FieldGroup } from "@/components/ui/field";
+import { ServiceUpdationFormType } from "@/types/service-update-form";
 import { SelectField, TextField } from "../_fields";
 
 type Props = {
-    form: any;
+    form: ServiceUpdationFormType;
 };
 
 function ServiceEnvSection({ form }: Props) {

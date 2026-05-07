@@ -20,7 +20,7 @@ type Props = {
 
 function ServiceUpdationForm({ service }: Props) {
     const { cloudRegistryProvider } = useCloudRegistry();
-    const [updating, setUpdating] = useState(false)
+    const [updating, setUpdating] = useState(false);
     const form = useForm({
         defaultValues: normalizeFormData(service),
         validators: {
@@ -29,7 +29,7 @@ function ServiceUpdationForm({ service }: Props) {
         onSubmit: async ({ value }) => {
             if (!cloudRegistryProvider) return;
 
-            setUpdating(true)
+            setUpdating(true);
 
             const promise = cloudRegistryProvider.updateService(service.id, value);
             toast.promise(promise, {
@@ -38,9 +38,8 @@ function ServiceUpdationForm({ service }: Props) {
                 error: "Cannot update service currently.",
             });
 
-            await promise
-            setUpdating(false)
-            
+            await promise;
+            setUpdating(false);
         },
     });
 

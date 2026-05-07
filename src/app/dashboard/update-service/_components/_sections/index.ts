@@ -9,6 +9,5 @@ export {
     ServiceBasicInfoSection,
     ServiceContactInfoSection,
     ServiceEnvSection,
-    ServiceTypeSection
+    ServiceTypeSection,
 };
-

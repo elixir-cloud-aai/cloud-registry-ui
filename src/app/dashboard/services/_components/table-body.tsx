@@ -12,7 +12,7 @@ type Props = {
 function ServicesTableBody({ services, fetchServices }: Props) {
     const { cloudRegistryProvider } = useCloudRegistry();
     const [selectedService, setSelectedService] = useState<ExternalService | null>(null);
-    
+
     if (services.length === 0)
         return (
             <TableBody>

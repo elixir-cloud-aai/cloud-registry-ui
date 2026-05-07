@@ -1,8 +1,9 @@
 import { FieldGroup } from "@/components/ui/field";
+import { ServiceUpdationFormType } from "@/types/service-update-form";
 import { TextField } from "../_fields";
 
 type Props = {
-    form: any;
+    form: ServiceUpdationFormType;
 };
 
 function ServiceBasicInfoSection({ form }: Props) {
@@ -38,6 +39,5 @@ function ServiceBasicInfoSection({ form }: Props) {
         </FieldGroup>
     );
 }
-
 
 export default ServiceBasicInfoSection;

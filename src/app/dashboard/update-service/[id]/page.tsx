@@ -22,22 +22,21 @@ function Page() {
             })
             .catch(() => toast.error("Cannot fetch the service details. Please try again later."))
             .finally(() => setLoading(false));
-    }, [cloudRegistryProvider]);
+    }, [cloudRegistryProvider, id]);
 
-
-    if(loading) 
+    if (loading)
         return (
             <div className="w-full flex justify-center items-center h-full">
                 <p>Loading...</p>
             </div>
-        )
+        );
 
-    if(loading === false && !service) 
+    if (loading === false && !service)
         return (
             <div className="w-full flex justify-center items-center h-full">
                 <p>No service data found. Please try again later.</p>
             </div>
-        )
+        );
 
     return (
         <div className="max-w-5xl mx-auto mt-8">
