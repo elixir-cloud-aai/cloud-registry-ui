@@ -11,7 +11,8 @@ async function Page({ searchParams }: Props) {
     if (type === "params") message = "Invalid request parameters found.";
     else if (type === "state") message = "Invalid state found. State does not match.";
     else if (type === "logout-err")
-        message = "An internal server error occurred while logging you out. Please try logging out again.";
+        message =
+            "An internal server error occurred while logging you out. Please try logging out again.";
 
     return (
         <div className="flex w-full h-screen justify-center items-center">
