@@ -1,12 +1,13 @@
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 import Image from "next/image";
+import Link from "next/link";
 
 function AppSidebarHeader() {
     return (
         <SidebarMenu>
             <SidebarMenuItem>
                 <SidebarMenuButton size="lg" asChild isActive>
-                    <div>
+                    <Link href={"/dashboard"}>
                         <div className="flex aspect-square size-8 items-center justify-center rounded-lg">
                             <Image src={"/logo.svg"} width={40} height={40} alt="icon" />
                         </div>
@@ -14,7 +15,7 @@ function AppSidebarHeader() {
                             <span className="font-medium">Elixir Cloud AAI</span>
                             <span className="text-xs">Cloud Registry</span>
                         </div>
-                    </div>
+                    </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
         </SidebarMenu>
