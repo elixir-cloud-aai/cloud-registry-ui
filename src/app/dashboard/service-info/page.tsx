@@ -1,10 +1,14 @@
 "use client";
-import { Card } from "@/components/ui/card";
-import { useCloudRegistry } from "@/hooks";
-import { Service } from "@elixir-cloud/cloud-registry/providers";
+import type { Service } from "@elixir-cloud/cloud-registry/providers";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { CardSkeleton, ServiceInfoCardContent, ServiceInfoCardHeader } from "./_components";
+import { Card } from "@/components/ui/card";
+import { useCloudRegistry } from "@/hooks";
+import {
+    CardSkeleton,
+    ServiceInfoCardContent,
+    ServiceInfoCardHeader,
+} from "./_components";
 
 function Page() {
     const { cloudRegistryProvider } = useCloudRegistry();

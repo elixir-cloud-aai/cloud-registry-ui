@@ -20,11 +20,18 @@ type SelectFieldProps = {
     options: Option[];
 };
 
-export function SelectField({ form, name, label, placeholder, options }: SelectFieldProps) {
+export function SelectField({
+    form,
+    name,
+    label,
+    placeholder,
+    options,
+}: SelectFieldProps) {
     return (
         <form.Field name={name}>
             {(field: any) => {
-                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+                const isInvalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid;
 
                 return (
                     <Field data-invalid={isInvalid}>
@@ -34,20 +41,28 @@ export function SelectField({ form, name, label, placeholder, options }: SelectF
                             value={field.state.value}
                             onValueChange={(value) => field.handleChange(value)}
                         >
-                            <SelectTrigger aria-invalid={isInvalid} id={field.name}>
+                            <SelectTrigger
+                                aria-invalid={isInvalid}
+                                id={field.name}
+                            >
                                 <SelectValue placeholder={placeholder} />
                             </SelectTrigger>
 
                             <SelectContent>
                                 {options.map((option) => (
-                                    <SelectItem key={option.value} value={option.value}>
+                                    <SelectItem
+                                        key={option.value}
+                                        value={option.value}
+                                    >
                                         {option.label}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
 
-                        {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                        {isInvalid && (
+                            <FieldError errors={field.state.meta.errors} />
+                        )}
                     </Field>
                 );
             }}

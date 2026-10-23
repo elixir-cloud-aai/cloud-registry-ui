@@ -1,8 +1,12 @@
+import type { Service } from "@elixir-cloud/cloud-registry/providers";
+import { Building2, Clock, Settings, Tag } from "lucide-react";
 import { CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Service } from "@elixir-cloud/cloud-registry/providers";
-import { Building2, Clock, Settings, Tag } from "lucide-react";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type Props = {
     serviceInfo: Service;
@@ -13,7 +17,9 @@ function ServiceInfoCardContent({ serviceInfo }: Props) {
 
     return (
         <CardContent className="space-y-6">
-            <p className="text-sm text-slate-600 leading-relaxed">{serviceInfo.description}</p>
+            <p className="text-sm text-slate-600 leading-relaxed">
+                {serviceInfo.description}
+            </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div className="space-y-2">
@@ -30,7 +36,9 @@ function ServiceInfoCardContent({ serviceInfo }: Props) {
                                 {serviceInfo.organization.name}
                             </a>
                         </TooltipTrigger>
-                        <TooltipContent>{serviceInfo.organization.url}</TooltipContent>
+                        <TooltipContent>
+                            {serviceInfo.organization.url}
+                        </TooltipContent>
                     </Tooltip>
                 </div>
 
@@ -57,10 +65,13 @@ function ServiceInfoCardContent({ serviceInfo }: Props) {
                             {serviceInfo.type.artifact}
                         </li>
                         <li>
-                            <span className="text-slate-400">Group:</span> {serviceInfo.type.group}
+                            <span className="text-slate-400">Group:</span>{" "}
+                            {serviceInfo.type.group}
                         </li>
                         <li>
-                            <span className="text-slate-400">Spec Version:</span>
+                            <span className="text-slate-400">
+                                Spec Version:
+                            </span>
                             {serviceInfo.type.version}
                         </li>
                     </ul>
@@ -72,9 +83,17 @@ function ServiceInfoCardContent({ serviceInfo }: Props) {
                         <span className="font-medium">Lifecycle</span>
                     </div>
                     <div className="pl-6 text-xs text-slate-600 space-y-0.5">
-                        <p>Created At: {new Date(serviceInfo.createdAt).toLocaleString()}</p>
-                        <p>Updated At: {new Date(serviceInfo.updatedAt).toLocaleString()}</p>
-                        <p>Environment: {serviceInfo.environment.toUpperCase()}</p>
+                        <p>
+                            Created At:{" "}
+                            {new Date(serviceInfo.createdAt).toLocaleString()}
+                        </p>
+                        <p>
+                            Updated At:{" "}
+                            {new Date(serviceInfo.updatedAt).toLocaleString()}
+                        </p>
+                        <p>
+                            Environment: {serviceInfo.environment.toUpperCase()}
+                        </p>
                     </div>
                 </div>
             </div>

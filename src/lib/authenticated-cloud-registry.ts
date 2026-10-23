@@ -5,7 +5,7 @@
  * there is only addition of the Authorization header in all fetch calls
  */
 
-import {
+import type {
     CloudRegistryProvider,
     ExternalService,
     ExternalServiceRegister,
@@ -68,7 +68,9 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
             },
         });
         if (!response.ok) {
-            throw new Error(`Failed to fetch service types: ${response.statusText}`);
+            throw new Error(
+                `Failed to fetch service types: ${response.statusText}`,
+            );
         }
         return response.json();
     }
@@ -85,7 +87,9 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
             },
         });
         if (!response.ok) {
-            throw new Error(`Failed to fetch service info: ${response.statusText}`);
+            throw new Error(
+                `Failed to fetch service info: ${response.statusText}`,
+            );
         }
         return response.json();
     }
@@ -119,7 +123,10 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
      * @param service Service metadata to register
      * @returns Promise resolving to service identifier
      */
-    async createServiceWithId(id: string, service: ExternalServiceRegister): Promise<string> {
+    async createServiceWithId(
+        id: string,
+        service: ExternalServiceRegister,
+    ): Promise<string> {
         const encodedServiceId = encodeURIComponent(id);
         const url = `${this.baseUrl}/services/${encodedServiceId}`;
         const response = await fetch(url, {
@@ -132,7 +139,9 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
         });
 
         if (!response.ok) {
-            throw new Error(`Failed to create service with ID: ${response.statusText}`);
+            throw new Error(
+                `Failed to create service with ID: ${response.statusText}`,
+            );
         }
 
         return response.json();
@@ -144,7 +153,10 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
      * @param service Service metadata to update
      * @returns Promise resolving to service identifier
      */
-    async updateService(id: string, service: ExternalServiceRegister): Promise<string> {
+    async updateService(
+        id: string,
+        service: ExternalServiceRegister,
+    ): Promise<string> {
         const encodedServiceId = encodeURIComponent(id);
         const url = `${this.baseUrl}/services/${encodedServiceId}`;
         const response = await fetch(url, {
@@ -202,7 +214,9 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
         });
 
         if (!response.ok) {
-            throw new Error(`Failed to create/update service info: ${response.statusText}`);
+            throw new Error(
+                `Failed to create/update service info: ${response.statusText}`,
+            );
         }
     }
 }

@@ -12,7 +12,8 @@ export function TextField({ form, name, label, placeholder }: TextFieldProps) {
     return (
         <form.Field name={name}>
             {(field: any) => {
-                const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+                const isInvalid =
+                    field.state.meta.isTouched && !field.state.meta.isValid;
 
                 return (
                     <Field data-invalid={isInvalid}>
@@ -28,7 +29,9 @@ export function TextField({ form, name, label, placeholder }: TextFieldProps) {
                             aria-invalid={isInvalid}
                         />
 
-                        {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                        {isInvalid && (
+                            <FieldError errors={field.state.meta.errors} />
+                        )}
                     </Field>
                 );
             }}

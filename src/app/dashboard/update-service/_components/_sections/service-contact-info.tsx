@@ -1,5 +1,5 @@
 import { FieldGroup } from "@/components/ui/field";
-import { ServiceUpdationFormType } from "@/types/service-update-form";
+import type { ServiceUpdationFormType } from "@/types/service-update-form";
 import { TextField } from "../_fields";
 
 type Props = {

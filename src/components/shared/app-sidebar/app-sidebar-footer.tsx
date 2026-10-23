@@ -1,10 +1,17 @@
 "use client";
+import { ChevronsUpDown } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { DropdownMenu, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+} from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserInfo } from "@/hooks";
-import { ChevronsUpDown } from "lucide-react";
 import AppSidebarFooterMenu from "./app-sidebar-footer-menu";
 
 export function AppSidebarFooter() {
@@ -45,7 +52,9 @@ export function AppSidebarFooter() {
                                 <span className="truncate font-medium">
                                     {user?.name || "Anonymous"}
                                 </span>
-                                <span className="truncate text-xs">{user?.email || user?.sub}</span>
+                                <span className="truncate text-xs">
+                                    {user?.email || user?.sub}
+                                </span>
                             </div>
                             <ChevronsUpDown className="ml-auto size-4" />
                         </SidebarMenuButton>

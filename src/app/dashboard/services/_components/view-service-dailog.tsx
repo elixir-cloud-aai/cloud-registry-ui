@@ -1,4 +1,8 @@
 "use client";
+import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
+import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -8,11 +12,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
-import { ExternalService } from "@elixir-cloud/cloud-registry/providers";
-import Link from "next/link";
-import { useState } from "react";
-import { toast } from "sonner";
+import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import ViewServiceDialogBody from "./view-service-dailog-body";
 
 type Props = {
@@ -59,7 +59,9 @@ function ServiceDetailsDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden">
                 <DialogHeader className="px-4 py-4 border-b">
-                    <DialogTitle className="text-lg font-bold">Artifact Details</DialogTitle>
+                    <DialogTitle className="text-lg font-bold">
+                        Artifact Details
+                    </DialogTitle>
                     <DialogDescription>
                         Complete metadata for {service.id} deployment.
                     </DialogDescription>
@@ -69,7 +71,9 @@ function ServiceDetailsDialog({
 
                 <DialogFooter className="px-4 py-4 border-t">
                     <Button size="sm" asChild>
-                        <Link href={`/dashboard/update-service/${service.id}`}>Edit</Link>
+                        <Link href={`/dashboard/update-service/${service.id}`}>
+                            Edit
+                        </Link>
                     </Button>
                     <Button
                         size="sm"

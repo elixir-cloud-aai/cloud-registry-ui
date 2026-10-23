@@ -25,7 +25,9 @@ function Field({
                     {value}
                 </a>
             ) : (
-                <span className={`text-sm text-foreground break-all ${mono ? "font-mono" : ""}`}>
+                <span
+                    className={`text-sm text-foreground break-all ${mono ? "font-mono" : ""}`}
+                >
                     {value}
                 </span>
             )}

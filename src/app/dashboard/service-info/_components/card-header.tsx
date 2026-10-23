@@ -1,9 +1,13 @@
 "use client";
+import type { Service } from "@elixir-cloud/cloud-registry/providers";
+import { BookOpen, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Service } from "@elixir-cloud/cloud-registry/providers";
-import { BookOpen, ExternalLink } from "lucide-react";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type Props = {
     serviceInfo: Service;
@@ -18,7 +22,11 @@ function ServiceInfoCardHeader({ serviceInfo }: Props) {
                     <CardTitle className="text-xl font-bold flex items-center gap-2">
                         {serviceInfo.name}
                         <Badge
-                            variant={serviceInfo.environment === "dev" ? "outline" : "default"}
+                            variant={
+                                serviceInfo.environment === "dev"
+                                    ? "outline"
+                                    : "default"
+                            }
                             className="capitalize"
                         >
                             {serviceInfo.environment}
@@ -35,6 +43,7 @@ function ServiceInfoCardHeader({ serviceInfo }: Props) {
                                 href={serviceInfo.documentationUrl}
                                 target="_blank"
                                 className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                                rel="noopener"
                             >
                                 <BookOpen className="w-4 h-4 text-slate-500" />
                             </a>
@@ -47,6 +56,7 @@ function ServiceInfoCardHeader({ serviceInfo }: Props) {
                                 href={serviceInfo.contactUrl}
                                 target="_blank"
                                 className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                                rel="noopener"
                             >
                                 <ExternalLink className="w-4 h-4 text-slate-500" />
                             </a>

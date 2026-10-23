@@ -1,7 +1,7 @@
 import { deleteCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 
 export async function GET(req: NextRequest) {
     try {

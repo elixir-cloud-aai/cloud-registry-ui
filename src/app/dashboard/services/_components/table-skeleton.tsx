@@ -1,7 +1,14 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 
-const columnWidths = ["w-[40px]", "w-[70px]", "w-[110px]", "w-[80px]", "w-[55px]", "w-[40px]"];
+const columnWidths = [
+    "w-[40px]",
+    "w-[70px]",
+    "w-[110px]",
+    "w-[80px]",
+    "w-[55px]",
+    "w-[40px]",
+];
 
 function ServiceTableBodySkeleton() {
     return (

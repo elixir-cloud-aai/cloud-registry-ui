@@ -1,6 +1,6 @@
-import { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import { getCookie } from "cookies-next/client";
 import { useEffect, useState } from "react";
+import { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 
 function useCloudRegistry() {
     const [cloudRegistryProvider, setCloudRegistryProvider] =
