@@ -13,6 +13,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useUserInfo } from "@/hooks";
 import AppSidebarFooterMenu from "./app-sidebar-footer-menu";
+import AppSidebarFooterMenuNoUser from "./app-sidebar-footer-menu-nologin";
 
 export function AppSidebarFooter() {
     const { user, loading } = useUserInfo();
@@ -60,6 +61,7 @@ export function AppSidebarFooter() {
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
                     {user && <AppSidebarFooterMenu user={user} />}
+                    {!user && <AppSidebarFooterMenuNoUser />}
                 </DropdownMenu>
             </SidebarMenuItem>
         </SidebarMenu>
