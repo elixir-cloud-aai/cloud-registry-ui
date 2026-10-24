@@ -1,8 +1,8 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import { ExternalService } from "@elixir-cloud/cloud-registry/providers";
+import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { BuildingIcon, ClockIcon, StarIcon } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { Field, SectionCard } from "./service-dailog-card-misc";
 
 type Props = {
@@ -37,33 +37,58 @@ function ViewServiceDialogBody({ service }: Props) {
 
             <div>
                 <SectionCard
-                    icon={<BuildingIcon className="size-3.5 text-muted-foreground" />}
+                    icon={
+                        <BuildingIcon className="size-3.5 text-muted-foreground" />
+                    }
                     title="Organization"
                 >
                     <div className="grid grid-cols-2 gap-4">
-                        <Field label="Name" value={service.organization?.name} />
-                        <Field label="Internal URL" value={service.organization?.url} isLink />
+                        <Field
+                            label="Name"
+                            value={service.organization?.name}
+                        />
+                        <Field
+                            label="Internal URL"
+                            value={service.organization?.url}
+                            isLink
+                        />
                     </div>
                 </SectionCard>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
                 <SectionCard
-                    icon={<StarIcon className="size-3.5 text-muted-foreground" />}
+                    icon={
+                        <StarIcon className="size-3.5 text-muted-foreground" />
+                    }
                     title="Type Spec"
                 >
                     <div className="flex flex-col gap-3">
-                        <Field label="Artifact" value={service.type?.artifact} mono />
+                        <Field
+                            label="Artifact"
+                            value={service.type?.artifact}
+                            mono
+                        />
                         <Field label="Group" value={service.type?.group} mono />
-                        <Field label="Version" value={service.type?.version} mono />
+                        <Field
+                            label="Version"
+                            value={service.type?.version}
+                            mono
+                        />
                     </div>
                 </SectionCard>
                 <SectionCard
-                    icon={<ClockIcon className="size-3.5 text-muted-foreground" />}
+                    icon={
+                        <ClockIcon className="size-3.5 text-muted-foreground" />
+                    }
                     title="Endpoint"
                 >
                     <div className="flex flex-col gap-3">
-                        <Field label="Deploy Version" value={service.version} mono />
+                        <Field
+                            label="Deploy Version"
+                            value={service.version}
+                            mono
+                        />
                         <Field label="Source URL" value={service.url} isLink />
                     </div>
                 </SectionCard>

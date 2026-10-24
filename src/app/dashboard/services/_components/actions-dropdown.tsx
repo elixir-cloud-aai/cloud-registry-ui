@@ -1,3 +1,7 @@
+import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
+import { MoreHorizontalIcon } from "lucide-react";
+import Link from "next/link";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -6,11 +10,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
-import { ExternalService } from "@elixir-cloud/cloud-registry/providers";
-import { MoreHorizontalIcon } from "lucide-react";
-import Link from "next/link";
-import { toast } from "sonner";
+import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 
 type Props = {
     cloudRegistryProvider: AuthenticatedCloudRegistryProvider | null;
@@ -20,7 +20,8 @@ type Props = {
 };
 
 function ActionDropdown(props: Props) {
-    const { cloudRegistryProvider, rowData, fetchServices, onViewDetails } = props;
+    const { cloudRegistryProvider, rowData, fetchServices, onViewDetails } =
+        props;
 
     const handleServiceDelete = async (id: string) => {
         if (!cloudRegistryProvider) return;
@@ -50,9 +51,13 @@ function ActionDropdown(props: Props) {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onViewDetails(rowData)}>View</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onViewDetails(rowData)}>
+                    View
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                    <Link href={`/dashboard/update-service/${rowData.id}`}>Edit</Link>
+                    <Link href={`/dashboard/update-service/${rowData.id}`}>
+                        Edit
+                    </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

@@ -13,7 +13,9 @@ function AppBreadcrumb() {
         <Breadcrumb>
             <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink href="/dashboard">Cloud Registry</BreadcrumbLink>
+                    <BreadcrumbLink href="/dashboard">
+                        Cloud Registry
+                    </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>

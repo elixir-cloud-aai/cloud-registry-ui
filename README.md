@@ -27,6 +27,7 @@ bun run dev
 
 
 ### Docker
+
 ```
 docker build -t cloud-registry-ui .
 docker run -p 3000:3000 cloud-registry-ui

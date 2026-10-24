@@ -7,24 +7,23 @@ We welcome contributions of all kinds—bug fixes, new features, documentation, 
 
 ## Table of Contents
 
-* [Ways to Contribute](#ways-to-contribute)
-* [Getting Started](#getting-started)
-* [Development Workflow](#development-workflow)
-* [Pull Request Process](#pull-request-process)
-* [Reporting Issues](#reporting-issues)
-* [Style Guidelines](#style-guidelines)
+- [Ways to Contribute](#ways-to-contribute)
+- [Getting Started](#getting-started)
+- [Development Workflow](#development-workflow)
+- [Pull Request Process](#pull-request-process)
+- [Reporting Issues](#reporting-issues)
+- [Style Guidelines](#style-guidelines)
 
 
 
 ## Ways to Contribute
 
 You can contribute in several ways:
-
-* Reporting bugs
-* Suggesting features
-* Improving documentation
-* Submitting code fixes or enhancements
-* Sharing ideas and feedback
+- Reporting bugs
+- Suggesting features
+- Improving documentation
+- Submitting code fixes or enhancements
+- Sharing ideas and feedback
 
 
 
@@ -66,15 +65,14 @@ git checkout -b feature/short-description
 ```
 
 Branch naming examples:
-
-* `feat/add-login`
-* `fix/navbar-bug`
-* `docs/update-readme`
+- `feat/add-login`
+- `fix/navbar-bug`
+- `docs/update-readme`
 
 
 ### Commit Guidelines
 
-Please refer to [this article] for more information.(https://github.com/elixir-cloud-aai/elixir-cloud-aai/blob/dev/resources/contributing_guidelines.md#commit-messages). 
+Please refer to [this article] for more information.(https://github.com/elixir-cloud-aai/elixir-cloud-aai/blob/dev/resources/contributing_guidelines.md#commit-messages).
 
 
 
@@ -100,21 +98,20 @@ git push origin your-branch-name
 ## Reporting Issues
 
 When creating an issue, please include:
-
-* Clear title and description
-* Steps to reproduce
-* Expected vs actual behavior
-* Screenshots (if helpful)
-* Environment details (OS, version, etc.)
+- Clear title and description
+- Steps to reproduce
+- Expected vs actual behavior
+- Screenshots (if helpful)
+- Environment details (OS, version, etc.)
 
 
 
 ## Style Guidelines
 
-* Follow existing project structure
-* Keep functions small and focused
-* Add comments where necessary
-* Use meaningful variable names
+- Follow existing project structure
+- Keep functions small and focused
+- Add comments where necessary
+- Use meaningful variable names
 
 
 

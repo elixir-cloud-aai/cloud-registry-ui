@@ -9,10 +9,18 @@ type Props = {
 function ActionButton({ form, updating }: Props) {
     return (
         <Field orientation="horizontal" className="justify-end mt-4">
-            <Button type="button" variant="outline" onClick={() => form.reset()}>
+            <Button
+                type="button"
+                variant="outline"
+                onClick={() => form.reset()}
+            >
                 Reset
             </Button>
-            <Button type="submit" form="service-updation-form" disabled={updating}>
+            <Button
+                type="submit"
+                form="service-updation-form"
+                disabled={updating}
+            >
                 {updating ? "Updating..." : "Submit"}
             </Button>
         </Field>

@@ -22,24 +22,31 @@ export function TextareaField({
         <div className={className}>
             <form.Field name={name}>
                 {(field: any) => {
-                    const isInvalid = field.state.meta.isTouched && !field.state.meta.isValid;
+                    const isInvalid =
+                        field.state.meta.isTouched && !field.state.meta.isValid;
 
                     return (
                         <Field data-invalid={isInvalid}>
-                            <FieldLabel htmlFor={field.name}>{label}</FieldLabel>
+                            <FieldLabel htmlFor={field.name}>
+                                {label}
+                            </FieldLabel>
 
                             <Textarea
                                 id={field.name}
                                 name={field.name}
                                 value={field.state.value ?? ""}
                                 onBlur={field.handleBlur}
-                                onChange={(e) => field.handleChange(e.target.value)}
+                                onChange={(e) =>
+                                    field.handleChange(e.target.value)
+                                }
                                 placeholder={placeholder}
                                 rows={rows}
                                 aria-invalid={isInvalid}
                             />
 
-                            {isInvalid && <FieldError errors={field.state.meta.errors} />}
+                            {isInvalid && (
+                                <FieldError errors={field.state.meta.errors} />
+                            )}
                         </Field>
                     );
                 }}

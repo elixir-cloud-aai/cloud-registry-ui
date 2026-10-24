@@ -1,7 +1,7 @@
+import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
+import { useState } from "react";
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useCloudRegistry } from "@/hooks";
-import { ExternalService } from "@elixir-cloud/cloud-registry/providers";
-import { useState } from "react";
 import ServiceDetailsDialog from "./view-service-dailog";
 
 type Props = {
@@ -11,7 +11,8 @@ type Props = {
 
 function ServicesTableBody({ services, fetchServices }: Props) {
     const { cloudRegistryProvider } = useCloudRegistry();
-    const [selectedService, setSelectedService] = useState<ExternalService | null>(null);
+    const [selectedService, setSelectedService] =
+        useState<ExternalService | null>(null);
 
     if (services.length === 0)
         return (

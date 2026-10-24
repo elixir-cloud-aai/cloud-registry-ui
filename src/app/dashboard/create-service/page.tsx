@@ -1,12 +1,12 @@
 "use client";
-import { useCloudRegistry } from "@/hooks";
-import {
+import type {
     EccServiceCreatedEvent,
     EccServiceCreateFailedEvent,
     EccServiceCreateValidationFailedEvent,
 } from "@elixir-cloud/cloud-registry/events";
 import { ECCClientElixirCloudRegistryServiceCreate } from "@elixir-cloud/cloud-registry/react";
 import { toast } from "sonner";
+import { useCloudRegistry } from "@/hooks";
 
 function Page() {
     const { cloudRegistryProvider } = useCloudRegistry();

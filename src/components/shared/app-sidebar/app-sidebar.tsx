@@ -1,4 +1,6 @@
 "use client";
+import { Layers, Wrench } from "lucide-react";
+import Link from "next/link";
 import {
     Sidebar,
     SidebarContent,
@@ -11,8 +13,6 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Layers, Wrench } from "lucide-react";
-import Link from "next/link";
 import { AppSidebarFooter } from "./app-sidebar-footer";
 import AppSidebarHeader from "./app-sidebar-header";
 
@@ -21,7 +21,11 @@ const data = [
         title: "Resources",
         items: [
             { title: "Services", url: "/dashboard/services", icon: Wrench },
-            { title: "Service Types", url: "/dashboard/service-types", icon: Layers },
+            {
+                title: "Service Types",
+                url: "/dashboard/service-types",
+                icon: Layers,
+            },
         ],
     },
 ];

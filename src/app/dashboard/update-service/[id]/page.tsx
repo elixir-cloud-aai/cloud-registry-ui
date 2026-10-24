@@ -1,9 +1,9 @@
 "use client";
-import { useCloudRegistry } from "@/hooks";
-import { ExternalService } from "@elixir-cloud/cloud-registry/providers";
+import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useCloudRegistry } from "@/hooks";
 import { ServiceUpdationForm } from "../_components";
 
 function Page() {
@@ -20,7 +20,11 @@ function Page() {
                 setService(_val);
                 console.log(_val);
             })
-            .catch(() => toast.error("Cannot fetch the service details. Please try again later."))
+            .catch(() =>
+                toast.error(
+                    "Cannot fetch the service details. Please try again later.",
+                ),
+            )
             .finally(() => setLoading(false));
     }, [cloudRegistryProvider, id]);
 

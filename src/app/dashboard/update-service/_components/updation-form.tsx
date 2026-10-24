@@ -1,9 +1,9 @@
 "use client";
-import { useCloudRegistry } from "@/hooks";
-import { ExternalService } from "@elixir-cloud/cloud-registry/providers";
+import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useCloudRegistry } from "@/hooks";
 import { TextareaField } from "./_fields/textarea-field";
 import {
     ServiceActionButton,
@@ -31,10 +31,14 @@ function ServiceUpdationForm({ service }: Props) {
 
             setUpdating(true);
 
-            const promise = cloudRegistryProvider.updateService(service.id, value);
+            const promise = cloudRegistryProvider.updateService(
+                service.id,
+                value,
+            );
             toast.promise(promise, {
                 loading: `Updating service with ID - ${service.id}`,
-                success: (response) => `Successfully updated service with id - ${response}`,
+                success: (response) =>
+                    `Successfully updated service with id - ${response}`,
                 error: "Cannot update service currently.",
             });
 

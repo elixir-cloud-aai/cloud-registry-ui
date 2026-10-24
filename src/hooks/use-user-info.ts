@@ -1,4 +1,4 @@
-import { AxiosError } from "axios";
+import type { AxiosError } from "axios";
 import { useCallback, useEffect, useState } from "react";
 
 type UserInfoResponse = {

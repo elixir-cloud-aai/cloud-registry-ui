@@ -1,16 +1,20 @@
 "use client";
 
-import * as React from "react";
+import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { Select as SelectPrimitive } from "radix-ui";
-
+import type * as React from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react";
 
-function Select({ ...props }: React.ComponentProps<typeof SelectPrimitive.Root>) {
+function Select({
+    ...props
+}: React.ComponentProps<typeof SelectPrimitive.Root>) {
     return <SelectPrimitive.Root data-slot="select" {...props} />;
 }
 
-function SelectGroup({ className, ...props }: React.ComponentProps<typeof SelectPrimitive.Group>) {
+function SelectGroup({
+    className,
+    ...props
+}: React.ComponentProps<typeof SelectPrimitive.Group>) {
     return (
         <SelectPrimitive.Group
             data-slot="select-group"
@@ -20,7 +24,9 @@ function SelectGroup({ className, ...props }: React.ComponentProps<typeof Select
     );
 }
 
-function SelectValue({ ...props }: React.ComponentProps<typeof SelectPrimitive.Value>) {
+function SelectValue({
+    ...props
+}: React.ComponentProps<typeof SelectPrimitive.Value>) {
     return <SelectPrimitive.Value data-slot="select-value" {...props} />;
 }
 
@@ -88,11 +94,17 @@ function SelectContent({
     );
 }
 
-function SelectLabel({ className, ...props }: React.ComponentProps<typeof SelectPrimitive.Label>) {
+function SelectLabel({
+    className,
+    ...props
+}: React.ComponentProps<typeof SelectPrimitive.Label>) {
     return (
         <SelectPrimitive.Label
             data-slot="select-label"
-            className={cn("px-3 py-2.5 text-xs text-muted-foreground", className)}
+            className={cn(
+                "px-3 py-2.5 text-xs text-muted-foreground",
+                className,
+            )}
             {...props}
         />
     );
@@ -129,7 +141,10 @@ function SelectSeparator({
     return (
         <SelectPrimitive.Separator
             data-slot="select-separator"
-            className={cn("pointer-events-none -mx-1.5 my-1.5 h-px bg-border", className)}
+            className={cn(
+                "pointer-events-none -mx-1.5 my-1.5 h-px bg-border",
+                className,
+            )}
             {...props}
         />
     );

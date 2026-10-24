@@ -1,5 +1,5 @@
 import { FieldGroup } from "@/components/ui/field";
-import { ServiceUpdationFormType } from "@/types/service-update-form";
+import type { ServiceUpdationFormType } from "@/types/service-update-form";
 import { SelectField, TextField } from "../_fields";
 
 type Props = {
@@ -9,7 +9,12 @@ type Props = {
 function ServiceEnvSection({ form }: Props) {
     return (
         <FieldGroup className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <TextField form={form} name="version" label="Service Version" placeholder="1.0.0" />
+            <TextField
+                form={form}
+                name="version"
+                label="Service Version"
+                placeholder="1.0.0"
+            />
 
             <SelectField
                 form={form}
