@@ -58,7 +58,7 @@ function Page() {
                 </div>
                 <div className="hidden md:flex flex-wrap gap-2 justify-end">
                     <Button
-                        onClick={() => router.push("/dashboard/create-service")}
+                        onClick={() => router.push("/dashboard/services/create")}
                     >
                         <PlusIcon />
                         Register Service

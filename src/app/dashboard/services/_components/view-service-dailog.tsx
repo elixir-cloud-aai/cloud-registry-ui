@@ -71,7 +71,7 @@ function ServiceDetailsDialog({
 
                 <DialogFooter className="px-4 py-4 border-t">
                     <Button size="sm" asChild>
-                        <Link href={`/dashboard/update-service/${service.id}`}>
+                        <Link href={`/dashboard/services/update/${service.id}`}>
                             Edit
                         </Link>
                     </Button>
