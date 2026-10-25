@@ -4,7 +4,6 @@ import type {
   ExternalService,
   ExternalServiceRegister,
   Service,
-  ServiceRegister,
   ServiceType,
 } from "@elixir-cloud/cloud-registry/providers";
 
@@ -436,22 +435,6 @@ class AuthenticatedCloudRegistryProvider
    */
   async getServiceInfo(): Promise<Service> {
     return this.request("/service-info");
-  }
-
-  /**
-   * POST /service-info
-   * Authenticated.
-   *
-   * Create or update service info.
-   */
-  async createOrUpdateServiceInfo(
-    service: ServiceRegister,
-  ): Promise<void> {
-    return this.request("/service-info", {
-      method: "POST",
-      body: service,
-      authenticated: true,
-    });
   }
 }
 
