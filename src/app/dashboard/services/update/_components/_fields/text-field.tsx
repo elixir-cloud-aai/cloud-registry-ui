@@ -1,4 +1,9 @@
-import { Field, FieldError, FieldLabel } from "@/components/ui/field";
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 
 type TextFieldProps = {
@@ -6,9 +11,16 @@ type TextFieldProps = {
     name: string;
     label: string;
     placeholder?: string;
+    description?: string;
 };
 
-export function TextField({ form, name, label, placeholder }: TextFieldProps) {
+export function TextField({
+    form,
+    name,
+    label,
+    placeholder,
+    description,
+}: TextFieldProps) {
     return (
         <form.Field name={name}>
             {(field: any) => {
@@ -28,6 +40,10 @@ export function TextField({ form, name, label, placeholder }: TextFieldProps) {
                             placeholder={placeholder}
                             aria-invalid={isInvalid}
                         />
+
+                        {description && (
+                            <FieldDescription>{description}</FieldDescription>
+                        )}
 
                         {isInvalid && (
                             <FieldError errors={field.state.meta.errors} />
