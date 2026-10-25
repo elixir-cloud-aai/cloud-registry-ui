@@ -64,6 +64,8 @@ function ServiceDetailsDialog({
             fetchServices();
             onOpenChange(false);
         } catch {
+            // toast.promise shows the error
+        } finally {
             setIsDeleting(false);
         }
     };
