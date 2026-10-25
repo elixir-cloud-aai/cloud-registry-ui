@@ -31,6 +31,25 @@ const serviceEnvironments =
 const environmentMessage = `Environment must be one of: ${serviceEnvironments.map((value) => `'${value}'`).join(", ")}.`;
 
 /**
+ * Check the environment setting; invalid values stop the build
+ * @throws Error naming the invalid value
+ */
+function environmentSettings() {
+    if (configured.length > 1 && configured.includes(anyEnvironment))
+        throw new Error(
+            `Invalid setting NEXT_PUBLIC_SERVICE_ENVIRONMENTS: "${anyEnvironment}" allows any environment and can't be combined with other values`,
+        );
+    // characters, not UTF-16 code units
+    const long = serviceEnvironments.find(
+        (value) => [...value].length > maxEnvironmentLength,
+    );
+    if (long !== undefined)
+        throw new Error(
+            `Invalid setting NEXT_PUBLIC_SERVICE_ENVIRONMENTS: "${long}" has more than ${maxEnvironmentLength} characters`,
+        );
+}
+
+/**
  * Check whether the registry accepts an environment
  * @param value Environment, if any
  * @returns Whether it is empty or allowed
@@ -56,6 +75,7 @@ function environmentRank(value: string) {
 export {
     environmentMessage,
     environmentRank,
+    environmentSettings,
     isAllowedEnvironment,
     maxEnvironmentLength,
     serviceEnvironments,
