@@ -5,14 +5,21 @@ import type {
     EccServiceCreateValidationFailedEvent,
 } from "@elixir-cloud/cloud-registry/events";
 import { ECCClientElixirCloudRegistryServiceCreate } from "@elixir-cloud/cloud-registry/react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { useCloudRegistry, useMe } from "@/hooks";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 
 function Page() {
     const { cloudRegistryProvider } = useCloudRegistry();
-    const { me, loading } = useMe();
+    const { me, loading, error } = useMe();
+
+    useEffect(() => {
+        if (error)
+            toast.error(
+                "Could not check your permissions; if your session expired, log in again.",
+            );
+    }, [error]);
 
     // cloud-components gap: the create component can't hide the custom ID
     // field, so non-admins get an error before the request instead
