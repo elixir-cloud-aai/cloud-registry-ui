@@ -1,7 +1,5 @@
-import type {
-    ExternalService,
-    ExternalServiceRegister,
-} from "@elixir-cloud/cloud-registry/providers";
+import type { ExternalServiceRegister } from "@elixir-cloud/cloud-registry/providers";
+import type { DeepKeys } from "@tanstack/react-form";
 import { z } from "zod";
 
 const httpUrl = z.url({ protocol: z.regexes.httpProtocol });
@@ -13,6 +11,36 @@ const serviceUrlSchemes = configuredSchemes.length
     ? configuredSchemes
     : ["https"];
 const contactUrl = z.url({ protocol: /^(https?|mailto)$/ });
+// as the registry checks timestamps (`is_date_time()` of cloud-registry)
+const dateTime =
+    /^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:[Zz]|[+-](\d{2}):(\d{2}))$/;
+const isDateTime = (value: string) => {
+    const match = dateTime.exec(value);
+    if (!match) return false;
+    const [year, month, day, hour, minute, second, offsetHour, offsetMinute] =
+        match.slice(1).map((part) => Number(part ?? 0));
+    const leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+    const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    return (
+        year >= 1 &&
+        month >= 1 &&
+        month <= 12 &&
+        day >= 1 &&
+        day <= days[month - 1] &&
+        hour < 24 &&
+        minute < 60 &&
+        second <= 60 &&
+        offsetHour < 24 &&
+        offsetMinute < 60
+    );
+};
+const timestamp = (label: string) =>
+    z
+        .string()
+        .refine(
+            (value) => value === "" || isDateTime(value),
+            `${label} must be an RFC 3339 date-time, e.g. 2024-01-01T00:00:00Z.`,
+        );
 const hasNoUserInfoOrSpaces = (value: string) =>
     !/\s|^https?:\/\/[^/?#]*@/i.test(value);
 
@@ -105,11 +133,32 @@ export const formDataSchema = z.object({
     environment: z
         .string()
         .max(256, "Environment must be at most 256 characters."),
+    createdAt: timestamp("Created At"),
 });
 
 export type FormData = z.infer<typeof formDataSchema>;
 
-export function normalizeFormData(data?: Partial<FormData>): FormData {
+export const formFields = [
+    "name",
+    "url",
+    "organization.name",
+    "organization.url",
+    "type.group",
+    "type.artifact",
+    "type.version",
+    "version",
+    "environment",
+    "description",
+    "contactUrl",
+    "documentationUrl",
+    "createdAt",
+] as const satisfies readonly DeepKeys<FormData>[];
+
+// timestamps only for admins
+export function normalizeFormData(
+    data?: Partial<FormData>,
+    admin = false,
+): FormData {
     return {
         name: data?.name ?? "",
         url: data?.url ?? "",
@@ -118,6 +167,7 @@ export function normalizeFormData(data?: Partial<FormData>): FormData {
         contactUrl: data?.contactUrl ?? "",
         documentationUrl: data?.documentationUrl ?? "",
         environment: data?.environment ?? "",
+        createdAt: admin ? (data?.createdAt ?? "") : "",
         organization: {
             name: data?.organization?.name ?? "",
             url: data?.organization?.url ?? "",
@@ -131,9 +181,11 @@ export function normalizeFormData(data?: Partial<FormData>): FormData {
     };
 }
 
+// the registry keeps the creation time that admins send, so it is sent
+// only if changed; it always sets the update time of existing services
 export function normalizeServiceData(
-    data: FormData,
-    service?: Partial<ExternalService>,
+    { createdAt, ...data }: FormData,
+    initial?: FormData,
 ): ExternalServiceRegister {
     return {
         ...data,
@@ -142,7 +194,8 @@ export function normalizeServiceData(
         contactUrl: data.contactUrl || undefined,
         documentationUrl: data.documentationUrl || undefined,
         environment: data.environment || undefined,
-        createdAt: service?.createdAt,
-        updatedAt: service?.updatedAt,
+        ...(initial &&
+            createdAt &&
+            createdAt !== initial.createdAt && { createdAt }),
     };
 }

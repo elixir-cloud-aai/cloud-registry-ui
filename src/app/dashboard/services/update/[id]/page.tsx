@@ -96,6 +96,7 @@ function Page() {
                     key={JSON.stringify(service)}
                     service={service}
                     verification={verification}
+                    admin={me?.admin}
                     disabled={refreshing}
                     onServiceUpdated={onServiceUpdated}
                 />

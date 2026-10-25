@@ -1,4 +1,5 @@
 import { SelectField } from "./dropdown-field";
+import { ReadOnlyField } from "./read-only-field";
 import { TextField } from "./text-field";
 
-export { SelectField, TextField };
+export { ReadOnlyField, SelectField, TextField };

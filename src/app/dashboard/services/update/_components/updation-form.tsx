@@ -7,11 +7,20 @@ import { toast } from "sonner";
 import { UnsavedChangesGuard } from "@/components/shared/unsaved-changes-guard";
 import { useCloudRegistry } from "@/hooks";
 import type { Verification } from "@/lib/cloud-registry.types";
-import { duplicateToast, isDuplicate, mutationError } from "@/lib/errors";
+import {
+    duplicateMessage,
+    duplicateToast,
+    errorField,
+    errorMessage,
+    isDuplicate,
+    mutationError,
+} from "@/lib/errors";
 import { matchesVerification } from "@/lib/verifications";
+import { ReadOnlyField } from "./_fields";
 import { TextareaField } from "./_fields/textarea-field";
 import {
     ServiceActionButton,
+    ServiceAdvancedSection,
     ServiceBasicInfoSection,
     ServiceContactInfoSection,
     ServiceEnvSection,
@@ -19,6 +28,7 @@ import {
 } from "./_sections";
 import {
     formDataSchema,
+    formFields,
     normalizeFormData,
     normalizeServiceData,
 } from "./form-helper";
@@ -26,6 +36,7 @@ import {
 type Props = {
     service: ExternalService;
     verification?: Verification;
+    admin?: boolean;
     disabled?: boolean;
     onServiceUpdated?: (service: ExternalService) => void;
 };
@@ -33,22 +44,24 @@ type Props = {
 function ServiceUpdationForm({
     service,
     verification,
+    admin = false,
     disabled,
     onServiceUpdated,
 }: Props) {
     const { cloudRegistryProvider } = useCloudRegistry();
     const [updating, setUpdating] = useState(false);
+    const initial = normalizeFormData(service, admin);
     const form = useForm({
-        defaultValues: normalizeFormData(service),
+        defaultValues: initial,
         validators: {
-            onSubmit: formDataSchema,
+            onChange: formDataSchema,
         },
         onSubmit: async ({ value }) => {
             if (!cloudRegistryProvider) return;
 
             setUpdating(true);
 
-            const data = normalizeServiceData(value, service);
+            const data = normalizeServiceData(value, initial);
             const promise = cloudRegistryProvider.updateService(
                 service.id,
                 data,
@@ -70,17 +83,21 @@ function ServiceUpdationForm({
                 await promise;
                 onServiceUpdated?.({ ...service, ...data });
             } catch (err) {
-                // toast.promise shows the error; a duplicate is also shown
-                // on the URL field, until a field changes or loses focus
-                if (isDuplicate(err))
-                    form.setFieldMeta("url", (prev) => ({
+                // toast.promise shows the error; a duplicate or a field the
+                // registry rejected is also shown on the field, until a
+                // field changes or loses focus
+                const duplicate = isDuplicate(err);
+                const field = duplicate ? "url" : errorField(err, formFields);
+                if (field)
+                    form.setFieldMeta(field, (prev) => ({
                         ...prev,
                         isTouched: true,
                         errorMap: {
                             ...prev.errorMap,
                             onServer: {
-                                message:
-                                    "A service with this URL and API type is already registered.",
+                                message: duplicate
+                                    ? duplicateMessage
+                                    : errorMessage(err, ""),
                             },
                         },
                         errorSourceMap: {
@@ -110,16 +127,28 @@ function ServiceUpdationForm({
                 disabled={updating || disabled}
                 className="min-w-0 space-y-4"
             >
+                <ReadOnlyField
+                    id="serviceId"
+                    label="Service ID"
+                    value={service.id}
+                    description="The ID can't be changed."
+                />
                 <ServiceBasicInfoSection form={form} />
                 <ServiceTypeSection form={form} />
                 <ServiceEnvSection form={form} />
+                <ServiceContactInfoSection form={form} />
                 <TextareaField
                     form={form}
                     name="description"
                     label="Description"
                     placeholder="Provide a detailed description of what your service does"
                 />
-                <ServiceContactInfoSection form={form} />
+                {admin && (
+                    <ServiceAdvancedSection
+                        form={form}
+                        updatedAt={service.updatedAt}
+                    />
+                )}
                 {verification && (
                     <form.Subscribe selector={(state) => state.values}>
                         {(values) =>
