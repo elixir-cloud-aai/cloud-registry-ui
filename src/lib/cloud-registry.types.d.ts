@@ -56,6 +56,8 @@ export interface ServiceRole {
  */
 export interface Me {
   admin: boolean;
+  /** Whether the caller may add service types (cloud-registry#235). */
+  may_add_service_types?: boolean;
   services: ServiceRole[];
   user_id: UserId;
 }

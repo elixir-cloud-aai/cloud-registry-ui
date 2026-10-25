@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
+import { PageSubtitle } from "@/components/shared/page-subtitle";
 import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/table";
 import { useCloudRegistry, useMe, usePagination } from "@/hooks";
@@ -32,7 +33,7 @@ const pageSize = 10;
 function Page() {
     const router = useRouter();
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
-    const { me, expired } = useMe();
+    const { me, loading: meLoading, expired } = useMe();
     const [services, setServices] = useState<ExternalService[]>([]);
     const [verifications, setVerifications] = useState<ServiceVerification[]>(
         [],
@@ -118,10 +119,13 @@ function Page() {
                     <h2 className="text-3xl font-semibold tracking-tight mt-2">
                         Services
                     </h2>
-                    <p className="leading-7 mt-2">
-                        Manage and monitor registered services across all
-                        environments
-                    </p>
+                    <PageSubtitle
+                        me={me}
+                        loading={meLoading}
+                        guest="View our registered services"
+                        user="View our registered services and manage your own"
+                        admin="View and manage all services"
+                    />
                 </div>
                 <div className="hidden md:flex flex-wrap gap-2 justify-end">
                     {isLoggedIn && !expired ? (
