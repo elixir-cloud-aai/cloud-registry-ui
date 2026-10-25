@@ -9,7 +9,10 @@ import { useCloudRegistry } from "./use-cloud-registry";
 
 export function useServiceVerification(service?: ExternalService) {
     const { cloudRegistryProvider } = useCloudRegistry();
-    const [verification, setVerification] = useState<Verification>();
+    const [state, setState] = useState<{
+        service: ExternalService;
+        verification?: Verification;
+    }>();
 
     useEffect(() => {
         if (!service) return;
@@ -18,13 +21,16 @@ export function useServiceVerification(service?: ExternalService) {
             ?.getServiceVerification(service.id)
             .then((val) => {
                 if (!current) return;
-                setVerification(
-                    matchesVerification(service, val) ? val : undefined,
-                );
+                setState({
+                    service,
+                    verification: matchesVerification(service, val)
+                        ? val
+                        : undefined,
+                });
             })
             .catch((err) => {
                 if (!current) return;
-                setVerification(undefined);
+                setState({ service });
                 if (hasStatus(err, 404)) return;
                 toast.error(
                     errorMessage(
@@ -38,5 +44,5 @@ export function useServiceVerification(service?: ExternalService) {
         };
     }, [cloudRegistryProvider, service]);
 
-    return verification;
+    return state?.service === service ? state?.verification : undefined;
 }

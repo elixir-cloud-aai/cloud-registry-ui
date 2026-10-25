@@ -79,8 +79,8 @@ function Page() {
             .then(([_val, verified]) => {
                 if (request !== latestRequest.current) return;
                 setServices(_val);
-                setVerifications(verified ?? []);
-                if (!verified)
+                if (verified) setVerifications(verified);
+                else
                     toast.error(
                         "Could not load the verifications. Please try again later.",
                     );
