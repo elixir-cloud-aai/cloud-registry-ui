@@ -9,7 +9,12 @@ type Props = {
 };
 
 function PageSubtitle({ me, loading, guest, user, admin }: Props) {
-    if (loading) return <p className="leading-7 mt-2 invisible">{guest}</p>;
+    if (loading) {
+        // the longest text, so the page doesn't move once the role is known
+        const texts = [guest, user ?? "", `ADMIN MODE: ${admin}`];
+        const longest = texts.reduce((a, b) => (b.length > a.length ? b : a));
+        return <p className="leading-7 mt-2 invisible">{longest}</p>;
+    }
 
     if (me?.admin)
         return (
