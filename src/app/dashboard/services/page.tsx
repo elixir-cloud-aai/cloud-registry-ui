@@ -13,10 +13,17 @@ import { errorMessage } from "@/lib/errors";
 import { isUnauthorized } from "@/lib/permissions";
 import {
     ServicesTableBody,
+    ServicesTableFilters,
     ServicesTableFooter,
     ServicesTableHeader,
     ServiceTableBodySkeleton,
 } from "./_components";
+import {
+    defaultFilters,
+    filterServices,
+    isFiltered,
+    type ServiceFilters,
+} from "./_components/filter-helper";
 
 function Page() {
     const router = useRouter();
@@ -25,6 +32,11 @@ function Page() {
     const [services, setServices] = useState<ExternalService[]>([]);
     const [loading, setLoading] = useState(true);
     const [loginRequired, setLoginRequired] = useState(false);
+    const [search, setSearch] = useState("");
+    const [filters, setFilters] = useState<ServiceFilters>(defaultFilters);
+
+    const filtered = isFiltered(search, filters);
+    const filteredServices = filterServices(services, search, filters);
 
     const fetchServices = () => {
         cloudRegistryProvider
@@ -98,20 +110,36 @@ function Page() {
                     }
                 />
             ) : (
-                <div className="rounded-xl border overflow-hidden">
-                    <Table>
-                        <ServicesTableHeader />
-                        {loading === true ? (
-                            <ServiceTableBodySkeleton />
-                        ) : (
-                            <ServicesTableBody
-                                services={services}
-                                fetchServices={fetchServices}
-                                me={me}
-                            />
-                        )}
-                        <ServicesTableFooter />
-                    </Table>
+                <div className="space-y-4">
+                    <ServicesTableFilters
+                        services={services}
+                        search={search}
+                        filters={filters}
+                        filtered={filtered}
+                        disabled={loading || services.length === 0}
+                        onSearchChange={setSearch}
+                        onFiltersChange={setFilters}
+                    />
+                    <div className="rounded-xl border overflow-hidden">
+                        <Table>
+                            <ServicesTableHeader />
+                            {loading === true ? (
+                                <ServiceTableBodySkeleton />
+                            ) : (
+                                <ServicesTableBody
+                                    services={filteredServices}
+                                    fetchServices={fetchServices}
+                                    me={me}
+                                    emptyMessage={
+                                        filtered
+                                            ? "No services match your search or filters."
+                                            : undefined
+                                    }
+                                />
+                            )}
+                            <ServicesTableFooter />
+                        </Table>
+                    </div>
                 </div>
             )}
         </div>

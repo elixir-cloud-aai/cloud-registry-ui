@@ -9,9 +9,15 @@ type Props = {
     services: ExternalService[];
     fetchServices: () => void;
     me: Me | null;
+    emptyMessage?: string;
 };
 
-function ServicesTableBody({ services, fetchServices, me }: Props) {
+function ServicesTableBody({
+    services,
+    fetchServices,
+    me,
+    emptyMessage = "No services found.",
+}: Props) {
     const { cloudRegistryProvider } = useCloudRegistry();
     const [selectedService, setSelectedService] =
         useState<ExternalService | null>(null);
@@ -21,7 +27,7 @@ function ServicesTableBody({ services, fetchServices, me }: Props) {
             <TableBody>
                 <TableRow>
                     <TableCell colSpan={6} className="text-center font-bold">
-                        No services found.
+                        {emptyMessage}
                     </TableCell>
                 </TableRow>
             </TableBody>
