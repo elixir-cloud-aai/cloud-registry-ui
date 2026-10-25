@@ -7,7 +7,7 @@ import { loginSettings } from "./src/lib/login-providers";
 
 function nextConfig(phase: string): NextConfig {
     // login settings are read at runtime: check them when `next start` or
-    // `next dev` loads this file
+    // `next dev` loads this file; invalid settings stop the start
     if (phase === PHASE_DEVELOPMENT_SERVER || phase === PHASE_PRODUCTION_SERVER)
         loginSettings();
 

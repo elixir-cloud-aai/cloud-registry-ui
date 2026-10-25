@@ -60,15 +60,15 @@ Users log in with one of the login providers that you configure (OpenID Connect,
 
 Each provider has these fields:
 
-| Field          | Required | Description                                                                     |
-| -------------- | -------- | ------------------------------------------------------------------------------- |
-| `id`           | yes      | Unique ID, `a-z`, `0-9` and `-` only, e.g. `ls-login`                           |
-| `name`         | yes      | Name on the login page                                                          |
-| `logo`         | yes      | Logo on the login page; a URL, or a path in `public/` (built into the image)    |
-| `issuer`       | yes      | Issuer URL; the endpoints are read from its `/.well-known/openid-configuration` |
-| `clientId`     | yes      | Client ID registered with the provider                                          |
-| `clientSecret` | yes      | Client secret                                                                   |
-| `scopes`       | no       | Scopes to request (default: `["openid", "profile", "email"]`)                   |
+| Field          | Required | Description                                                                          |
+| -------------- | -------- | ------------------------------------------------------------------------------------ |
+| `id`           | yes      | Unique ID, `a-z`, `0-9` and `-` only, e.g. `ls-login`                                |
+| `name`         | yes      | Name on the login page                                                               |
+| `logo`         | yes      | Logo on the login page; a URL, or a path in `public/` (built into the image)         |
+| `issuer`       | yes      | Issuer URL, as in its `/.well-known/openid-configuration`, which lists the endpoints |
+| `clientId`     | yes      | Client ID registered with the provider                                               |
+| `clientSecret` | yes      | Client secret                                                                        |
+| `scopes`       | no       | Scopes to request (default: `["openid", "profile", "email"]`)                        |
 
 Example for [LS Login](https://lifescience-ri.eu/ls-login/), whose logo is in `public/`:
 
