@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/table";
-import { useCloudRegistry, useMe } from "@/hooks";
+import { useCloudRegistry, useMe, usePagination } from "@/hooks";
 import { errorMessage } from "@/lib/errors";
 import { isUnauthorized } from "@/lib/permissions";
 import {
@@ -25,6 +25,8 @@ import {
     type ServiceFilters,
 } from "./_components/filter-helper";
 
+const pageSize = 10;
+
 function Page() {
     const router = useRouter();
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
@@ -37,6 +39,20 @@ function Page() {
 
     const filtered = isFiltered(search, filters);
     const filteredServices = filterServices(services, search, filters);
+    const { page, pageCount, pageItems, start, end, setPage } = usePagination(
+        filteredServices,
+        pageSize,
+    );
+
+    const handleSearchChange = (value: string) => {
+        setSearch(value);
+        setPage(1);
+    };
+
+    const handleFiltersChange = (value: ServiceFilters) => {
+        setFilters(value);
+        setPage(1);
+    };
 
     const fetchServices = () => {
         cloudRegistryProvider
@@ -117,8 +133,8 @@ function Page() {
                         filters={filters}
                         filtered={filtered}
                         disabled={loading || services.length === 0}
-                        onSearchChange={setSearch}
-                        onFiltersChange={setFilters}
+                        onSearchChange={handleSearchChange}
+                        onFiltersChange={handleFiltersChange}
                     />
                     <div className="rounded-xl border overflow-hidden">
                         <Table>
@@ -127,7 +143,7 @@ function Page() {
                                 <ServiceTableBodySkeleton />
                             ) : (
                                 <ServicesTableBody
-                                    services={filteredServices}
+                                    services={pageItems}
                                     fetchServices={fetchServices}
                                     me={me}
                                     emptyMessage={
@@ -137,7 +153,14 @@ function Page() {
                                     }
                                 />
                             )}
-                            <ServicesTableFooter />
+                            <ServicesTableFooter
+                                total={loading ? 0 : filteredServices.length}
+                                start={start}
+                                end={end}
+                                page={page}
+                                pageCount={pageCount}
+                                onPageChange={setPage}
+                            />
                         </Table>
                     </div>
                 </div>
