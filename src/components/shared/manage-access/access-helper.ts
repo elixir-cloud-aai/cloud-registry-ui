@@ -6,7 +6,7 @@ import type {
     Role,
 } from "@/lib/cloud-registry.types";
 import { errorMessage, mutationError } from "@/lib/errors";
-import { isConflict, isForbidden } from "@/lib/permissions";
+import { isConflict, isForbidden, isUnauthorized } from "@/lib/permissions";
 
 export type AccessProvider = Pick<
     AuthenticatedCloudRegistryProvider,
@@ -63,7 +63,7 @@ export function isGroup(
     return "group" in val;
 }
 
-export { isForbidden };
+export { isForbidden, isUnauthorized };
 
 /** Get the message for a failed listing of access to a service */
 export function listError(err: unknown) {
