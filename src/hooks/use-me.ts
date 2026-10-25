@@ -1,6 +1,7 @@
 import { getCookie } from "cookies-next/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Me } from "@/lib/cloud-registry.types";
+import { isUnauthorized } from "@/lib/permissions";
 import { useCloudRegistry } from "./use-cloud-registry";
 
 function useMe() {
@@ -8,6 +9,7 @@ function useMe() {
     const [me, setMe] = useState<Me | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const [expired, setExpired] = useState(false);
     const latestRequest = useRef(0);
 
     const fetchMe = useCallback(() => {
@@ -24,15 +26,17 @@ function useMe() {
         const request = ++latestRequest.current;
         setLoading(true);
         setError(false);
+        setExpired(false);
         cloudRegistryProvider
             .getCurrentUser()
             .then((val) => {
                 if (request === latestRequest.current) setMe(val);
             })
-            .catch(() => {
+            .catch((err) => {
                 if (request !== latestRequest.current) return;
                 setMe(null);
                 setError(true);
+                setExpired(isUnauthorized(err));
             })
             .finally(() => {
                 if (request === latestRequest.current) setLoading(false);
@@ -43,7 +47,7 @@ function useMe() {
         fetchMe();
     }, [fetchMe]);
 
-    return { me, loading, error, refetch: fetchMe };
+    return { me, loading, error, expired, refetch: fetchMe };
 }
 
 export { useMe };

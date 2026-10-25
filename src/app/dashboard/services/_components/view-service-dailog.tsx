@@ -12,8 +12,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { useMe } from "@/hooks";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
+import type { Me } from "@/lib/cloud-registry.types";
 import {
     canDeleteService,
     canEditService,
@@ -27,6 +27,7 @@ type Props = {
     onOpenChange: (open: boolean) => void;
     fetchServices: () => void;
     cloudRegistryProvider: AuthenticatedCloudRegistryProvider | null;
+    me: Me | null;
 };
 
 function ServiceDetailsDialog({
@@ -35,9 +36,9 @@ function ServiceDetailsDialog({
     onOpenChange,
     fetchServices,
     cloudRegistryProvider,
+    me,
 }: Props) {
     const [isDeleting, setIsDeleting] = useState(false);
-    const { me } = useMe();
 
     if (!service) return null;
 

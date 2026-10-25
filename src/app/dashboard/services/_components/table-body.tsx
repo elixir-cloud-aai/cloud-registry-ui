@@ -2,14 +2,16 @@ import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { useState } from "react";
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useCloudRegistry } from "@/hooks";
+import type { Me } from "@/lib/cloud-registry.types";
 import ServiceDetailsDialog from "./view-service-dailog";
 
 type Props = {
     services: ExternalService[];
     fetchServices: () => void;
+    me: Me | null;
 };
 
-function ServicesTableBody({ services, fetchServices }: Props) {
+function ServicesTableBody({ services, fetchServices, me }: Props) {
     const { cloudRegistryProvider } = useCloudRegistry();
     const [selectedService, setSelectedService] =
         useState<ExternalService | null>(null);
@@ -48,6 +50,7 @@ function ServicesTableBody({ services, fetchServices }: Props) {
                 open={!!selectedService}
                 fetchServices={fetchServices}
                 cloudRegistryProvider={cloudRegistryProvider}
+                me={me}
                 onOpenChange={(open) => !open && setSelectedService(null)}
             />
         </>
