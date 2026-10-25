@@ -3,13 +3,15 @@ import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { BuildingIcon, ClockIcon, StarIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import type { Verification } from "@/lib/cloud-registry.types";
 import { Field, SectionCard } from "./service-dailog-card-misc";
 
 type Props = {
     service: ExternalService;
+    verification?: Verification;
 };
 
-function ViewServiceDialogBody({ service }: Props) {
+function ViewServiceDialogBody({ service, verification }: Props) {
     const handleCopyJson = () => {
         navigator.clipboard.writeText(JSON.stringify(service, null, 2));
         toast.success("Copied to clipboard");
@@ -25,6 +27,13 @@ function ViewServiceDialogBody({ service }: Props) {
                 <Field label="Display Name" value={service.name} />
                 <Field label="Version" value={service.version} mono />
             </div>
+
+            {verification && (
+                <Field
+                    label="Verified At"
+                    value={new Date(verification.verified_at).toLocaleString()}
+                />
+            )}
 
             <div className="flex flex-col gap-1.5">
                 <span className="text-[10px] font-medium tracking-widest uppercase text-muted-foreground">
