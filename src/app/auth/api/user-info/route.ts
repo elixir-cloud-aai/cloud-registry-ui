@@ -2,20 +2,24 @@ import axios from "axios";
 import { getCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { loginProvider, oidcEndpoints } from "@/lib/login-providers";
 
 export async function GET() {
     const accessToken = await getCookie("access_token", { cookies });
+    // sessions without the cookie, e.g. older ones, use the only provider
+    const provider = loginProvider(
+        await getCookie("login_provider", { cookies }),
+    );
 
     try {
-        const res = await axios.get(
-            `${process.env.LS_LOGIN_URL}/oidc/userinfo`,
-            {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    Accept: "application/json",
-                },
+        if (!provider) throw new Error("Unknown login provider");
+        const { userinfo_endpoint } = await oidcEndpoints(provider);
+        const res = await axios.get(userinfo_endpoint, {
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: "application/json",
             },
-        );
+        });
 
         if (!res.data || typeof res.data !== "object") {
             throw new Error("Invalid JSON response");

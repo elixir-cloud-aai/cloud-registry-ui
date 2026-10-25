@@ -2,7 +2,7 @@ import Link from "next/link";
 
 interface Props {
     searchParams: Promise<{
-        type?: "params" | "state" | "internal" | "logout-err";
+        type?: "params" | "state" | "internal" | "logout-err" | "provider";
     }>;
 }
 
@@ -13,6 +13,8 @@ async function Page({ searchParams }: Props) {
     if (type === "params") message = "Invalid request parameters found.";
     else if (type === "state")
         message = "Invalid state found. State does not match.";
+    else if (type === "provider")
+        message = "Unknown login provider. Please choose one from the list.";
     else if (type === "logout-err")
         message =
             "An internal server error occurred while logging you out. Please try logging out again.";

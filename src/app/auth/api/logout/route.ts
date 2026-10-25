@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
     try {
         await deleteCookie("access_token", { cookies });
         await deleteCookie("id_token", { cookies });
+        await deleteCookie("login_provider", { cookies });
     } catch (err) {
         console.log(err);
         redirect("/auth/error?type=logout-err");
