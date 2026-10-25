@@ -1,4 +1,7 @@
-import type { ExternalServiceRegister } from "@elixir-cloud/cloud-registry/providers";
+import type {
+    ExternalService,
+    ExternalServiceRegister,
+} from "@elixir-cloud/cloud-registry/providers";
 import { z } from "zod";
 
 const httpUrl = z.url({ protocol: z.regexes.httpProtocol });
@@ -126,7 +129,10 @@ export function normalizeFormData(data?: Partial<FormData>): FormData {
     };
 }
 
-export function normalizeServiceData(data: FormData): ExternalServiceRegister {
+export function normalizeServiceData(
+    data: FormData,
+    service?: Partial<ExternalService>,
+): ExternalServiceRegister {
     return {
         ...data,
         url: data.url.trim(),
@@ -134,5 +140,7 @@ export function normalizeServiceData(data: FormData): ExternalServiceRegister {
         contactUrl: data.contactUrl || undefined,
         documentationUrl: data.documentationUrl || undefined,
         environment: data.environment || undefined,
+        createdAt: service?.createdAt,
+        updatedAt: service?.updatedAt,
     };
 }
