@@ -22,9 +22,9 @@ function ServiceEnvSection({ form }: Props) {
                 label="Environment"
                 placeholder="Select environment"
                 options={[
-                    { label: "Production", value: "production" },
+                    { label: "Production", value: "prod" },
                     { label: "Staging", value: "staging" },
-                    { label: "Development", value: "development" },
+                    { label: "Development", value: "dev" },
                     { label: "Test", value: "test" },
                 ]}
             />
