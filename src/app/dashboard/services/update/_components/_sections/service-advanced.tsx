@@ -1,14 +1,6 @@
-import {
-    Field,
-    FieldDescription,
-    FieldGroup,
-    FieldLabel,
-    FieldLegend,
-    FieldSet,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
+import { FieldGroup, FieldLegend, FieldSet } from "@/components/ui/field";
 import type { ServiceUpdationFormType } from "@/types/service-update-form";
-import { TextField } from "../_fields";
+import { ReadOnlyField, TextField } from "../_fields";
 
 type Props = {
     form: ServiceUpdationFormType;
@@ -28,13 +20,12 @@ function ServiceAdvancedSection({ form, updatedAt }: Props) {
                     description="Leave empty to keep the stored timestamp."
                 />
 
-                <Field>
-                    <FieldLabel htmlFor="updatedAt">Updated At</FieldLabel>
-                    <Input id="updatedAt" value={updatedAt ?? ""} readOnly />
-                    <FieldDescription>
-                        Set by the registry on every change.
-                    </FieldDescription>
-                </Field>
+                <ReadOnlyField
+                    id="updatedAt"
+                    label="Updated At"
+                    value={updatedAt}
+                    description="Set by the registry on every change."
+                />
             </FieldGroup>
         </FieldSet>
     );

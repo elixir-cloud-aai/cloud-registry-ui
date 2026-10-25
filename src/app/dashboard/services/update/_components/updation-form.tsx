@@ -16,6 +16,7 @@ import {
     mutationError,
 } from "@/lib/errors";
 import { matchesVerification } from "@/lib/verifications";
+import { ReadOnlyField } from "./_fields";
 import { TextareaField } from "./_fields/textarea-field";
 import {
     ServiceActionButton,
@@ -126,6 +127,12 @@ function ServiceUpdationForm({
                 disabled={updating || disabled}
                 className="min-w-0 space-y-4"
             >
+                <ReadOnlyField
+                    id="serviceId"
+                    label="Service ID"
+                    value={service.id}
+                    description="The ID can't be changed."
+                />
                 <ServiceBasicInfoSection form={form} />
                 <ServiceTypeSection form={form} />
                 <ServiceEnvSection form={form} />
