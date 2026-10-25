@@ -9,7 +9,8 @@ const loginProviderSchema = z.object({
     id: z.string().regex(/^[a-z0-9-]+$/, "Use a-z, 0-9 and - only"),
     name: z.string().min(1),
     logo: z.string().min(1),
-    issuer: z.url(),
+    // without a trailing slash, to compare it with the discovered one
+    issuer: z.url().transform((val) => val.replace(/\/$/, "")),
     clientId: z.string().min(1),
     clientSecret: z.string().min(1),
     scopes: z.array(z.string().min(1)).default(["openid", "profile", "email"]),
@@ -104,7 +105,7 @@ function oidcEndpoints(provider: LoginProvider) {
     const cached = endpoints.get(provider.id);
     if (cached) return cached;
 
-    const url = `${provider.issuer.replace(/\/$/, "")}/.well-known/openid-configuration`;
+    const url = `${provider.issuer}/.well-known/openid-configuration`;
     const promise = axios.get<OidcEndpoints>(url).then((res) => {
         const {
             issuer,
@@ -112,7 +113,7 @@ function oidcEndpoints(provider: LoginProvider) {
             token_endpoint,
             userinfo_endpoint,
         } = res.data;
-        if (issuer?.replace(/\/$/, "") !== provider.issuer.replace(/\/$/, ""))
+        if (issuer?.replace(/\/$/, "") !== provider.issuer)
             throw new Error(`Unexpected issuer ${issuer} at ${url}`);
         if (!authorization_endpoint || !token_endpoint || !userinfo_endpoint)
             throw new Error(`Incomplete OpenID Connect discovery at ${url}`);
