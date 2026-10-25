@@ -12,7 +12,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { useMe } from "@/hooks";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
+import { canDeleteService, canEditService } from "@/lib/permissions";
 import ViewServiceDialogBody from "./view-service-dailog-body";
 
 type Props = {
@@ -30,9 +32,13 @@ function ServiceDetailsDialog({
     fetchServices,
     cloudRegistryProvider,
 }: Props) {
+    const [isDeleting, setIsDeleting] = useState(false);
+    const { me } = useMe();
+
     if (!service) return null;
 
-    const [isDeleting, setIsDeleting] = useState(false);
+    const canEdit = canEditService(me, service.id);
+    const canDelete = canDeleteService(me, service.id);
 
     const handleServiceDelete = async () => {
         if (!cloudRegistryProvider) return;
@@ -69,21 +75,29 @@ function ServiceDetailsDialog({
 
                 <ViewServiceDialogBody service={service} />
 
-                <DialogFooter className="px-4 py-4 border-t">
-                    <Button size="sm" asChild>
-                        <Link href={`/dashboard/services/update/${service.id}`}>
-                            Edit
-                        </Link>
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant={"destructive"}
-                        onClick={handleServiceDelete}
-                        disabled={isDeleting}
-                    >
-                        {isDeleting ? "Deleting..." : "Delete"}
-                    </Button>
-                </DialogFooter>
+                {(canEdit || canDelete) && (
+                    <DialogFooter className="px-4 py-4 border-t">
+                        {canEdit && (
+                            <Button size="sm" asChild>
+                                <Link
+                                    href={`/dashboard/services/update/${service.id}`}
+                                >
+                                    Edit
+                                </Link>
+                            </Button>
+                        )}
+                        {canDelete && (
+                            <Button
+                                size="sm"
+                                variant={"destructive"}
+                                onClick={handleServiceDelete}
+                                disabled={isDeleting}
+                            >
+                                {isDeleting ? "Deleting..." : "Delete"}
+                            </Button>
+                        )}
+                    </DialogFooter>
+                )}
             </DialogContent>
         </Dialog>
     );
