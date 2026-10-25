@@ -122,7 +122,10 @@ class AuthenticatedCloudRegistryProvider
         // The error response may not contain JSON.
       }
 
-      throw new Error(message);
+      // Keep the status, e.g. to tell 401 from 403.
+      throw Object.assign(new Error(message), {
+        status: response.status,
+      });
     }
 
     // Handle endpoints that return no content.

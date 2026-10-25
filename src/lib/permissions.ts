@@ -1,7 +1,8 @@
 /**
  * @description which actions the current user may take on a service,
  * from GET /me (roles via groups included); the registry enforces the
- * same rules, see `cloud_registry/config.yaml`
+ * same rules, see `cloud_registry/config.yaml`; and whether a request
+ * was refused for a missing login (401) or role (403)
  */
 
 import type { Me } from "./cloud-registry.types";
@@ -32,4 +33,27 @@ function canDeleteService(me: Me | null, serviceId: string) {
     return !!me?.admin || hasRole(me, serviceId, ["owner"]);
 }
 
-export { canDeleteService, canEditService };
+function hasStatus(err: unknown, status: number) {
+    return err instanceof Error && "status" in err && err.status === status;
+}
+
+/**
+ * Check if a request failed because the user isn't logged in
+ * e.g. reads on deployments that require login for them
+ * @param err Error thrown by the provider
+ * @returns True for 401 responses
+ */
+function isUnauthorized(err: unknown) {
+    return hasStatus(err, 401);
+}
+
+/**
+ * Check if a request failed because the user lacks a role
+ * @param err Error thrown by the provider
+ * @returns True for 403 responses
+ */
+function isForbidden(err: unknown) {
+    return hasStatus(err, 403);
+}
+
+export { canDeleteService, canEditService, isForbidden, isUnauthorized };
