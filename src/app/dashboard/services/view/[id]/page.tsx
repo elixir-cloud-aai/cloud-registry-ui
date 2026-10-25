@@ -37,10 +37,17 @@ function Page() {
 
     useEffect(() => {
         if (!id) return;
+        // responses for a previous ID must not replace the service
+        let current = true;
+        setService(undefined);
+        setLoading(true);
         cloudRegistryProvider
             ?.getServiceById(decodeURIComponent(id as string))
-            .then((_val) => setService(_val))
+            .then((_val) => {
+                if (current) setService(_val);
+            })
             .catch((err) => {
+                if (!current) return;
                 if (isUnauthorized(err)) setLoginRequired(true);
                 else
                     toast.error(
@@ -50,7 +57,12 @@ function Page() {
                         ),
                     );
             })
-            .finally(() => setLoading(false));
+            .finally(() => {
+                if (current) setLoading(false);
+            });
+        return () => {
+            current = false;
+        };
     }, [cloudRegistryProvider, id]);
 
     if (loginRequired)

@@ -34,7 +34,8 @@ function useMe() {
             })
             .catch((err) => {
                 if (request !== latestRequest.current) return;
-                setMe(null);
+                // keep the user on transient errors, e.g. of a refetch
+                if (isUnauthorized(err)) setMe(null);
                 setError(true);
                 setExpired(isUnauthorized(err));
             })
