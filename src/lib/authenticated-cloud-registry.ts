@@ -113,23 +113,28 @@ class AuthenticatedCloudRegistryProvider
     }
 
     if (!response.ok) {
-      let message = `Request failed: ${response.status} ${response.statusText}`;
+      let message = `Request failed: ${response.status} ${response.statusText}`.trimEnd();
+      let body: ApiError = {};
 
       try {
-        const error = (await response.json()) as ApiError;
+        // Any content type, e.g. application/problem+json.
+        body = ((await response.json()) ?? {}) as ApiError;
 
-        if (typeof error.detail === "string") {
-          message = error.detail;
-        } else if (typeof error.message === "string") {
-          message = error.message;
+        if (typeof body.detail === "string") {
+          message = body.detail;
+        } else if (typeof body.message === "string") {
+          message = body.message;
         }
       } catch {
         // The error response may not contain JSON.
       }
 
-      // Keep the status, e.g. to tell 401 from 403.
+      // Keep the status, e.g. to tell 401 from 403, and the problem details.
       throw Object.assign(new Error(message), {
         status: response.status,
+        title: body.title,
+        detail: body.detail,
+        serviceId: body.serviceId,
       });
     }
 
