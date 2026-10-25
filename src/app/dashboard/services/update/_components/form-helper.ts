@@ -9,7 +9,8 @@ const serviceUrlSchemes = (
     process.env.NEXT_PUBLIC_SERVICE_URL_SCHEMES || "https"
 )
     .split(",")
-    .map((scheme) => scheme.trim().toLowerCase());
+    .map((scheme) => scheme.trim().toLowerCase())
+    .filter(Boolean);
 const contactUrl = z.url({ protocol: /^(https?|mailto)$/ });
 const hasNoUserInfoOrSpaces = (value: string) =>
     !/\s|^https?:\/\/[^/?#]*@/i.test(value);
@@ -37,7 +38,7 @@ export const formDataSchema = z.object({
                 serviceUrlSchemes.includes(
                     value.trim().split(":")[0].toLowerCase(),
                 ),
-            `Service URL must be an ${serviceUrlSchemes.join(" or ")} URL, e.g. https://example.org/.`,
+            `Service URL must be an ${serviceUrlSchemes.join(" or ")} URL, e.g. ${serviceUrlSchemes[0]}://example.org/.`,
         ),
     organization: z.object({
         name: z
