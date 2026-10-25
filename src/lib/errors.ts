@@ -75,11 +75,14 @@ function errorMessage(err: unknown, fallback: string) {
 }
 
 /** Get the message for a failed change: login, role, detail or fallback */
-function mutationError(err: unknown, fallback: string) {
+function mutationError(
+    err: unknown,
+    fallback: string,
+    forbidden = "You don't have permission to change this service.",
+) {
     if (isUnauthorized(err))
         return "Your session expired. Please log in again.";
-    if (isForbidden(err))
-        return "You don't have permission to change this service.";
+    if (isForbidden(err)) return forbidden;
     return errorMessage(err, fallback);
 }
 
