@@ -200,6 +200,35 @@ class AuthenticatedCloudRegistryProvider
   }
 
   /**
+   * POST /services/types
+   * Authenticated.
+   *
+   * Register a service type.
+   */
+  async addServiceType(serviceType: ServiceType): Promise<ServiceType> {
+    return this.request("/services/types", {
+      method: "POST",
+      body: serviceType,
+      authenticated: true,
+    });
+  }
+
+  /**
+   * DELETE /services/types
+   * Authenticated (admins).
+   *
+   * Remove a service type that no service has.
+   */
+  async removeServiceType(serviceType: ServiceType): Promise<ServiceType> {
+    const { group, artifact, version } = serviceType;
+    const query = new URLSearchParams({ group, artifact, version });
+    return this.request(`/services/types?${query}`, {
+      method: "DELETE",
+      authenticated: true,
+    });
+  }
+
+  /**
    * POST /services
    * Authenticated.
    */
