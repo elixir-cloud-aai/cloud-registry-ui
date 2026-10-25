@@ -1,7 +1,6 @@
 "use client";
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
-import { LogIn, PlusIcon } from "lucide-react";
-import Link from "next/link";
+import { PlusIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -138,12 +137,11 @@ function Page() {
                             Register Service
                         </Button>
                     ) : (
-                        <Button variant={"outline"} asChild>
-                            <Link href={"/auth/api/login-redirect"}>
-                                <LogIn />
-                                Log in to register a service
-                            </Link>
-                        </Button>
+                        !isLoggedIn && (
+                            <p className="text-sm text-muted-foreground">
+                                Log in above to register a service
+                            </p>
+                        )
                     )}
                 </div>
             </div>
