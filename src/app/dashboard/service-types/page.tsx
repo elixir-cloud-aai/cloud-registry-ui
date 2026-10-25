@@ -1,14 +1,15 @@
 "use client";
 import type { ServiceType } from "@elixir-cloud/cloud-registry/providers";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ListPagination } from "@/components/shared/list-pagination";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { PageSubtitle } from "@/components/shared/page-subtitle";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCloudRegistry, useMe, usePagination } from "@/hooks";
-import { errorMessage } from "@/lib/errors";
+import { errorMessage, mutationError } from "@/lib/errors";
 import { isUnauthorized } from "@/lib/permissions";
+import { ServiceTypeAddDialog, ServiceTypeCard } from "./_components";
+import { typeKey, typeLabel } from "./_components/type-helper";
 
 const pageSize = 12;
 
@@ -19,43 +20,96 @@ function Page() {
     );
     const [loading, setLoading] = useState(true);
     const [loginRequired, setLoginRequired] = useState(false);
+    const [removing, setRemoving] = useState(false);
+    const latestRequest = useRef(0);
+    const removingRef = useRef(false);
     const { me, loading: meLoading } = useMe();
     const { page, pageCount, pageItems, setPage } = usePagination(
         serviceTypes ?? [],
         pageSize,
     );
 
-    useEffect(() => {
-        cloudRegistryProvider
-            ?.getServiceTypes()
-            .then((val) => setServiceTypes(val))
+    const fetchServiceTypes = useCallback(() => {
+        if (!cloudRegistryProvider) return Promise.resolve();
+        // responses of earlier requests must not replace the list
+        const request = ++latestRequest.current;
+        return cloudRegistryProvider
+            .getServiceTypes()
+            .then((val) => {
+                if (request === latestRequest.current) setServiceTypes(val);
+            })
             .catch((err) => {
+                if (request !== latestRequest.current) return;
                 if (isUnauthorized(err)) setLoginRequired(true);
                 else
                     toast.error(
                         errorMessage(err, "Could not fetch the service types."),
                     );
             })
-            .finally(() => setLoading(false));
+            .finally(() => {
+                if (request === latestRequest.current) setLoading(false);
+            });
     }, [cloudRegistryProvider]);
+
+    useEffect(() => {
+        fetchServiceTypes();
+    }, [fetchServiceTypes]);
+
+    const handleRemove = async (serviceType: ServiceType) => {
+        // one removal at a time, also on double clicks
+        if (!cloudRegistryProvider || removingRef.current) return;
+        removingRef.current = true;
+        setRemoving(true);
+
+        const promise = cloudRegistryProvider.removeServiceType(serviceType);
+
+        toast.promise(promise, {
+            loading: `Removing service type ${typeLabel(serviceType)}`,
+            success: `Removed service type ${typeLabel(serviceType)}`,
+            error: (err) =>
+                mutationError(
+                    err,
+                    "Cannot remove the service type currently.",
+                    "Only admins can remove service types.",
+                ),
+        });
+
+        try {
+            await promise;
+            await fetchServiceTypes();
+        } catch {
+            // toast.promise shows the error
+        } finally {
+            removingRef.current = false;
+            setRemoving(false);
+        }
+    };
 
     return (
         <div className="space-y-6">
-            <div>
-                <h2 className="text-3xl font-semibold tracking-tight mt-2">
-                    Service Types
-                </h2>
-                <PageSubtitle
-                    me={me}
-                    loading={meLoading}
-                    guest="View our registered service types"
-                    user={
-                        me?.may_add_service_types
-                            ? "View our registered service types and add your own"
-                            : undefined
-                    }
-                    admin="View and manage all service types"
-                />
+            <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <h2 className="text-3xl font-semibold tracking-tight mt-2">
+                        Service Types
+                    </h2>
+                    <PageSubtitle
+                        me={me}
+                        loading={meLoading}
+                        guest="View our registered service types"
+                        user={
+                            me?.may_add_service_types
+                                ? "View our registered service types and add your own"
+                                : undefined
+                        }
+                        admin="View and manage all service types"
+                    />
+                </div>
+                {me?.may_add_service_types && (
+                    <ServiceTypeAddDialog
+                        provider={cloudRegistryProvider}
+                        onAdded={fetchServiceTypes}
+                    />
+                )}
             </div>
             <div>
                 <div className="flex gap-4 flex-wrap justify-center md:justify-start">
@@ -66,25 +120,16 @@ function Page() {
                     )}
                     {serviceTypes !== null &&
                         pageItems.map((val) => (
-                            <div
-                                key={JSON.stringify([
-                                    val.group,
-                                    val.artifact,
-                                    val.version,
-                                ])}
-                            >
-                                <Card className="min-w-72 hover:scale-[102%] transition-all cursor-pointer">
-                                    <CardHeader>
-                                        <CardTitle>
-                                            Artifact - {val.artifact}
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-2">
-                                        <p>Group - {val.group}</p>
-                                        <p>Version - {val.version}</p>
-                                    </CardContent>
-                                </Card>
-                            </div>
+                            <ServiceTypeCard
+                                key={typeKey(val)}
+                                serviceType={val}
+                                disabled={removing}
+                                onRemove={
+                                    me?.admin
+                                        ? () => handleRemove(val)
+                                        : undefined
+                                }
+                            />
                         ))}
                     {loginRequired && (
                         <LoginPrompt
