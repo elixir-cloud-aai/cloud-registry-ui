@@ -4,7 +4,8 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
-import { useCloudRegistry } from "@/hooks";
+import { useCloudRegistry, useMe } from "@/hooks";
+import { canEditService } from "@/lib/permissions";
 import { ServiceUpdationForm } from "../_components";
 
 function Page() {
@@ -12,6 +13,7 @@ function Page() {
     const [loading, setLoading] = useState(true);
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const [service, setService] = useState<ExternalService>();
+    const { me, loading: meLoading } = useMe();
 
     useEffect(() => {
         if (!id) return;
@@ -32,7 +34,7 @@ function Page() {
     if (cloudRegistryProvider && !isLoggedIn)
         return <LoginPrompt message="Log in to edit this service" />;
 
-    if (loading)
+    if (loading || meLoading)
         return (
             <div className="w-full flex justify-center items-center h-full">
                 <p>Loading...</p>
@@ -43,6 +45,13 @@ function Page() {
         return (
             <div className="w-full flex justify-center items-center h-full">
                 <p>No service data found. Please try again later.</p>
+            </div>
+        );
+
+    if (me && service && !canEditService(me, service.id))
+        return (
+            <div className="w-full flex justify-center items-center h-full">
+                <p>You don't have permission to change this service.</p>
             </div>
         );
 
