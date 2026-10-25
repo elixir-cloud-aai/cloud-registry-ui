@@ -13,7 +13,7 @@ function Page() {
     const [loading, setLoading] = useState(true);
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const [service, setService] = useState<ExternalService>();
-    const { me, loading: meLoading } = useMe();
+    const { me, loading: meLoading, error: meError, expired } = useMe();
     const [loginRequired, setLoginRequired] = useState(false);
 
     useEffect(() => {
@@ -34,8 +34,16 @@ function Page() {
             .finally(() => setLoading(false));
     }, [cloudRegistryProvider, id]);
 
-    if ((cloudRegistryProvider && !isLoggedIn) || loginRequired)
+    if (cloudRegistryProvider && !isLoggedIn)
         return <LoginPrompt message="Log in to edit this service" />;
+
+    if (loginRequired || expired)
+        return <LoginPrompt message="Your session expired; log in again." />;
+
+    if (meError)
+        return (
+            <LoginPrompt message="Could not check your permissions; log in again." />
+        );
 
     if (loading || meLoading)
         return (

@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/table";
-import { useCloudRegistry } from "@/hooks";
+import { useCloudRegistry, useMe } from "@/hooks";
 import { isUnauthorized } from "@/lib/permissions";
 import {
     ServicesTableBody,
@@ -20,6 +20,7 @@ import {
 function Page() {
     const router = useRouter();
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
+    const { me, expired } = useMe();
     const [services, setServices] = useState<ExternalService[]>([]);
     const [loading, setLoading] = useState(true);
     const [loginRequired, setLoginRequired] = useState(false);
@@ -65,7 +66,7 @@ function Page() {
                     </p>
                 </div>
                 <div className="hidden md:flex flex-wrap gap-2 justify-end">
-                    {isLoggedIn ? (
+                    {isLoggedIn && !expired ? (
                         <Button
                             onClick={() =>
                                 router.push("/dashboard/services/create")
@@ -102,6 +103,7 @@ function Page() {
                             <ServicesTableBody
                                 services={services}
                                 fetchServices={fetchServices}
+                                me={me}
                             />
                         )}
                         <ServicesTableFooter />

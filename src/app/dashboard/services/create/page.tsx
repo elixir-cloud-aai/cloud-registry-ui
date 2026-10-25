@@ -13,7 +13,7 @@ import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-clo
 
 function Page() {
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
-    const { me, loading, error } = useMe();
+    const { me, loading, error, expired } = useMe();
 
     useEffect(() => {
         if (error)
@@ -54,6 +54,9 @@ function Page() {
 
     if (!isLoggedIn)
         return <LoginPrompt message="Log in to register a service" />;
+
+    if (expired)
+        return <LoginPrompt message="Your session expired; log in again." />;
 
     // cloud-components gap: the create component ignores later provider
     // changes, so it renders only once the admin flag is known
