@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ListPagination } from "@/components/shared/list-pagination";
 import { LoginPrompt } from "@/components/shared/login-prompt";
+import { PageSubtitle } from "@/components/shared/page-subtitle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useCloudRegistry, usePagination } from "@/hooks";
+import { useCloudRegistry, useMe, usePagination } from "@/hooks";
 import { errorMessage } from "@/lib/errors";
 import { isUnauthorized } from "@/lib/permissions";
 
@@ -18,6 +19,7 @@ function Page() {
     );
     const [loading, setLoading] = useState(true);
     const [loginRequired, setLoginRequired] = useState(false);
+    const { me, loading: meLoading } = useMe();
     const { page, pageCount, pageItems, setPage } = usePagination(
         serviceTypes ?? [],
         pageSize,
@@ -43,10 +45,17 @@ function Page() {
                 <h2 className="text-3xl font-semibold tracking-tight mt-2">
                     Service Types
                 </h2>
-                <p className="leading-7 mt-2">
-                    Manage and monitor registered service types across all
-                    environments
-                </p>
+                <PageSubtitle
+                    me={me}
+                    loading={meLoading}
+                    guest="View our registered service types"
+                    user={
+                        me?.may_add_service_types
+                            ? "View our registered service types and add your own"
+                            : undefined
+                    }
+                    admin="View and manage all service types"
+                />
             </div>
             <div>
                 <div className="flex gap-4 flex-wrap justify-center md:justify-start">
