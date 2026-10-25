@@ -64,7 +64,7 @@ Each provider has these fields:
 | -------------- | -------- | ------------------------------------------------------------------------------- |
 | `id`           | yes      | Unique ID, `a-z`, `0-9` and `-` only, e.g. `ls-login`                           |
 | `name`         | yes      | Name on the login page                                                          |
-| `logo`         | yes      | Logo on the login page; a path in `public/` or a URL                            |
+| `logo`         | yes      | Logo on the login page; a URL, or a path in `public/` (built into the image)    |
 | `issuer`       | yes      | Issuer URL; the endpoints are read from its `/.well-known/openid-configuration` |
 | `clientId`     | yes      | Client ID registered with the provider                                          |
 | `clientSecret` | yes      | Client secret                                                                   |
@@ -77,7 +77,9 @@ LOGIN_PROVIDERS=[{"id": "ls-login", "name": "LS Login", "logo": "/ls-login-grey-
 LOGIN_REDIRECT_URI=https://registry.example.org/auth/api/callback
 ```
 
-With one provider, the login page shows only that one. **Configure one provider for now:** the registry must trust each provider's issuer, and user IDs from different providers can clash until the registry namespaces them by issuer ([elixir-cloud-aai/foca#503](https://github.com/elixir-cloud-aai/foca/issues/503)).
+The login page lists the providers, also when there is only one, so that logging out doesn't log users straight back in. Restart the app after changing the providers.
+
+**Configure one provider for now:** the registry must trust each provider's issuer, and user IDs from different providers can clash until the registry namespaces them by issuer ([elixir-cloud-aai/foca#503](https://github.com/elixir-cloud-aai/foca/issues/503)). All providers also share one redirect URI, so the app can't yet tell which provider answered a login; don't combine trusted and untrusted providers.
 
 #### Migrating from `LS_LOGIN_URL` and `OIDC_*`
 
