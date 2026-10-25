@@ -9,6 +9,7 @@ import type {
 
 import type {
   ApiError,
+  Approvals,
   CloudRegistryProviderOptions,
   GroupName,
   GroupPermission,
@@ -52,6 +53,11 @@ class AuthenticatedCloudRegistryProvider
 
     this.baseUrl = options.baseUrl.replace(/\/+$/, "");
     this.token = options.token;
+  }
+
+  /** Whether requests can be authenticated, i.e. the user is logged in. */
+  get isAuthenticated(): boolean {
+    return !!this.token;
   }
 
   // --------------------------------------------------
@@ -224,6 +230,33 @@ class AuthenticatedCloudRegistryProvider
     const query = new URLSearchParams({ group, artifact, version });
     return this.request(`/services/types?${query}`, {
       method: "DELETE",
+      authenticated: true,
+    });
+  }
+
+  /**
+   * PUT /services/types/approval
+   * Authenticated (admins).
+   *
+   * Approve a pending service type, and so the services that have it.
+   */
+  async approveServiceType(serviceType: ServiceType): Promise<ServiceType> {
+    const { group, artifact, version } = serviceType;
+    return this.request("/services/types/approval", {
+      method: "PUT",
+      body: { group, artifact, version },
+      authenticated: true,
+    });
+  }
+
+  /**
+   * GET /approvals
+   * Authenticated.
+   *
+   * List the pending service types and services that the user may see.
+   */
+  async getApprovals(): Promise<Approvals> {
+    return this.request("/approvals", {
       authenticated: true,
     });
   }

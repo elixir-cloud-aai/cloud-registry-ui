@@ -58,6 +58,8 @@ export interface Me {
   admin: boolean;
   /** Whether the caller may add service types (cloud-registry#235). */
   may_add_service_types?: boolean;
+  /** Whether the types the caller adds are pending (cloud-registry#238). */
+  service_types_pending?: boolean;
   services: ServiceRole[];
   user_id: UserId;
 }
@@ -100,6 +102,16 @@ export interface VerificationRegister {
  * Assumes the endpoint returns verified service records.
  */
 export type VerifiedServices = ServiceVerification[];
+
+/**
+ * GET /approvals
+ *
+ * Pending service types and services that the caller may see.
+ */
+export interface Approvals {
+  service_types: ServiceType[];
+  services: ExternalService[];
+}
 
 /** API error response. */
 export interface ApiError {

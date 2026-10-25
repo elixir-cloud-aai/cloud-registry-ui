@@ -17,7 +17,9 @@ function hasRole(me: Me | null, serviceId: string, roles: string[]) {
  * Check if the user may edit a service
  * @param me Current user, if logged in
  * @param serviceId Service identifier
- * @returns True for owners, maintainers and admins
+ * @returns True for owners, maintainers and admins; pending services (see
+ * `@/lib/approvals`) only admins can change freely, others only to an
+ * approved type
  */
 function canEditService(me: Me | null, serviceId: string) {
     return !!me?.admin || hasRole(me, serviceId, ["owner", "maintainer"]);
@@ -39,6 +41,16 @@ function canDeleteService(me: Me | null, serviceId: string) {
  * @returns True for admins
  */
 function canVerifyService(me: Me | null) {
+    return !!me?.admin;
+}
+
+/**
+ * Check if the user may approve pending service types, and so the services
+ * that have them
+ * @param me Current user, if logged in
+ * @returns True for admins
+ */
+function canApproveServiceType(me: Me | null) {
     return !!me?.admin;
 }
 
@@ -92,6 +104,7 @@ function isConflict(err: unknown) {
 }
 
 export {
+    canApproveServiceType,
     canDeleteService,
     canEditService,
     canManageAccess,
