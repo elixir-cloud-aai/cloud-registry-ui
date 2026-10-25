@@ -93,7 +93,7 @@ function Page() {
                 <LoginPrompt
                     message={
                         isLoggedIn
-                            ? "Your session expired; log in again."
+                            ? "Your session expired. Please log in again."
                             : "Log in to browse this registry"
                     }
                 />
