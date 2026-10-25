@@ -2,11 +2,14 @@
 import type { ServiceType } from "@elixir-cloud/cloud-registry/providers";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { ListPagination } from "@/components/shared/list-pagination";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useCloudRegistry } from "@/hooks";
+import { useCloudRegistry, usePagination } from "@/hooks";
 import { errorMessage } from "@/lib/errors";
 import { isUnauthorized } from "@/lib/permissions";
+
+const pageSize = 12;
 
 function Page() {
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
@@ -15,6 +18,10 @@ function Page() {
     );
     const [loading, setLoading] = useState(true);
     const [loginRequired, setLoginRequired] = useState(false);
+    const { page, pageCount, pageItems, setPage } = usePagination(
+        serviceTypes ?? [],
+        pageSize,
+    );
 
     useEffect(() => {
         cloudRegistryProvider
@@ -49,8 +56,14 @@ function Page() {
                         </p>
                     )}
                     {serviceTypes !== null &&
-                        serviceTypes?.map((val, idx) => (
-                            <div key={idx}>
+                        pageItems.map((val) => (
+                            <div
+                                key={JSON.stringify([
+                                    val.group,
+                                    val.artifact,
+                                    val.version,
+                                ])}
+                            >
                                 <Card className="min-w-72 hover:scale-[102%] transition-all cursor-pointer">
                                     <CardHeader>
                                         <CardTitle>
@@ -81,6 +94,12 @@ function Page() {
                             </p>
                         )}
                 </div>
+                <ListPagination
+                    page={page}
+                    pageCount={pageCount}
+                    onPageChange={setPage}
+                    className="mt-6"
+                />
             </div>
         </div>
     );
