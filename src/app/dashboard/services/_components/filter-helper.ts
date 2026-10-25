@@ -1,47 +1,51 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 
-export const ALL = "__all__";
+export type FilterValue = string | null;
 
 export type ServiceFilters = {
-    type: string;
-    organization: string;
-    environment: string;
+    type?: FilterValue;
+    organization?: FilterValue;
+    environment?: FilterValue;
 };
 
-export const defaultFilters: ServiceFilters = {
-    type: ALL,
-    organization: ALL,
-    environment: ALL,
-};
+export const defaultFilters: ServiceFilters = {};
 
 const filterValues: Record<
     keyof ServiceFilters,
-    (service: ExternalService) => string | undefined
+    (service: ExternalService) => FilterValue
 > = {
     type: (service) =>
-        `${service.type.group}:${service.type.artifact}:${service.type.version}`,
-    organization: (service) => service.organization.name,
-    environment: (service) => service.environment,
+        JSON.stringify([
+            service.type.group,
+            service.type.artifact,
+            service.type.version,
+        ]),
+    organization: (service) => service.organization.name || null,
+    environment: (service) => service.environment || null,
 };
 
+const filterKeys = Object.keys(filterValues) as (keyof ServiceFilters)[];
+
 export function typeLabel(value: string) {
-    return value.split(":").join(" · ");
+    return (JSON.parse(value) as string[]).join(" · ");
 }
 
 export function filterOptions(
     services: ExternalService[],
     key: keyof ServiceFilters,
 ) {
-    const values = services
-        .map(filterValues[key])
-        .filter((val): val is string => !!val);
-    return [...new Set(values)].sort((a, b) => a.localeCompare(b));
+    const values = [...new Set(services.map(filterValues[key]))];
+    return values.sort((a, b) => {
+        if (a === null) return 1;
+        if (b === null) return -1;
+        return a.localeCompare(b);
+    });
 }
 
 export function isFiltered(search: string, filters: ServiceFilters) {
     return (
         search.trim() !== "" ||
-        Object.values(filters).some((val) => val !== ALL)
+        filterKeys.some((key) => filters[key] !== undefined)
     );
 }
 
@@ -65,13 +69,12 @@ export function filterServices(
     search: string,
     filters: ServiceFilters,
 ) {
-    const keys = Object.keys(filters) as (keyof ServiceFilters)[];
     return services.filter(
         (service) =>
             matchesSearch(service, search) &&
-            keys.every(
+            filterKeys.every(
                 (key) =>
-                    filters[key] === ALL ||
+                    filters[key] === undefined ||
                     filterValues[key](service) === filters[key],
             ),
     );
