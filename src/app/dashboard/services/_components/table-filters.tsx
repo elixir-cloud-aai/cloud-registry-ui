@@ -1,5 +1,5 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
-import { BadgeCheckIcon, SearchIcon, XIcon } from "lucide-react";
+import { BadgeCheckIcon, ClockIcon, SearchIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -88,6 +88,7 @@ type Props = {
     filters: ServiceFilters;
     filtered: boolean;
     disabled: boolean;
+    showPending?: boolean;
     onSearchChange: (search: string) => void;
     onFiltersChange: (filters: ServiceFilters) => void;
 };
@@ -98,6 +99,7 @@ function ServicesTableFilters({
     filters,
     filtered,
     disabled,
+    showPending = false,
     onSearchChange,
     onFiltersChange,
 }: Props) {
@@ -164,6 +166,23 @@ function ServicesTableFilters({
                 <BadgeCheckIcon />
                 Verified only
             </Toggle>
+            {showPending && (
+                <Toggle
+                    variant={"outline"}
+                    aria-label="Show pending services only"
+                    pressed={!!filters.pending}
+                    onPressedChange={(pressed) =>
+                        onFiltersChange({
+                            ...filters,
+                            pending: pressed || undefined,
+                        })
+                    }
+                    disabled={disabled}
+                >
+                    <ClockIcon />
+                    Pending only
+                </Toggle>
+            )}
             {filtered && (
                 <Button variant={"ghost"} onClick={handleClear}>
                     <XIcon />

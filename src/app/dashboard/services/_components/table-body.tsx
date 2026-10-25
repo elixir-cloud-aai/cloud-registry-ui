@@ -1,5 +1,6 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { useState } from "react";
+import { PendingBadge } from "@/components/shared/pending";
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useCloudRegistry } from "@/hooks";
 import type { Me, ServiceVerification } from "@/lib/cloud-registry.types";
@@ -9,6 +10,7 @@ import ServiceDetailsDialog from "./view-service-dailog";
 type Props = {
     services: ExternalService[];
     verifications: Map<string, ServiceVerification>;
+    pending: Set<string>;
     fetchServices: () => void;
     me: Me | null;
     emptyMessage?: string;
@@ -17,6 +19,7 @@ type Props = {
 function ServicesTableBody({
     services,
     verifications,
+    pending,
     fetchServices,
     me,
     emptyMessage = "No services found.",
@@ -56,6 +59,7 @@ function ServicesTableBody({
                             <div className="flex items-center gap-2">
                                 {val.name}
                                 {verifications.has(val.id) && <VerifiedBadge />}
+                                {pending.has(val.id) && <PendingBadge />}
                             </div>
                         </TableCell>
                         <TableCell>{val.organization.name}</TableCell>
@@ -72,6 +76,7 @@ function ServicesTableBody({
                         ? verifications.get(selectedService.id)
                         : undefined
                 }
+                pending={!!selectedService && pending.has(selectedService.id)}
                 open={!!selectedService}
                 fetchServices={fetchServices}
                 cloudRegistryProvider={cloudRegistryProvider}

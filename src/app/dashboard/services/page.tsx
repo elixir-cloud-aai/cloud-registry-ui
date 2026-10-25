@@ -10,6 +10,7 @@ import { PageSubtitle } from "@/components/shared/page-subtitle";
 import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/table";
 import { useCloudRegistry, useMe, usePagination } from "@/hooks";
+import { getApprovalsOrNull, withPendingServices } from "@/lib/approvals";
 import type { ServiceVerification } from "@/lib/cloud-registry.types";
 import { errorMessage } from "@/lib/errors";
 import { isUnauthorized } from "@/lib/permissions";
@@ -38,6 +39,7 @@ function Page() {
     const [verifications, setVerifications] = useState<ServiceVerification[]>(
         [],
     );
+    const [pending, setPending] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
     const [loginRequired, setLoginRequired] = useState(false);
     const latestRequest = useRef(0);
@@ -51,6 +53,7 @@ function Page() {
         search,
         filters,
         verified,
+        pending,
     );
     const { page, pageCount, pageItems, start, end, setPage } = usePagination(
         filteredServices,
@@ -76,14 +79,23 @@ function Page() {
                 console.error("Failed to load verifications:", err);
                 return null;
             }),
+            // pending services, for admins and users with a role on them
+            getApprovalsOrNull(cloudRegistryProvider),
         ])
-            .then(([_val, verified]) => {
+            .then(([_val, verified, approvals]) => {
                 if (request !== latestRequest.current) return;
-                setServices(_val);
+                setServices(withPendingServices(_val, approvals));
+                setPending(
+                    new Set(approvals?.services.map((val) => val.id) ?? []),
+                );
                 if (verified) setVerifications(verified);
                 else
                     toast.error(
                         "Could not load the verifications. Please try again later.",
+                    );
+                if (!approvals)
+                    toast.error(
+                        "Could not load the pending services. Please try again later.",
                     );
             })
             .catch((err) => {
@@ -169,6 +181,7 @@ function Page() {
                         filters={filters}
                         filtered={filtered}
                         disabled={loading || services.length === 0}
+                        showPending={!!me?.admin}
                         onSearchChange={handleSearchChange}
                         onFiltersChange={handleFiltersChange}
                     />
@@ -181,6 +194,7 @@ function Page() {
                                 <ServicesTableBody
                                     services={pageItems}
                                     verifications={verified}
+                                    pending={pending}
                                     fetchServices={fetchServices}
                                     me={me}
                                     emptyMessage={
