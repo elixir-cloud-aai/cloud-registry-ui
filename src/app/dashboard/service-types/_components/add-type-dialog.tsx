@@ -21,10 +21,11 @@ import { defaultType } from "./type-helper";
 
 type Props = {
     provider: AuthenticatedCloudRegistryProvider | null;
+    pending?: boolean;
     onAdded?: () => void;
 };
 
-function ServiceTypeAddDialog({ provider, onAdded }: Props) {
+function ServiceTypeAddDialog({ provider, pending = false, onAdded }: Props) {
     const [open, setOpen] = useState(false);
     const form = useForm({
         defaultValues: defaultType,
@@ -37,7 +38,9 @@ function ServiceTypeAddDialog({ provider, onAdded }: Props) {
             const promise = provider.addServiceType(serviceType);
             toast.promise(promise, {
                 loading: `Adding service type ${typeLabel(serviceType)}`,
-                success: `Added service type ${typeLabel(serviceType)}`,
+                success: pending
+                    ? `Added service type ${typeLabel(serviceType)}; it is pending until an admin approves it`
+                    : `Added service type ${typeLabel(serviceType)}`,
                 error: (err) =>
                     mutationError(
                         err,
@@ -78,7 +81,9 @@ function ServiceTypeAddDialog({ provider, onAdded }: Props) {
                         Add service type
                     </DialogTitle>
                     <DialogDescription>
-                        Services can then be registered with this type.
+                        {pending
+                            ? "Services can then be registered with this type. New types are pending until an admin approves them: until then, only admins and you see the type, and the services that have it are pending too."
+                            : "Services can then be registered with this type."}
                     </DialogDescription>
                 </DialogHeader>
                 <form

@@ -1,13 +1,17 @@
 "use client";
 import type { ServiceType } from "@elixir-cloud/cloud-registry/providers";
+import { ClockIcon, LogIn } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ListPagination } from "@/components/shared/list-pagination";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { PageSubtitle } from "@/components/shared/page-subtitle";
+import { Button } from "@/components/ui/button";
 import { useCloudRegistry, useMe, usePagination } from "@/hooks";
+import { getApprovalsOrNull, withPendingTypes } from "@/lib/approvals";
 import { errorMessage, mutationError } from "@/lib/errors";
-import { isUnauthorized } from "@/lib/permissions";
+import { canApproveServiceType, isUnauthorized } from "@/lib/permissions";
 import { typeKey, typeLabel } from "@/lib/service-types";
 import { ServiceTypeAddDialog, ServiceTypeCard } from "./_components";
 
@@ -18,12 +22,13 @@ function Page() {
     const [serviceTypes, setServiceTypes] = useState<ServiceType[] | null>(
         null,
     );
+    const [pending, setPending] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
     const [loginRequired, setLoginRequired] = useState(false);
     const [removing, setRemoving] = useState(false);
     const latestRequest = useRef(0);
     const removingRef = useRef(false);
-    const { me, loading: meLoading } = useMe();
+    const { me, loading: meLoading, expired } = useMe();
     const { page, pageCount, pageItems, setPage } = usePagination(
         serviceTypes ?? [],
         pageSize,
@@ -33,10 +38,21 @@ function Page() {
         if (!cloudRegistryProvider) return Promise.resolve();
         // responses of earlier requests must not replace the list
         const request = ++latestRequest.current;
-        return cloudRegistryProvider
-            .getServiceTypes()
-            .then((val) => {
-                if (request === latestRequest.current) setServiceTypes(val);
+        return Promise.all([
+            cloudRegistryProvider.getServiceTypes(),
+            // pending types, for admins and the users who added them
+            getApprovalsOrNull(cloudRegistryProvider),
+        ])
+            .then(([val, approvals]) => {
+                if (request !== latestRequest.current) return;
+                setServiceTypes(withPendingTypes(val, approvals));
+                setPending(
+                    new Set(approvals?.service_types.map(typeKey) ?? []),
+                );
+                if (!approvals)
+                    toast.error(
+                        "Could not load the pending service types. Please try again later.",
+                    );
             })
             .catch((err) => {
                 if (request !== latestRequest.current) return;
@@ -53,6 +69,9 @@ function Page() {
 
     useEffect(() => {
         fetchServiceTypes();
+        return () => {
+            latestRequest.current++;
+        };
     }, [fetchServiceTypes]);
 
     const handleRemove = async (serviceType: ServiceType) => {
@@ -104,10 +123,32 @@ function Page() {
                         }
                         admin="View and manage all service types"
                     />
+                    {me?.may_add_service_types && me.service_types_pending && (
+                        <p className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                            <ClockIcon className="size-4 shrink-0" />
+                            New service types are pending until an admin
+                            approves them.
+                        </p>
+                    )}
+                    {isLoggedIn && expired && (
+                        <p className="mt-2 text-sm text-muted-foreground">
+                            Your session expired: log in again to see your
+                            pending service types.
+                        </p>
+                    )}
                 </div>
+                {isLoggedIn && expired && (
+                    <Button variant={"outline"} asChild>
+                        <Link href={"/auth/login"}>
+                            <LogIn />
+                            Log in again
+                        </Link>
+                    </Button>
+                )}
                 {me?.may_add_service_types && (
                     <ServiceTypeAddDialog
                         provider={cloudRegistryProvider}
+                        pending={me.service_types_pending}
                         onAdded={fetchServiceTypes}
                     />
                 )}
@@ -124,7 +165,11 @@ function Page() {
                             <ServiceTypeCard
                                 key={typeKey(val)}
                                 serviceType={val}
+                                pending={pending.has(typeKey(val))}
                                 disabled={removing}
+                                canApprove={canApproveServiceType(me)}
+                                provider={cloudRegistryProvider}
+                                onApproved={fetchServiceTypes}
                                 onRemove={
                                     me?.admin
                                         ? () => handleRemove(val)

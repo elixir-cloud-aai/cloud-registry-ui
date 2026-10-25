@@ -1,5 +1,7 @@
 import type { ServiceType } from "@elixir-cloud/cloud-registry/providers";
 import { Trash2Icon } from "lucide-react";
+import { ApproveTypeButton } from "@/components/shared/approve-type";
+import { PendingBadge } from "@/components/shared/pending";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -12,16 +14,35 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardAction, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Card,
+    CardAction,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import { typeLabel } from "@/lib/service-types";
 
 type Props = {
     serviceType: ServiceType;
+    pending?: boolean;
+    canApprove: boolean;
     disabled?: boolean;
+    provider: AuthenticatedCloudRegistryProvider | null;
     onRemove?: () => void;
+    onApproved?: () => void;
 };
 
-function ServiceTypeCard({ serviceType, disabled = false, onRemove }: Props) {
+function ServiceTypeCard({
+    serviceType,
+    pending = false,
+    canApprove,
+    disabled = false,
+    provider,
+    onRemove,
+    onApproved,
+}: Props) {
     const label = typeLabel(serviceType);
 
     return (
@@ -68,6 +89,19 @@ function ServiceTypeCard({ serviceType, disabled = false, onRemove }: Props) {
                     </CardAction>
                 )}
             </CardHeader>
+            {pending && (
+                <CardFooter className="justify-between gap-2">
+                    <PendingBadge />
+                    {canApprove && (
+                        <ApproveTypeButton
+                            serviceType={serviceType}
+                            provider={provider}
+                            disabled={disabled}
+                            onApproved={onApproved}
+                        />
+                    )}
+                </CardFooter>
+            )}
         </Card>
     );
 }
