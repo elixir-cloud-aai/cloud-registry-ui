@@ -1,10 +1,12 @@
 "use client";
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
+import { KeyRound } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
+import { ManageAccessDialog } from "@/components/shared/manage-access";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -15,7 +17,11 @@ import {
 } from "@/components/ui/card";
 import { useCloudRegistry, useMe } from "@/hooks";
 import { errorMessage } from "@/lib/errors";
-import { canEditService, isUnauthorized } from "@/lib/permissions";
+import {
+    canEditService,
+    canManageAccess,
+    isUnauthorized,
+} from "@/lib/permissions";
 import ViewServiceDialogBody from "../../_components/view-service-dailog-body";
 
 function Page() {
@@ -23,8 +29,9 @@ function Page() {
     const [loading, setLoading] = useState(true);
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const [service, setService] = useState<ExternalService>();
-    const { me } = useMe();
+    const { me, refetch } = useMe();
     const [loginRequired, setLoginRequired] = useState(false);
+    const [manageOpen, setManageOpen] = useState(false);
 
     useEffect(() => {
         if (!id) return;
@@ -69,6 +76,8 @@ function Page() {
             </div>
         );
 
+    const manageAccess = canManageAccess(me, service.id);
+
     return (
         <Card className="w-full max-w-lg mx-auto mt-4 md:mt-10 gap-0 p-0">
             <CardHeader className="px-4 py-4 border-b">
@@ -81,7 +90,17 @@ function Page() {
             </CardHeader>
             <ViewServiceDialogBody service={service} />
             {canEditService(me, service.id) && (
-                <CardFooter className="px-4 py-4 border-t justify-end">
+                <CardFooter className="px-4 py-4 border-t justify-end gap-2">
+                    {manageAccess && (
+                        <Button
+                            size="sm"
+                            variant={"outline"}
+                            onClick={() => setManageOpen(true)}
+                        >
+                            <KeyRound />
+                            Manage access
+                        </Button>
+                    )}
                     <Button size="sm" asChild>
                         <Link
                             href={`/dashboard/services/update/${encodeURIComponent(service.id)}`}
@@ -90,6 +109,16 @@ function Page() {
                         </Link>
                     </Button>
                 </CardFooter>
+            )}
+            {manageAccess && manageOpen && (
+                <ManageAccessDialog
+                    provider={cloudRegistryProvider}
+                    serviceId={service.id}
+                    currentUserId={me?.user_id}
+                    open={manageOpen}
+                    onOpenChange={setManageOpen}
+                    onChange={refetch}
+                />
             )}
         </Card>
     );

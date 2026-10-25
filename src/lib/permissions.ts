@@ -33,6 +33,16 @@ function canDeleteService(me: Me | null, serviceId: string) {
     return !!me?.admin || hasRole(me, serviceId, ["owner"]);
 }
 
+/**
+ * Check if the user may manage access to a service
+ * @param me Current user, if logged in
+ * @param serviceId Service identifier
+ * @returns True for owners and admins
+ */
+function canManageAccess(me: Me | null, serviceId: string) {
+    return !!me?.admin || hasRole(me, serviceId, ["owner"]);
+}
+
 function hasStatus(err: unknown, status: number) {
     return err instanceof Error && "status" in err && err.status === status;
 }
@@ -56,4 +66,21 @@ function isForbidden(err: unknown) {
     return hasStatus(err, 403);
 }
 
-export { canDeleteService, canEditService, isForbidden, isUnauthorized };
+/**
+ * Check if a change conflicts with the current state
+ * e.g. removing the last owner of a service
+ * @param err Error thrown by the provider
+ * @returns True for 409 responses
+ */
+function isConflict(err: unknown) {
+    return hasStatus(err, 409);
+}
+
+export {
+    canDeleteService,
+    canEditService,
+    canManageAccess,
+    isConflict,
+    isForbidden,
+    isUnauthorized,
+};
