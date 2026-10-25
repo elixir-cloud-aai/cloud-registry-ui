@@ -1,10 +1,13 @@
 "use client";
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { useForm } from "@tanstack/react-form";
+import { TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useCloudRegistry } from "@/hooks";
+import type { Verification } from "@/lib/cloud-registry.types";
 import { duplicateToast, isDuplicate, mutationError } from "@/lib/errors";
+import { matchesVerification } from "@/lib/verifications";
 import { TextareaField } from "./_fields/textarea-field";
 import {
     ServiceActionButton,
@@ -21,9 +24,15 @@ import {
 
 type Props = {
     service: ExternalService;
+    verification?: Verification;
+    onServiceUpdated?: () => void;
 };
 
-function ServiceUpdationForm({ service }: Props) {
+function ServiceUpdationForm({
+    service,
+    verification,
+    onServiceUpdated,
+}: Props) {
     const { cloudRegistryProvider } = useCloudRegistry();
     const [updating, setUpdating] = useState(false);
     const form = useForm({
@@ -55,6 +64,7 @@ function ServiceUpdationForm({ service }: Props) {
 
             try {
                 await promise;
+                onServiceUpdated?.();
             } catch (err) {
                 // toast.promise shows the error; a duplicate is also shown
                 // on the URL field, until a field changes or loses focus
@@ -99,6 +109,23 @@ function ServiceUpdationForm({ service }: Props) {
                 placeholder="Provide a detailed description of what your service does"
             />
             <ServiceContactInfoSection form={form} />
+            {verification && (
+                <form.Subscribe selector={(state) => state.values}>
+                    {(values) =>
+                        !matchesVerification(
+                            normalizeServiceData(values),
+                            verification,
+                        ) && (
+                            <p className="flex items-center gap-2 text-sm text-destructive">
+                                <TriangleAlertIcon className="size-4" />
+                                Changing the Service URL, Type Group or Type
+                                Artifact removes the verification of this
+                                service.
+                            </p>
+                        )
+                    }
+                </form.Subscribe>
+            )}
             <ServiceActionButton form={form} updating={updating} />
         </form>
     );
