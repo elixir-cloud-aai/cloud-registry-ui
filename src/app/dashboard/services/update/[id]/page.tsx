@@ -17,10 +17,11 @@ function Page() {
     const verification = useServiceVerification(service);
     const { me, loading: meLoading, error: meError, expired } = useMe();
     const [loginRequired, setLoginRequired] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
 
     const fetchService = useCallback(() => {
         if (!id) return;
-        cloudRegistryProvider
+        return cloudRegistryProvider
             ?.getServiceById(decodeURIComponent(id as string))
             .then((_val) => {
                 setService(_val);
@@ -42,6 +43,14 @@ function Page() {
     useEffect(() => {
         fetchService();
     }, [fetchService]);
+
+    // the saved values are the form's new defaults; the form stays disabled
+    // until the registry's version replaces them
+    const onServiceUpdated = (saved: ExternalService) => {
+        setService(saved);
+        setRefreshing(true);
+        Promise.resolve(fetchService()).finally(() => setRefreshing(false));
+    };
 
     useEffect(() => {
         if (meError && !expired)
@@ -83,9 +92,12 @@ function Page() {
         <div className="max-w-5xl mx-auto mt-8">
             {service && (
                 <ServiceUpdationForm
+                    // a new form for the saved service, so it has no changes
+                    key={JSON.stringify(service)}
                     service={service}
                     verification={verification}
-                    onServiceUpdated={fetchService}
+                    disabled={refreshing}
+                    onServiceUpdated={onServiceUpdated}
                 />
             )}{" "}
         </div>

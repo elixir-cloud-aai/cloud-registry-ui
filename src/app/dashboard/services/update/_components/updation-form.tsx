@@ -4,6 +4,7 @@ import { useForm } from "@tanstack/react-form";
 import { TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { UnsavedChangesGuard } from "@/components/shared/unsaved-changes-guard";
 import { useCloudRegistry } from "@/hooks";
 import type { Verification } from "@/lib/cloud-registry.types";
 import { duplicateToast, isDuplicate, mutationError } from "@/lib/errors";
@@ -25,12 +26,14 @@ import {
 type Props = {
     service: ExternalService;
     verification?: Verification;
-    onServiceUpdated?: () => void;
+    disabled?: boolean;
+    onServiceUpdated?: (service: ExternalService) => void;
 };
 
 function ServiceUpdationForm({
     service,
     verification,
+    disabled,
     onServiceUpdated,
 }: Props) {
     const { cloudRegistryProvider } = useCloudRegistry();
@@ -45,9 +48,10 @@ function ServiceUpdationForm({
 
             setUpdating(true);
 
+            const data = normalizeServiceData(value, service);
             const promise = cloudRegistryProvider.updateService(
                 service.id,
-                normalizeServiceData(value, service),
+                data,
             );
             toast.promise(promise, {
                 loading: `Updating service with ID - ${service.id}`,
@@ -64,7 +68,7 @@ function ServiceUpdationForm({
 
             try {
                 await promise;
-                onServiceUpdated?.();
+                onServiceUpdated?.({ ...service, ...data });
             } catch (err) {
                 // toast.promise shows the error; a duplicate is also shown
                 // on the URL field, until a field changes or loses focus
@@ -99,34 +103,42 @@ function ServiceUpdationForm({
                 form.handleSubmit();
             }}
         >
-            <ServiceBasicInfoSection form={form} />
-            <ServiceTypeSection form={form} />
-            <ServiceEnvSection form={form} />
-            <TextareaField
-                form={form}
-                name="description"
-                label="Description"
-                placeholder="Provide a detailed description of what your service does"
-            />
-            <ServiceContactInfoSection form={form} />
-            {verification && (
-                <form.Subscribe selector={(state) => state.values}>
-                    {(values) =>
-                        !matchesVerification(
-                            normalizeServiceData(values),
-                            verification,
-                        ) && (
-                            <p className="flex items-center gap-2 text-sm text-destructive">
-                                <TriangleAlertIcon className="size-4" />
-                                Changing the Service URL, Type Group or Type
-                                Artifact removes the verification of this
-                                service.
-                            </p>
-                        )
-                    }
-                </form.Subscribe>
-            )}
-            <ServiceActionButton form={form} updating={updating} />
+            <form.Subscribe selector={(state) => !state.isDefaultValue}>
+                {(changed) => <UnsavedChangesGuard when={changed} />}
+            </form.Subscribe>
+            <fieldset
+                disabled={updating || disabled}
+                className="min-w-0 space-y-4"
+            >
+                <ServiceBasicInfoSection form={form} />
+                <ServiceTypeSection form={form} />
+                <ServiceEnvSection form={form} />
+                <TextareaField
+                    form={form}
+                    name="description"
+                    label="Description"
+                    placeholder="Provide a detailed description of what your service does"
+                />
+                <ServiceContactInfoSection form={form} />
+                {verification && (
+                    <form.Subscribe selector={(state) => state.values}>
+                        {(values) =>
+                            !matchesVerification(
+                                normalizeServiceData(values),
+                                verification,
+                            ) && (
+                                <p className="flex items-center gap-2 text-sm text-destructive">
+                                    <TriangleAlertIcon className="size-4" />
+                                    Changing the Service URL, Type Group or Type
+                                    Artifact removes the verification of this
+                                    service.
+                                </p>
+                            )
+                        }
+                    </form.Subscribe>
+                )}
+                <ServiceActionButton form={form} updating={updating} />
+            </fieldset>
         </form>
     );
 }

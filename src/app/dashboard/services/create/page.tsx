@@ -10,7 +10,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
-import { useCloudRegistry, useMe } from "@/hooks";
+import { UnsavedChangesGuard } from "@/components/shared/unsaved-changes-guard";
+import { useCloudRegistry, useFormChanged, useMe } from "@/hooks";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import { duplicateToast, withFieldLabels } from "@/lib/errors";
 
@@ -19,6 +20,7 @@ function Page() {
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const { me, loading, error, expired } = useMe();
     const createError = useRef<unknown>(null);
+    const { changed, setChanged, watchForm } = useFormChanged();
 
     useEffect(() => {
         if (error && !expired)
@@ -63,6 +65,7 @@ function Page() {
 
     const onServiceCreated = (e: EccServiceCreatedEvent) => {
         const { serviceId, serviceData } = e.detail;
+        setChanged(false);
         toast.success(`Registered ${serviceData.name} with ID - ${serviceId}`, {
             action: {
                 label: "View service",
@@ -117,7 +120,8 @@ function Page() {
         );
 
     return (
-        <div className="max-w-5xl mx-auto mt-5 md:mt-8">
+        <div ref={watchForm} className="max-w-5xl mx-auto mt-5 md:mt-8">
+            <UnsavedChangesGuard when={changed} />
             <ECCClientElixirCloudRegistryServiceCreate
                 onEccServiceCreated={onServiceCreated}
                 onEccServiceCreateFailed={onServiceCreationFailed}
