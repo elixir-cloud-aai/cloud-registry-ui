@@ -6,12 +6,11 @@ import { loginProvider, oidcEndpoints } from "@/lib/login-providers";
 
 export async function GET() {
     const accessToken = await getCookie("access_token", { cookies });
-    // sessions without the cookie, e.g. older ones, use the only provider
-    const provider = loginProvider(
-        await getCookie("login_provider", { cookies }),
-    );
+    const providerId = await getCookie("login_provider", { cookies });
 
     try {
+        // sessions without the cookie, e.g. older ones, use the only provider
+        const provider = loginProvider(providerId);
         if (!provider) throw new Error("Unknown login provider");
         const { userinfo_endpoint } = await oidcEndpoints(provider);
         const res = await axios.get(userinfo_endpoint, {

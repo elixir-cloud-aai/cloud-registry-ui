@@ -36,6 +36,7 @@ type LoginProvider = z.infer<typeof loginProviderSchema>;
 type LoginProviderInfo = Pick<LoginProvider, "id" | "name" | "logo">;
 
 type OidcEndpoints = {
+    issuer?: string;
     authorization_endpoint: string;
     token_endpoint: string;
     userinfo_endpoint: string;
@@ -105,8 +106,14 @@ function oidcEndpoints(provider: LoginProvider) {
 
     const url = `${provider.issuer.replace(/\/$/, "")}/.well-known/openid-configuration`;
     const promise = axios.get<OidcEndpoints>(url).then((res) => {
-        const { authorization_endpoint, token_endpoint, userinfo_endpoint } =
-            res.data;
+        const {
+            issuer,
+            authorization_endpoint,
+            token_endpoint,
+            userinfo_endpoint,
+        } = res.data;
+        if (issuer?.replace(/\/$/, "") !== provider.issuer.replace(/\/$/, ""))
+            throw new Error(`Unexpected issuer ${issuer} at ${url}`);
         if (!authorization_endpoint || !token_endpoint || !userinfo_endpoint)
             throw new Error(`Incomplete OpenID Connect discovery at ${url}`);
         return { authorization_endpoint, token_endpoint, userinfo_endpoint };
