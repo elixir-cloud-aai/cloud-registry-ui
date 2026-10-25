@@ -30,7 +30,7 @@ bun run dev
 
 ```
 docker build -t cloud-registry-ui .
-docker run -p 3000:3000 cloud-registry-ui
+docker run -p 3000:3000 --env-file .env cloud-registry-ui
 ```
 
 ## Configurations
@@ -48,6 +48,49 @@ Branding (all optional). These are build-time values: set them in `.env` before 
 | `NEXT_PUBLIC_FOOTER_LOGO`       | `/elixir-on-cloud-lockup.svg` | Logo at the bottom of the sidebar (full width); a path in `public/` or a URL |
 | `NEXT_PUBLIC_FOOTER_START_YEAR` | (none)                        | First year of the copyright line: `© START – CURRENT`, else `© CURRENT`      |
 
+
+### Login
+
+Users log in with one of the login providers that you configure (OpenID Connect, authorization code flow). The app reads these settings when the server starts and refuses to start without at least one valid provider. They are read at runtime, so `docker run -e` works, and they stay on the server: client secrets never reach the browser.
+
+| Variable             | Required | Description                                                                                  |
+| -------------------- | -------- | -------------------------------------------------------------------------------------------- |
+| `LOGIN_PROVIDERS`    | yes      | Login providers as a JSON list (see below)                                                   |
+| `LOGIN_REDIRECT_URI` | yes      | URL of the app's `/auth/api/callback`, e.g. `https://registry.example.org/auth/api/callback` |
+
+Each provider has these fields:
+
+| Field          | Required | Description                                                                     |
+| -------------- | -------- | ------------------------------------------------------------------------------- |
+| `id`           | yes      | Unique ID, `a-z`, `0-9` and `-` only, e.g. `ls-login`                           |
+| `name`         | yes      | Name on the login page                                                          |
+| `logo`         | yes      | Logo on the login page; a path in `public/` or a URL                            |
+| `issuer`       | yes      | Issuer URL; the endpoints are read from its `/.well-known/openid-configuration` |
+| `clientId`     | yes      | Client ID registered with the provider                                          |
+| `clientSecret` | yes      | Client secret                                                                   |
+| `scopes`       | no       | Scopes to request (default: `["openid", "profile", "email"]`)                   |
+
+Example for [LS Login](https://lifescience-ri.eu/ls-login/), whose logo is in `public/`:
+
+```
+LOGIN_PROVIDERS=[{"id": "ls-login", "name": "LS Login", "logo": "/ls-login-grey-wide.jpg", "issuer": "https://login.aai.lifescience-ri.eu/oidc/", "clientId": "<client ID>", "clientSecret": "<client secret>", "scopes": ["openid", "profile", "email", "eduperson_entitlement"]}]
+LOGIN_REDIRECT_URI=https://registry.example.org/auth/api/callback
+```
+
+With one provider, the login page shows only that one. **Configure one provider for now:** the registry must trust each provider's issuer, and user IDs from different providers can clash until the registry namespaces them by issuer ([elixir-cloud-aai/foca#503](https://github.com/elixir-cloud-aai/foca/issues/503)).
+
+#### Migrating from `LS_LOGIN_URL` and `OIDC_*`
+
+Earlier versions supported only LS Login. Replace these variables:
+
+| Before               | Now                                                           |
+| -------------------- | ------------------------------------------------------------- |
+| `LS_LOGIN_URL`       | `issuer` of the provider: `LS_LOGIN_URL` followed by `/oidc/` |
+| `OIDC_CLIENT_ID`     | `clientId` of the provider                                    |
+| `OIDC_CLIENT_SECRET` | `clientSecret` of the provider                                |
+| `OIDC_REDIRECT_URI`  | `LOGIN_REDIRECT_URI` (same value)                             |
+
+Use the LS Login example above, with `"scopes"` as shown to keep requesting the same scopes. Users who are logged in stay logged in.
 
 ## Contributing
 

@@ -1,28 +1,43 @@
-"use client";
 import Image from "next/image";
-import { toast } from "sonner";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { loginProviderInfos } from "@/lib/login-providers";
+
+export const dynamic = "force-dynamic";
 
 function Page() {
+    const providers = loginProviderInfos();
+
     return (
         <div className="flex justify-center items-center h-screen">
-            <Button
-                className="cursor-pointer"
-                size={"icon-lg"}
-                onClick={() => {
-                    toast.loading("Redirecting to LS Login...");
-                    window.location.href = "/auth/api/login-redirect";
-                }}
-            >
-                <Image
-                    src={"/ls-login-grey-wide.jpg"}
-                    className={"max-w-80 h-auto"}
-                    width={320}
-                    height={71}
-                    alt="ls-login-image"
-                    loading="eager"
-                />
-            </Button>
+            <div className="flex flex-col items-center space-y-4 w-full max-w-xs px-4">
+                <p className="font-medium text-lg">Log in with</p>
+                {providers.map((provider) => (
+                    <Button
+                        key={provider.id}
+                        variant={"outline"}
+                        className="w-full h-auto py-3 flex-col gap-2"
+                        asChild
+                    >
+                        <Link
+                            href={`/auth/api/login-redirect?provider=${provider.id}`}
+                            prefetch={false}
+                        >
+                            <span className="relative h-10 w-full">
+                                <Image
+                                    src={provider.logo}
+                                    className="object-contain"
+                                    fill
+                                    alt=""
+                                    loading="eager"
+                                    unoptimized
+                                />
+                            </span>
+                            {provider.name}
+                        </Link>
+                    </Button>
+                ))}
+            </div>
         </div>
     );
 }
