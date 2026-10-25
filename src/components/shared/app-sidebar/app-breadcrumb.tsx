@@ -6,6 +6,7 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { appTitle } from "@/lib/branding";
 import { BreadcrumbClient } from "./breadcrumb-client";
 
 function AppBreadcrumb() {
@@ -14,7 +15,7 @@ function AppBreadcrumb() {
             <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
                     <BreadcrumbLink href="/dashboard">
-                        Cloud Registry
+                        {appTitle}
                     </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />

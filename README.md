@@ -39,7 +39,7 @@ The app is configured through environment variables. Copy .env.example to .env a
 
 Set `NEXT_PUBLIC_SERVICE_URL_SCHEMES` to `http,https` if the registry also allows `http` service URLs (`custom.endpoints.services.url_schemes`; default: `https`). Like all `NEXT_PUBLIC_*` variables, it must be set when the app is built.
 
-Branding (all optional). These are build-time values: set them in `.env` (or the environment) before `bun run build` or `docker build`; `docker run -e` does not change a built image.
+Branding (all optional). These are build-time values: set them in `.env` before `bun run build` or `docker build` (`docker build` does not pass on the shell environment); `docker run -e` does not change a built image.
 
 | Variable                        | Default                       | Description                                                                  |
 | ------------------------------- | ----------------------------- | ---------------------------------------------------------------------------- |
