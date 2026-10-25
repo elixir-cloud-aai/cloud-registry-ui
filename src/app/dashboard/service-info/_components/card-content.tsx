@@ -77,25 +77,40 @@ function ServiceInfoCardContent({ serviceInfo }: Props) {
                     </ul>
                 </div>
 
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-slate-500 mb-1">
-                        <Clock className="w-4 h-4" />
-                        <span className="font-medium">Lifecycle</span>
+                {(serviceInfo.createdAt ||
+                    serviceInfo.updatedAt ||
+                    serviceInfo.environment) && (
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-slate-500 mb-1">
+                            <Clock className="w-4 h-4" />
+                            <span className="font-medium">Lifecycle</span>
+                        </div>
+                        <div className="pl-6 text-xs text-slate-600 space-y-0.5">
+                            {serviceInfo.createdAt && (
+                                <p>
+                                    Created At:{" "}
+                                    {new Date(
+                                        serviceInfo.createdAt,
+                                    ).toLocaleString()}
+                                </p>
+                            )}
+                            {serviceInfo.updatedAt && (
+                                <p>
+                                    Updated At:{" "}
+                                    {new Date(
+                                        serviceInfo.updatedAt,
+                                    ).toLocaleString()}
+                                </p>
+                            )}
+                            {serviceInfo.environment && (
+                                <p>
+                                    Environment:{" "}
+                                    {serviceInfo.environment.toUpperCase()}
+                                </p>
+                            )}
+                        </div>
                     </div>
-                    <div className="pl-6 text-xs text-slate-600 space-y-0.5">
-                        <p>
-                            Created At:{" "}
-                            {new Date(serviceInfo.createdAt).toLocaleString()}
-                        </p>
-                        <p>
-                            Updated At:{" "}
-                            {new Date(serviceInfo.updatedAt).toLocaleString()}
-                        </p>
-                        <p>
-                            Environment: {serviceInfo.environment.toUpperCase()}
-                        </p>
-                    </div>
-                </div>
+                )}
             </div>
         </CardContent>
     );
