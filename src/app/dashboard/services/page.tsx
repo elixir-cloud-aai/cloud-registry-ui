@@ -85,7 +85,13 @@ function Page() {
                 </div>
             </div>
             {loginRequired ? (
-                <LoginPrompt message="Log in to browse this registry" />
+                <LoginPrompt
+                    message={
+                        isLoggedIn
+                            ? "Your session expired; log in again."
+                            : "Log in to browse this registry"
+                    }
+                />
             ) : (
                 <div className="rounded-xl border overflow-hidden">
                     <Table>
