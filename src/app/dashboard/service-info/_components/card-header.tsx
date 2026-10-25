@@ -21,48 +21,54 @@ function ServiceInfoCardHeader({ serviceInfo }: Props) {
                 <div>
                     <CardTitle className="text-xl font-bold flex items-center gap-2">
                         {serviceInfo.name}
-                        <Badge
-                            variant={
-                                serviceInfo.environment === "dev"
-                                    ? "outline"
-                                    : "default"
-                            }
-                            className="capitalize"
-                        >
-                            {serviceInfo.environment}
-                        </Badge>
+                        {serviceInfo.environment && (
+                            <Badge
+                                variant={
+                                    serviceInfo.environment === "dev"
+                                        ? "outline"
+                                        : "default"
+                                }
+                                className="capitalize"
+                            >
+                                {serviceInfo.environment}
+                            </Badge>
+                        )}
                     </CardTitle>
                     <CardDescription className="font-mono text-xs mt-1">
                         ID: {serviceInfo.id}
                     </CardDescription>
                 </div>
                 <div className="flex gap-2">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <a
-                                href={serviceInfo.documentationUrl}
-                                target="_blank"
-                                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-                                rel="noopener"
-                            >
-                                <BookOpen className="w-4 h-4 text-slate-500" />
-                            </a>
-                        </TooltipTrigger>
-                        <TooltipContent>Documentation Url</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <a
-                                href={serviceInfo.contactUrl}
-                                target="_blank"
-                                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-                                rel="noopener"
-                            >
-                                <ExternalLink className="w-4 h-4 text-slate-500" />
-                            </a>
-                        </TooltipTrigger>
-                        <TooltipContent>Contact Url</TooltipContent>
-                    </Tooltip>
+                    {serviceInfo.documentationUrl && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <a
+                                    href={serviceInfo.documentationUrl}
+                                    target="_blank"
+                                    className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                                    rel="noopener"
+                                >
+                                    <BookOpen className="w-4 h-4 text-slate-500" />
+                                </a>
+                            </TooltipTrigger>
+                            <TooltipContent>Documentation Url</TooltipContent>
+                        </Tooltip>
+                    )}
+                    {serviceInfo.contactUrl && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <a
+                                    href={serviceInfo.contactUrl}
+                                    target="_blank"
+                                    className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                                    rel="noopener"
+                                >
+                                    <ExternalLink className="w-4 h-4 text-slate-500" />
+                                </a>
+                            </TooltipTrigger>
+                            <TooltipContent>Contact Url</TooltipContent>
+                        </Tooltip>
+                    )}
                 </div>
             </div>
         </CardHeader>
