@@ -1,5 +1,5 @@
 import type { ExternalToast } from "sonner";
-import { isForbidden, isUnauthorized } from "./permissions";
+import { isConflict, isForbidden, isUnauthorized } from "./permissions";
 
 // labels of the create and edit forms, by field path
 const fieldLabels: Record<string, string> = {
@@ -45,6 +45,13 @@ function withFieldLabels(message: string) {
 const duplicateMessage =
     "A service with this URL and API type is already registered.";
 
+// the registry's detail for changes of pending services (see
+// `@/lib/approvals`) to types that aren't approved, by users other than
+// admins (409, like duplicates), as of cloud-registry 0.5.0 (`PendingService`);
+// a field to tell them apart is coming in elixir-cloud-aai/cloud-registry#247
+const pendingDetail =
+    "The service has a service type that is pending until an admin approves it; until then, it can only be updated to an approved type, or deleted.";
+
 /** Get the registry's detail for a failed request, if any */
 function errorDetail(err: unknown) {
     return err instanceof Error &&
@@ -86,9 +93,19 @@ function mutationError(
     return errorMessage(err, fallback);
 }
 
+/** Check if a change of a pending service failed as its type isn't approved */
+function isPendingConflict(err: unknown) {
+    return isConflict(err) && errorDetail(err) === pendingDetail;
+}
+
 /** Check if a change failed as it duplicates a registered service */
 function isDuplicate(err: unknown): err is Error {
-    return err instanceof Error && "status" in err && err.status === 409;
+    return (
+        err instanceof Error &&
+        "status" in err &&
+        err.status === 409 &&
+        !isPendingConflict(err)
+    );
 }
 
 /** Get the toast for a change that duplicates a registered service */

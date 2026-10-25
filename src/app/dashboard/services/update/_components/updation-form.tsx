@@ -1,7 +1,7 @@
 "use client";
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { useForm } from "@tanstack/react-form";
-import { TriangleAlertIcon } from "lucide-react";
+import { ClockIcon, TriangleAlertIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { UnsavedChangesGuard } from "@/components/shared/unsaved-changes-guard";
@@ -15,6 +15,7 @@ import {
     isDuplicate,
     mutationError,
 } from "@/lib/errors";
+import { typeKey } from "@/lib/service-types";
 import { matchesVerification } from "@/lib/verifications";
 import { ReadOnlyField } from "./_fields";
 import { TextareaField } from "./_fields/textarea-field";
@@ -37,6 +38,8 @@ type Props = {
     service: ExternalService;
     verification?: Verification;
     admin?: boolean;
+    pending?: boolean;
+    typesPending?: boolean;
     disabled?: boolean;
     onServiceUpdated?: (service: ExternalService) => void;
 };
@@ -45,6 +48,8 @@ function ServiceUpdationForm({
     service,
     verification,
     admin = false,
+    pending,
+    typesPending = false,
     disabled,
     onServiceUpdated,
 }: Props) {
@@ -135,6 +140,29 @@ function ServiceUpdationForm({
                 />
                 <ServiceBasicInfoSection form={form} />
                 <ServiceTypeSection form={form} />
+                {pending && !admin && (
+                    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <ClockIcon className="size-4 shrink-0" />
+                        This service awaits the approval of its service type by
+                        an admin: until then, only a change to an approved type
+                        can be saved.
+                    </p>
+                )}
+                {typesPending && !pending && (
+                    <form.Subscribe selector={(state) => state.values.type}>
+                        {(type) =>
+                            typeKey(type) !== typeKey(initial.type) && (
+                                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <ClockIcon className="size-4 shrink-0" />A
+                                    service type that isn't registered yet is
+                                    pending until an admin approves it, and so
+                                    is this service: until then, it can only be
+                                    changed to an approved type.
+                                </p>
+                            )
+                        }
+                    </form.Subscribe>
+                )}
                 <ServiceEnvSection form={form} />
                 <ServiceContactInfoSection form={form} />
                 <TextareaField

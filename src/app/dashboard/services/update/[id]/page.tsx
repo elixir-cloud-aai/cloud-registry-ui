@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { useCloudRegistry, useMe, useServiceVerification } from "@/hooks";
+import { getServiceWithApproval } from "@/lib/approvals";
 import { errorMessage } from "@/lib/errors";
 import { canEditService, isUnauthorized } from "@/lib/permissions";
 import { ServiceUpdationForm } from "../_components";
@@ -14,18 +15,28 @@ function Page() {
     const [loading, setLoading] = useState(true);
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const [service, setService] = useState<ExternalService>();
+    // undefined if unknown, see getServiceWithApproval
+    const [pending, setPending] = useState<boolean>();
     const verification = useServiceVerification(service);
     const { me, loading: meLoading, error: meError, expired } = useMe();
     const [loginRequired, setLoginRequired] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
 
+    // pending services are only listed in GET /approvals, e.g. after a
+    // change to a pending type
     const fetchService = useCallback(() => {
-        if (!id) return;
-        return cloudRegistryProvider
-            ?.getServiceById(decodeURIComponent(id as string))
+        if (!id || !cloudRegistryProvider) return;
+        return getServiceWithApproval(
+            cloudRegistryProvider,
+            decodeURIComponent(id as string),
+        )
             .then((_val) => {
-                setService(_val);
-                console.log(_val);
+                setService(_val.service);
+                setPending(_val.pending);
+                if (_val.pending === undefined)
+                    toast.error(
+                        "Could not check whether this service awaits approval. Please try again later.",
+                    );
             })
             .catch((err) => {
                 if (isUnauthorized(err)) setLoginRequired(true);
@@ -97,6 +108,8 @@ function Page() {
                     service={service}
                     verification={verification}
                     admin={me?.admin}
+                    pending={pending}
+                    typesPending={me?.service_types_pending}
                     disabled={refreshing}
                     onServiceUpdated={onServiceUpdated}
                 />

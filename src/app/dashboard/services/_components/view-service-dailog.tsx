@@ -3,6 +3,8 @@ import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ApproveTypeButton } from "@/components/shared/approve-type";
+import { PendingBadge, PendingBanner } from "@/components/shared/pending";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -16,6 +18,7 @@ import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-clo
 import type { Me, ServiceVerification } from "@/lib/cloud-registry.types";
 import { mutationError } from "@/lib/errors";
 import {
+    canApproveServiceType,
     canDeleteService,
     canEditService,
     canVerifyService,
@@ -27,6 +30,7 @@ import ViewServiceDialogBody from "./view-service-dailog-body";
 type Props = {
     service: ExternalService | null;
     verification?: ServiceVerification;
+    pending?: boolean;
     open: boolean;
     onOpenChange: (open: boolean) => void;
     fetchServices: () => void;
@@ -37,6 +41,7 @@ type Props = {
 function ServiceDetailsDialog({
     service,
     verification,
+    pending = false,
     open,
     onOpenChange,
     fetchServices,
@@ -50,7 +55,10 @@ function ServiceDetailsDialog({
 
     const canEdit = canEditService(me, service.id);
     const canDelete = canDeleteService(me, service.id);
-    const canVerify = canVerifyService(me);
+    // the registry hides the verifications of pending services from the
+    // public reads, so their state is unknown until the approval
+    const canVerify = canVerifyService(me) && !pending;
+    const canApprove = pending && canApproveServiceType(me);
 
     const handleServiceDelete = async () => {
         if (!cloudRegistryProvider) return;
@@ -126,16 +134,39 @@ function ServiceDetailsDialog({
                     <DialogDescription>
                         Complete metadata for {service.id} deployment.
                     </DialogDescription>
-                    {verification && <VerifiedBadge />}
+                    {(verification || pending) && (
+                        <div className="flex gap-2">
+                            {verification && <VerifiedBadge />}
+                            {pending && <PendingBadge />}
+                        </div>
+                    )}
                 </DialogHeader>
+
+                {pending && (
+                    <div className="px-6 pt-5">
+                        <PendingBanner
+                            serviceType={service.type}
+                            admin={me?.admin}
+                            canEdit={canEdit}
+                            canDelete={canDelete}
+                        />
+                    </div>
+                )}
 
                 <ViewServiceDialogBody
                     service={service}
                     verification={verification}
                 />
 
-                {(canEdit || canDelete || canVerify) && (
+                {(canEdit || canDelete || canVerify || canApprove) && (
                     <DialogFooter className="px-4 py-4 border-t">
+                        {canApprove && (
+                            <ApproveTypeButton
+                                serviceType={service.type}
+                                provider={cloudRegistryProvider}
+                                onApproved={fetchServices}
+                            />
+                        )}
                         {canVerify && (
                             <Button
                                 size="sm"

@@ -10,6 +10,7 @@ export type ServiceFilters = {
     organization?: FilterValue;
     environment?: FilterValue;
     verified?: boolean;
+    pending?: boolean;
 };
 
 export type SelectFilterKey = "type" | "organization" | "environment";
@@ -48,7 +49,8 @@ export function isFiltered(search: string, filters: ServiceFilters) {
     return (
         search.trim() !== "" ||
         filterKeys.some((key) => filters[key] !== undefined) ||
-        !!filters.verified
+        !!filters.verified ||
+        !!filters.pending
     );
 }
 
@@ -72,11 +74,13 @@ export function filterServices(
     search: string,
     filters: ServiceFilters,
     verifications: Map<string, ServiceVerification>,
+    pending: Set<string>,
 ) {
     return services.filter(
         (service) =>
             matchesSearch(service, search) &&
             (!filters.verified || verifications.has(service.id)) &&
+            (!filters.pending || pending.has(service.id)) &&
             filterKeys.every(
                 (key) =>
                     filters[key] === undefined ||
