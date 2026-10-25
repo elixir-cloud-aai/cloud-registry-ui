@@ -4,7 +4,7 @@ import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useCloudRegistry } from "@/hooks";
-import { isForbidden } from "@/lib/permissions";
+import { mutationError } from "@/lib/errors";
 import { TextareaField } from "./_fields/textarea-field";
 import {
     ServiceActionButton,
@@ -45,9 +45,7 @@ function ServiceUpdationForm({ service }: Props) {
                 success: (response) =>
                     `Successfully updated service with id - ${response}`,
                 error: (err) =>
-                    isForbidden(err)
-                        ? "You don't have permission to change this service."
-                        : "Cannot update service currently.",
+                    mutationError(err, "Cannot update service currently."),
             });
 
             try {
