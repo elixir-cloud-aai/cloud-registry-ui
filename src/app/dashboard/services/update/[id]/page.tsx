@@ -1,10 +1,10 @@
 "use client";
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
-import { useCloudRegistry, useMe } from "@/hooks";
+import { useCloudRegistry, useMe, useServiceVerification } from "@/hooks";
 import { errorMessage } from "@/lib/errors";
 import { canEditService, isUnauthorized } from "@/lib/permissions";
 import { ServiceUpdationForm } from "../_components";
@@ -14,10 +14,11 @@ function Page() {
     const [loading, setLoading] = useState(true);
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const [service, setService] = useState<ExternalService>();
+    const verification = useServiceVerification(service);
     const { me, loading: meLoading, error: meError, expired } = useMe();
     const [loginRequired, setLoginRequired] = useState(false);
 
-    useEffect(() => {
+    const fetchService = useCallback(() => {
         if (!id) return;
         cloudRegistryProvider
             ?.getServiceById(decodeURIComponent(id as string))
@@ -37,6 +38,10 @@ function Page() {
             })
             .finally(() => setLoading(false));
     }, [cloudRegistryProvider, id]);
+
+    useEffect(() => {
+        fetchService();
+    }, [fetchService]);
 
     useEffect(() => {
         if (meError && !expired)
@@ -76,7 +81,13 @@ function Page() {
 
     return (
         <div className="max-w-5xl mx-auto mt-8">
-            {service && <ServiceUpdationForm service={service} />}{" "}
+            {service && (
+                <ServiceUpdationForm
+                    service={service}
+                    verification={verification}
+                    onServiceUpdated={fetchService}
+                />
+            )}{" "}
         </div>
     );
 }
