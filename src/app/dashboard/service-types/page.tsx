@@ -8,7 +8,7 @@ import { useCloudRegistry } from "@/hooks";
 import { isUnauthorized } from "@/lib/permissions";
 
 function Page() {
-    const { cloudRegistryProvider } = useCloudRegistry();
+    const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const [serviceTypes, setServiceTypes] = useState<ServiceType[] | null>(
         null,
     );
@@ -61,7 +61,13 @@ function Page() {
                             </div>
                         ))}
                     {loginRequired && (
-                        <LoginPrompt message="Log in to browse this registry" />
+                        <LoginPrompt
+                            message={
+                                isLoggedIn
+                                    ? "Your session expired; log in again."
+                                    : "Log in to browse this registry"
+                            }
+                        />
                     )}
                     {loading === false &&
                         !loginRequired &&

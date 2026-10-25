@@ -107,6 +107,11 @@ class AuthenticatedCloudRegistryProvider
         : {}),
     });
 
+    // Deployments may require login for reads: retry once with the token.
+    if (response.status === 401 && !authenticated && this.token) {
+      return this.request(path, { ...options, authenticated: true });
+    }
+
     if (!response.ok) {
       let message = `Request failed: ${response.status} ${response.statusText}`;
 
