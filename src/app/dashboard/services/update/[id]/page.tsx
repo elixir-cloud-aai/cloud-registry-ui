@@ -3,13 +3,14 @@ import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { LoginPrompt } from "@/components/shared/login-prompt";
 import { useCloudRegistry } from "@/hooks";
 import { ServiceUpdationForm } from "../_components";
 
 function Page() {
     const { id } = useParams();
     const [loading, setLoading] = useState(true);
-    const { cloudRegistryProvider } = useCloudRegistry();
+    const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const [service, setService] = useState<ExternalService>();
 
     useEffect(() => {
@@ -27,6 +28,9 @@ function Page() {
             )
             .finally(() => setLoading(false));
     }, [cloudRegistryProvider, id]);
+
+    if (cloudRegistryProvider && !isLoggedIn)
+        return <LoginPrompt message="Log in to edit this service" />;
 
     if (loading)
         return (
