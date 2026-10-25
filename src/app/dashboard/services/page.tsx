@@ -5,9 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { LoginPrompt } from "@/components/shared/login-prompt";
 import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/table";
 import { useCloudRegistry } from "@/hooks";
+import { isUnauthorized } from "@/lib/permissions";
 import {
     ServicesTableBody,
     ServicesTableFooter,
@@ -20,6 +22,7 @@ function Page() {
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const [services, setServices] = useState<ExternalService[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loginRequired, setLoginRequired] = useState(false);
 
     const fetchServices = () => {
         cloudRegistryProvider
@@ -28,6 +31,10 @@ function Page() {
                 setServices(_val);
             })
             .catch((err) => {
+                if (isUnauthorized(err)) {
+                    setLoginRequired(true);
+                    return;
+                }
                 console.error(
                     "Failed to load services from cloud registry provider:",
                     err,
@@ -77,20 +84,24 @@ function Page() {
                     )}
                 </div>
             </div>
-            <div className="rounded-xl border overflow-hidden">
-                <Table>
-                    <ServicesTableHeader />
-                    {loading === true ? (
-                        <ServiceTableBodySkeleton />
-                    ) : (
-                        <ServicesTableBody
-                            services={services}
-                            fetchServices={fetchServices}
-                        />
-                    )}
-                    <ServicesTableFooter />
-                </Table>
-            </div>
+            {loginRequired ? (
+                <LoginPrompt message="Log in to browse this registry" />
+            ) : (
+                <div className="rounded-xl border overflow-hidden">
+                    <Table>
+                        <ServicesTableHeader />
+                        {loading === true ? (
+                            <ServiceTableBodySkeleton />
+                        ) : (
+                            <ServicesTableBody
+                                services={services}
+                                fetchServices={fetchServices}
+                            />
+                        )}
+                        <ServicesTableFooter />
+                    </Table>
+                </div>
+            )}
         </div>
     );
 }

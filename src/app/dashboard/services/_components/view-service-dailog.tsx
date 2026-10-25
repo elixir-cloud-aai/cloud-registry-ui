@@ -14,7 +14,11 @@ import {
 } from "@/components/ui/dialog";
 import { useMe } from "@/hooks";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
-import { canDeleteService, canEditService } from "@/lib/permissions";
+import {
+    canDeleteService,
+    canEditService,
+    isForbidden,
+} from "@/lib/permissions";
 import ViewServiceDialogBody from "./view-service-dailog-body";
 
 type Props = {
@@ -49,7 +53,10 @@ function ServiceDetailsDialog({
         toast.promise(promise, {
             loading: `Deleting service with ID - ${service.id}`,
             success: (response) => `Deleted service with ID - ${response}`,
-            error: "Cannot delete service currently.",
+            error: (err) =>
+                isForbidden(err)
+                    ? "You don't have permission to change this service."
+                    : "Cannot delete service currently.",
         });
 
         try {
@@ -57,7 +64,7 @@ function ServiceDetailsDialog({
             fetchServices();
             onOpenChange(false);
         } catch {
-            toast.error("Cannot update the service list.");
+            setIsDeleting(false);
         }
     };
 

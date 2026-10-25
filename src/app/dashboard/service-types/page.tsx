@@ -2,8 +2,10 @@
 import type { ServiceType } from "@elixir-cloud/cloud-registry/providers";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { LoginPrompt } from "@/components/shared/login-prompt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCloudRegistry } from "@/hooks";
+import { isUnauthorized } from "@/lib/permissions";
 
 function Page() {
     const { cloudRegistryProvider } = useCloudRegistry();
@@ -11,12 +13,16 @@ function Page() {
         null,
     );
     const [loading, setLoading] = useState(true);
+    const [loginRequired, setLoginRequired] = useState(false);
 
     useEffect(() => {
         cloudRegistryProvider
             ?.getServiceTypes()
             .then((val) => setServiceTypes(val))
-            .catch(() => toast.error("Could not fetch the service types."))
+            .catch((err) => {
+                if (isUnauthorized(err)) setLoginRequired(true);
+                else toast.error("Could not fetch the service types.");
+            })
             .finally(() => setLoading(false));
     }, [cloudRegistryProvider]);
 
@@ -54,11 +60,16 @@ function Page() {
                                 </Card>
                             </div>
                         ))}
-                    {loading === false && !serviceTypes?.length && (
-                        <p className="font-bold text-lg mt-20 text-center w-full">
-                            No service types
-                        </p>
+                    {loginRequired && (
+                        <LoginPrompt message="Log in to browse this registry" />
                     )}
+                    {loading === false &&
+                        !loginRequired &&
+                        !serviceTypes?.length && (
+                            <p className="font-bold text-lg mt-20 text-center w-full">
+                                No service types
+                            </p>
+                        )}
                 </div>
             </div>
         </div>

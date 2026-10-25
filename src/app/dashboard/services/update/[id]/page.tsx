@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { useCloudRegistry, useMe } from "@/hooks";
-import { canEditService } from "@/lib/permissions";
+import { canEditService, isUnauthorized } from "@/lib/permissions";
 import { ServiceUpdationForm } from "../_components";
 
 function Page() {
@@ -14,6 +14,7 @@ function Page() {
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const [service, setService] = useState<ExternalService>();
     const { me, loading: meLoading } = useMe();
+    const [loginRequired, setLoginRequired] = useState(false);
 
     useEffect(() => {
         if (!id) return;
@@ -23,15 +24,17 @@ function Page() {
                 setService(_val);
                 console.log(_val);
             })
-            .catch(() =>
-                toast.error(
-                    "Cannot fetch the service details. Please try again later.",
-                ),
-            )
+            .catch((err) => {
+                if (isUnauthorized(err)) setLoginRequired(true);
+                else
+                    toast.error(
+                        "Cannot fetch the service details. Please try again later.",
+                    );
+            })
             .finally(() => setLoading(false));
     }, [cloudRegistryProvider, id]);
 
-    if (cloudRegistryProvider && !isLoggedIn)
+    if ((cloudRegistryProvider && !isLoggedIn) || loginRequired)
         return <LoginPrompt message="Log in to edit this service" />;
 
     if (loading || meLoading)
