@@ -1,5 +1,5 @@
 # Base
-FROM oven/bun:1.2.21
+FROM oven/bun:1.3.14
 WORKDIR /app
 
 # Install deps
