@@ -45,7 +45,7 @@ function ServiceInfoCardContent({ serviceInfo }: Props) {
                 <div className="space-y-2">
                     <div className="flex items-center gap-2 text-slate-500">
                         <Tag className="w-4 h-4" />
-                        <span className="font-medium">Build Version</span>
+                        <span className="font-medium">Registry Version</span>
                     </div>
                     <code className="text-xs bg-slate-100 px-2 py-1 rounded ml-6 text-slate-800">
                         {serviceInfo.version}
