@@ -269,6 +269,8 @@ class AuthenticatedCloudRegistryProvider
   /**
    * GET /services/{serviceId}/permissions
    * Authenticated.
+   *
+   * List the roles of users and groups.
    */
   async getServicePermissions(
     serviceId: ServiceId,
@@ -291,7 +293,7 @@ class AuthenticatedCloudRegistryProvider
     serviceId: ServiceId,
     userId: UserId,
     permission: PermissionRegister,
-  ): Promise<void> {
+  ): Promise<Permission> {
     return this.request(
       `/services/${this.idPath(serviceId)}/permissions/${this.idPath(userId)}`,
       {
@@ -311,7 +313,7 @@ class AuthenticatedCloudRegistryProvider
   async revokeServicePermission(
     serviceId: ServiceId,
     userId: UserId,
-  ): Promise<void> {
+  ): Promise<UserId> {
     return this.request(
       `/services/${this.idPath(serviceId)}/permissions/${this.idPath(userId)}`,
       {
@@ -330,8 +332,8 @@ class AuthenticatedCloudRegistryProvider
   async grantGroupPermission(
     serviceId: ServiceId,
     group: GroupName,
-    permission: GroupPermission,
-  ): Promise<void> {
+    permission: PermissionRegister,
+  ): Promise<GroupPermission> {
     return this.request(
       `/services/${this.idPath(serviceId)}/permissions/groups/${this.idPath(group)}`,
       {
@@ -351,7 +353,7 @@ class AuthenticatedCloudRegistryProvider
   async revokeGroupPermission(
     serviceId: ServiceId,
     group: GroupName,
-  ): Promise<void> {
+  ): Promise<GroupName> {
     return this.request(
       `/services/${this.idPath(serviceId)}/permissions/groups/${this.idPath(group)}`,
       {
