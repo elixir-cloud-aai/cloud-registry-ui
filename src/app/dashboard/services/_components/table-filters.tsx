@@ -1,5 +1,5 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
-import { SearchIcon, XIcon } from "lucide-react";
+import { BadgeCheckIcon, SearchIcon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,10 +9,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Toggle } from "@/components/ui/toggle";
 import {
     defaultFilters,
     type FilterValue,
     filterOptions,
+    type SelectFilterKey,
     type ServiceFilters,
     typeLabel,
 } from "./filter-helper";
@@ -100,7 +102,7 @@ function ServicesTableFilters({
     onFiltersChange,
 }: Props) {
     const handleFilterChange =
-        (key: keyof ServiceFilters) => (value?: FilterValue) =>
+        (key: SelectFilterKey) => (value?: FilterValue) =>
             onFiltersChange({ ...filters, [key]: value });
 
     const handleClear = () => {
@@ -147,6 +149,21 @@ function ServicesTableFilters({
                 disabled={disabled}
                 onValueChange={handleFilterChange("environment")}
             />
+            <Toggle
+                variant={"outline"}
+                aria-label="Show verified services only"
+                pressed={!!filters.verified}
+                onPressedChange={(pressed) =>
+                    onFiltersChange({
+                        ...filters,
+                        verified: pressed || undefined,
+                    })
+                }
+                disabled={disabled}
+            >
+                <BadgeCheckIcon />
+                Verified only
+            </Toggle>
             {filtered && (
                 <Button variant={"ghost"} onClick={handleClear}>
                     <XIcon />

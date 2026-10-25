@@ -45,7 +45,12 @@ function Page() {
 
     const filtered = isFiltered(search, filters);
     const verified = verifiedServices(services, verifications);
-    const filteredServices = filterServices(services, search, filters);
+    const filteredServices = filterServices(
+        services,
+        search,
+        filters,
+        verified,
+    );
     const { page, pageCount, pageItems, start, end, setPage } = usePagination(
         filteredServices,
         pageSize,
