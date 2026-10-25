@@ -41,10 +41,12 @@ Set `NEXT_PUBLIC_SERVICE_URL_SCHEMES` to `http,https` if the registry also allow
 
 Branding (all optional). These are build-time values: set them in `.env` (or the environment) before `bun run build` or `docker build`; `docker run -e` does not change a built image.
 
-| Variable                | Default                     | Description                                                   |
-| ----------------------- | --------------------------- | ------------------------------------------------------------- |
-| `NEXT_PUBLIC_APP_TITLE` | `Cloud Registry`            | Title at the top of the sidebar and of the browser tab        |
-| `NEXT_PUBLIC_APP_LOGO`  | `/elixir-on-cloud-mark.svg` | Logo next to the title (square); a path in `public/` or a URL |
+| Variable                        | Default                       | Description                                                                  |
+| ------------------------------- | ----------------------------- | ---------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_APP_TITLE`         | `Cloud Registry`              | Title at the top of the sidebar and of the browser tab                       |
+| `NEXT_PUBLIC_APP_LOGO`          | `/elixir-on-cloud-mark.svg`   | Logo next to the title (square); a path in `public/` or a URL                |
+| `NEXT_PUBLIC_FOOTER_LOGO`       | `/elixir-on-cloud-lockup.svg` | Logo at the bottom of the sidebar (full width); a path in `public/` or a URL |
+| `NEXT_PUBLIC_FOOTER_START_YEAR` | (none)                        | First year of the copyright line: `© START – CURRENT`, else `© CURRENT`      |
 
 
 ## Contributing
