@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { useCloudRegistry, useMe } from "@/hooks";
+import { errorMessage } from "@/lib/errors";
 import { canEditService, isUnauthorized } from "@/lib/permissions";
 import { ServiceUpdationForm } from "../_components";
 
@@ -28,7 +29,10 @@ function Page() {
                 if (isUnauthorized(err)) setLoginRequired(true);
                 else
                     toast.error(
-                        "Cannot fetch the service details. Please try again later.",
+                        errorMessage(
+                            err,
+                            "Cannot fetch the service details. Please try again later.",
+                        ),
                     );
             })
             .finally(() => setLoading(false));

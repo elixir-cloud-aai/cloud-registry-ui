@@ -9,6 +9,7 @@ import { LoginPrompt } from "@/components/shared/login-prompt";
 import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/table";
 import { useCloudRegistry, useMe } from "@/hooks";
+import { errorMessage } from "@/lib/errors";
 import { isUnauthorized } from "@/lib/permissions";
 import {
     ServicesTableBody,
@@ -41,7 +42,10 @@ function Page() {
                     err,
                 );
                 toast.error(
-                    "We are having trouble loading services. Please refresh or try again later.",
+                    errorMessage(
+                        err,
+                        "We are having trouble loading services. Please refresh or try again later.",
+                    ),
                 );
             })
             .finally(() => {
