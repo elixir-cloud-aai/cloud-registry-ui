@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { useCloudRegistry, useMe } from "@/hooks";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
+import { withFieldLabels } from "@/lib/errors";
 
 function Page() {
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
@@ -43,7 +44,7 @@ function Page() {
     };
 
     const onServiceCreationFailed = (e: EccServiceCreateFailedEvent) => {
-        toast.error(e.detail.error);
+        toast.error(withFieldLabels(e.detail.error));
     };
 
     const onValidationError = (e: EccServiceCreateValidationFailedEvent) => {
