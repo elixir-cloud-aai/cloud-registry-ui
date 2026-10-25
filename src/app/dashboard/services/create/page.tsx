@@ -7,11 +7,12 @@ import type {
 import { ECCClientElixirCloudRegistryServiceCreate } from "@elixir-cloud/cloud-registry/react";
 import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
+import { LoginPrompt } from "@/components/shared/login-prompt";
 import { useCloudRegistry, useMe } from "@/hooks";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 
 function Page() {
-    const { cloudRegistryProvider } = useCloudRegistry();
+    const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const { me, loading, error } = useMe();
 
     useEffect(() => {
@@ -50,6 +51,9 @@ function Page() {
     };
 
     if (provider === null) return;
+
+    if (!isLoggedIn)
+        return <LoginPrompt message="Log in to register a service" />;
 
     // cloud-components gap: the create component ignores later provider
     // changes, so it renders only once the admin flag is known
