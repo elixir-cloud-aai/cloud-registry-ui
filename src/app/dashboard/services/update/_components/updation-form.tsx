@@ -12,7 +12,11 @@ import {
     ServiceEnvSection,
     ServiceTypeSection,
 } from "./_sections";
-import { formDataSchema, normalizeFormData } from "./form-helper";
+import {
+    formDataSchema,
+    normalizeFormData,
+    normalizeServiceData,
+} from "./form-helper";
 
 type Props = {
     service: ExternalService;
@@ -33,7 +37,7 @@ function ServiceUpdationForm({ service }: Props) {
 
             const promise = cloudRegistryProvider.updateService(
                 service.id,
-                value,
+                normalizeServiceData(value),
             );
             toast.promise(promise, {
                 loading: `Updating service with ID - ${service.id}`,
