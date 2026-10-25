@@ -125,13 +125,13 @@ function ServiceUpdationForm({
                 <ServiceBasicInfoSection form={form} />
                 <ServiceTypeSection form={form} />
                 <ServiceEnvSection form={form} />
+                <ServiceContactInfoSection form={form} />
                 <TextareaField
                     form={form}
                     name="description"
                     label="Description"
                     placeholder="Provide a detailed description of what your service does"
                 />
-                <ServiceContactInfoSection form={form} />
                 {verification && (
                     <form.Subscribe selector={(state) => state.values}>
                         {(values) =>
