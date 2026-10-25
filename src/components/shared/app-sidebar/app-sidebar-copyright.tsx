@@ -1,7 +1,8 @@
 "use client";
-import Image from "next/image";
 import { useEffect, useState } from "react";
+import { useFitText } from "@/hooks";
 import { copyright, footerLogo } from "@/lib/branding";
+import AppSidebarLogo from "./app-sidebar-logo";
 
 function AppSidebarCopyright() {
     // the page is prerendered at build time, so the year is set after mount
@@ -9,21 +10,26 @@ function AppSidebarCopyright() {
     useEffect(() => {
         setYear(new Date().getFullYear());
     }, []);
+    const text = copyright(year);
+    const textRef = useFitText<HTMLParagraphElement>(14, text);
 
     return (
-        <div className="flex flex-col items-center gap-2 px-2 pt-2 group-data-[collapsible=icon]:hidden">
-            <div className="w-full rounded-md dark:bg-white dark:p-2">
-                <Image
-                    src={footerLogo}
-                    width={0}
-                    height={0}
-                    sizes="100%"
-                    alt="Logo"
-                    className="w-full h-auto"
-                    unoptimized
-                />
-            </div>
-            <p className="text-xs text-muted-foreground">{copyright(year)}</p>
+        <div className="flex items-center gap-3 px-2 pt-2 group-data-[collapsible=icon]:hidden">
+            <p
+                ref={textRef}
+                className="min-w-0 flex-1 whitespace-nowrap text-muted-foreground"
+            >
+                {text}
+            </p>
+            <AppSidebarLogo
+                logo={footerLogo}
+                alt="Logo"
+                width={0}
+                height={0}
+                className="max-w-3/5 shrink-0 rounded-md"
+                backingClassName="dark:p-1"
+                imageClassName="h-10 w-auto max-w-full object-contain"
+            />
         </div>
     );
 }

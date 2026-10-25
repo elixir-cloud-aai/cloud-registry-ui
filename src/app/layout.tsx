@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Open_Sans } from "next/font/google";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +8,11 @@ import { cn } from "@/lib/utils";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const openSans = Open_Sans({
+    subsets: ["latin"],
+    weight: ["600"],
+    variable: "--font-title",
+});
 
 export const metadata: Metadata = {
     title: appTitle,
@@ -22,7 +27,13 @@ export default function RootLayout({
     return (
         <html
             lang="en"
-            className={cn("h-full", "antialiased", "font-sans", inter.variable)}
+            className={cn(
+                "h-full",
+                "antialiased",
+                "font-sans",
+                inter.variable,
+                openSans.variable,
+            )}
             suppressHydrationWarning
         >
             <body className="min-h-full flex flex-col">
