@@ -18,9 +18,9 @@ type Props = {
 };
 
 function pageNumbers(page: number, pageCount: number) {
-    const pages = Array.from({ length: pageCount }, (_, i) => i + 1).filter(
-        (val) => val === 1 || val === pageCount || Math.abs(val - page) <= 1,
-    );
+    const pages = [...new Set([1, page - 1, page, page + 1, pageCount])]
+        .filter((val) => val >= 1 && val <= pageCount)
+        .sort((a, b) => a - b);
     return pages.flatMap((val, idx) =>
         idx > 0 && val - pages[idx - 1] === 2 ? [val - 1, val] : [val],
     );
