@@ -90,9 +90,13 @@ function UnsavedChangesGuard({ when }: Props) {
             const { key } = e.destination;
             setLeave(() => () => {
                 leaving.current = true;
-                navigation.traverseTo(key).finished.catch(() => {
-                    leaving.current = false;
-                });
+                // guard again if this page is still shown afterwards
+                navigation
+                    .traverseTo(key)
+                    .finished.catch(() => {})
+                    .finally(() => {
+                        leaving.current = false;
+                    });
             });
         };
         navigation.addEventListener("navigate", onNavigate);
