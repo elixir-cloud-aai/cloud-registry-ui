@@ -4,6 +4,7 @@ import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useCloudRegistry } from "@/hooks";
+import { isForbidden } from "@/lib/permissions";
 import { TextareaField } from "./_fields/textarea-field";
 import {
     ServiceActionButton,
@@ -43,11 +44,19 @@ function ServiceUpdationForm({ service }: Props) {
                 loading: `Updating service with ID - ${service.id}`,
                 success: (response) =>
                     `Successfully updated service with id - ${response}`,
-                error: "Cannot update service currently.",
+                error: (err) =>
+                    isForbidden(err)
+                        ? "You don't have permission to change this service."
+                        : "Cannot update service currently.",
             });
 
-            await promise;
-            setUpdating(false);
+            try {
+                await promise;
+            } catch {
+                // toast.promise shows the error
+            } finally {
+                setUpdating(false);
+            }
         },
     });
 
