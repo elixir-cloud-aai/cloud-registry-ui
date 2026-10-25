@@ -76,10 +76,11 @@ function Page() {
 
         try {
             await promise;
-            await fetchServiceTypes();
         } catch {
             // toast.promise shows the error
         } finally {
+            // also after errors, e.g. if another admin removed the type
+            await fetchServiceTypes();
             removingRef.current = false;
             setRemoving(false);
         }
