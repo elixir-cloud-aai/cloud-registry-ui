@@ -20,7 +20,7 @@ function Page() {
     useEffect(() => {
         if (!id) return;
         cloudRegistryProvider
-            ?.getServiceById(id as string)
+            ?.getServiceById(decodeURIComponent(id as string))
             .then((_val) => {
                 setService(_val);
                 console.log(_val);

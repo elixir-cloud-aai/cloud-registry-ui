@@ -29,7 +29,7 @@ function Page() {
     useEffect(() => {
         if (!id) return;
         cloudRegistryProvider
-            ?.getServiceById(id as string)
+            ?.getServiceById(decodeURIComponent(id as string))
             .then((_val) => setService(_val))
             .catch((err) => {
                 if (isUnauthorized(err)) setLoginRequired(true);
@@ -83,7 +83,9 @@ function Page() {
             {canEditService(me, service.id) && (
                 <CardFooter className="px-4 py-4 border-t justify-end">
                     <Button size="sm" asChild>
-                        <Link href={`/dashboard/services/update/${service.id}`}>
+                        <Link
+                            href={`/dashboard/services/update/${encodeURIComponent(service.id)}`}
+                        >
                             Edit
                         </Link>
                     </Button>
