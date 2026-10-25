@@ -59,7 +59,10 @@ function ServiceTypeAddDialog({ provider, onAdded }: Props) {
         <Dialog
             open={open}
             onOpenChange={(val) => {
-                if (!form.state.isSubmitting) setOpen(val);
+                if (form.state.isSubmitting) return;
+                setOpen(val);
+                // start empty again after cancelling
+                if (!val) form.reset();
             }}
         >
             <DialogTrigger asChild>

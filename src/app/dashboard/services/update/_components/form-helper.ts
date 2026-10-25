@@ -197,6 +197,12 @@ export function normalizeServiceData(
     return {
         ...data,
         url: data.url.trim(),
+        // as validated by `serviceTypeSchema`
+        type: {
+            group: data.type.group.trim(),
+            artifact: data.type.artifact.trim(),
+            version: data.type.version.trim(),
+        },
         description: data.description || undefined,
         contactUrl: data.contactUrl || undefined,
         documentationUrl: data.documentationUrl || undefined,
