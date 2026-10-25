@@ -13,6 +13,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import AppSidebarCopyright from "./app-sidebar-copyright";
 import { AppSidebarFooter } from "./app-sidebar-footer";
 import AppSidebarHeader from "./app-sidebar-header";
 
@@ -67,6 +68,7 @@ function AppSidebar() {
             {/* Sidebar footer */}
             <SidebarFooter>
                 <AppSidebarFooter />
+                <AppSidebarCopyright />
             </SidebarFooter>
         </Sidebar>
     );
