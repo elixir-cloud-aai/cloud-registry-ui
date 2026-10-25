@@ -5,12 +5,13 @@ import type {
 import { z } from "zod";
 
 const httpUrl = z.url({ protocol: z.regexes.httpProtocol });
-const serviceUrlSchemes = (
-    process.env.NEXT_PUBLIC_SERVICE_URL_SCHEMES || "https"
-)
+const configuredSchemes = (process.env.NEXT_PUBLIC_SERVICE_URL_SCHEMES ?? "")
     .split(",")
     .map((scheme) => scheme.trim().toLowerCase())
     .filter(Boolean);
+const serviceUrlSchemes = configuredSchemes.length
+    ? configuredSchemes
+    : ["https"];
 const contactUrl = z.url({ protocol: /^(https?|mailto)$/ });
 const hasNoUserInfoOrSpaces = (value: string) =>
     !/\s|^https?:\/\/[^/?#]*@/i.test(value);
