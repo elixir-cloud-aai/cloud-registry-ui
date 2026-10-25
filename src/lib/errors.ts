@@ -1,3 +1,4 @@
+import type { ExternalToast } from "sonner";
 import { isForbidden, isUnauthorized } from "./permissions";
 
 // labels of the create and edit forms, by field path
@@ -61,4 +62,52 @@ function mutationError(err: unknown, fallback: string) {
     return errorMessage(err, fallback);
 }
 
-export { errorMessage, mutationError, withFieldLabels };
+/** Check if a change failed as it duplicates a registered service */
+function isDuplicate(err: unknown): err is Error {
+    return err instanceof Error && "status" in err && err.status === 409;
+}
+
+/** Get the toast for a change that duplicates a registered service */
+function duplicateToast(
+    err: unknown,
+): (ExternalToast & { message: string }) | null {
+    if (!isDuplicate(err)) return null;
+
+    const serviceId =
+        "serviceId" in err && typeof err.serviceId === "string"
+            ? err.serviceId
+            : "";
+    // the registry names the service only to users who may read it
+    if (!serviceId)
+        return {
+            message:
+                "A service with this URL and API type is already registered; contact an admin.",
+        };
+
+    return {
+        message: errorMessage(
+            err,
+            "A service with this URL and API type is already registered.",
+        ),
+        description: "Please contact its owner or an admin.",
+        // a new tab keeps the form's input
+        action: {
+            label: "View service",
+            onClick: () =>
+                window.open(
+                    `/dashboard/services/view/${encodeURIComponent(serviceId)}`,
+                    "_blank",
+                    "noopener",
+                ),
+        },
+        duration: 10000,
+    };
+}
+
+export {
+    duplicateToast,
+    errorMessage,
+    isDuplicate,
+    mutationError,
+    withFieldLabels,
+};

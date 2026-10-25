@@ -4,7 +4,7 @@ import { useForm } from "@tanstack/react-form";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useCloudRegistry } from "@/hooks";
-import { mutationError } from "@/lib/errors";
+import { duplicateToast, isDuplicate, mutationError } from "@/lib/errors";
 import { TextareaField } from "./_fields/textarea-field";
 import {
     ServiceActionButton,
@@ -45,13 +45,35 @@ function ServiceUpdationForm({ service }: Props) {
                 success: (response) =>
                     `Successfully updated service with id - ${response}`,
                 error: (err) =>
-                    mutationError(err, "Cannot update service currently."),
+                    duplicateToast(err) ?? {
+                        message: mutationError(
+                            err,
+                            "Cannot update service currently.",
+                        ),
+                    },
             });
 
             try {
                 await promise;
-            } catch {
-                // toast.promise shows the error
+            } catch (err) {
+                // toast.promise shows the error; a duplicate is also shown
+                // on the URL field, until a field changes or loses focus
+                if (isDuplicate(err))
+                    form.setFieldMeta("url", (prev) => ({
+                        ...prev,
+                        isTouched: true,
+                        errorMap: {
+                            ...prev.errorMap,
+                            onServer: {
+                                message:
+                                    "A service with this URL and API type is already registered.",
+                            },
+                        },
+                        errorSourceMap: {
+                            ...prev.errorSourceMap,
+                            onServer: "form",
+                        },
+                    }));
             } finally {
                 setUpdating(false);
             }
