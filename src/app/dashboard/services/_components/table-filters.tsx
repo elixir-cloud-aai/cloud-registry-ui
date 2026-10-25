@@ -10,20 +10,35 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {
-    ALL,
     defaultFilters,
+    type FilterValue,
     filterOptions,
     type ServiceFilters,
     typeLabel,
 } from "./filter-helper";
 
+const anyValue = "any";
+const unsetValue = "unset";
+
+function toSelectValue(value?: FilterValue) {
+    if (value === undefined) return anyValue;
+    if (value === null) return unsetValue;
+    return `=${value}`;
+}
+
+function fromSelectValue(value: string) {
+    if (value === anyValue) return undefined;
+    if (value === unsetValue) return null;
+    return value.slice(1);
+}
+
 type FilterSelectProps = {
     label: string;
     allLabel: string;
-    value: string;
-    options: string[];
+    value?: FilterValue;
+    options: FilterValue[];
     disabled: boolean;
-    onValueChange: (value: string) => void;
+    onValueChange: (value?: FilterValue) => void;
     formatLabel?: (value: string) => string;
 };
 
@@ -37,20 +52,27 @@ function FilterSelect({
     formatLabel = (val) => val,
 }: FilterSelectProps) {
     const items =
-        value === ALL || options.includes(value)
+        value === undefined || options.includes(value)
             ? options
             : [...options, value];
 
     return (
-        <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+        <Select
+            value={toSelectValue(value)}
+            onValueChange={(val) => onValueChange(fromSelectValue(val))}
+            disabled={disabled}
+        >
             <SelectTrigger aria-label={label} className="w-full sm:w-48">
                 <SelectValue placeholder={allLabel} />
             </SelectTrigger>
             <SelectContent>
-                <SelectItem value={ALL}>{allLabel}</SelectItem>
+                <SelectItem value={anyValue}>{allLabel}</SelectItem>
                 {items.map((option) => (
-                    <SelectItem key={option} value={option}>
-                        {formatLabel(option)}
+                    <SelectItem
+                        key={toSelectValue(option)}
+                        value={toSelectValue(option)}
+                    >
+                        {option === null ? "Not set" : formatLabel(option)}
                     </SelectItem>
                 ))}
             </SelectContent>
@@ -77,8 +99,9 @@ function ServicesTableFilters({
     onSearchChange,
     onFiltersChange,
 }: Props) {
-    const handleFilterChange = (key: keyof ServiceFilters) => (value: string) =>
-        onFiltersChange({ ...filters, [key]: value });
+    const handleFilterChange =
+        (key: keyof ServiceFilters) => (value?: FilterValue) =>
+            onFiltersChange({ ...filters, [key]: value });
 
     const handleClear = () => {
         onSearchChange("");
