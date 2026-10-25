@@ -1,4 +1,5 @@
 import { FieldGroup } from "@/components/ui/field";
+import { serviceEnvironments } from "@/lib/service-environments";
 import type { ServiceUpdationFormType } from "@/types/service-update-form";
 import { SelectField, TextField } from "../_fields";
 
@@ -16,18 +17,26 @@ function ServiceEnvSection({ form }: Props) {
                 placeholder="1.0.0"
             />
 
-            <SelectField
-                form={form}
-                name="environment"
-                label="Environment"
-                placeholder="Select environment"
-                options={[
-                    { label: "Production", value: "prod" },
-                    { label: "Staging", value: "staging" },
-                    { label: "Development", value: "dev" },
-                    { label: "Test", value: "test" },
-                ]}
-            />
+            {serviceEnvironments.length ? (
+                <SelectField
+                    form={form}
+                    name="environment"
+                    label="Environment"
+                    placeholder="Select environment"
+                    emptyLabel="Not set"
+                    options={serviceEnvironments.map((value) => ({
+                        label: value,
+                        value,
+                    }))}
+                />
+            ) : (
+                <TextField
+                    form={form}
+                    name="environment"
+                    label="Environment"
+                    placeholder="prod"
+                />
+            )}
         </FieldGroup>
     );
 }

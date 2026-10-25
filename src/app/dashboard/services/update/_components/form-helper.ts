@@ -1,6 +1,11 @@
 import type { ExternalServiceRegister } from "@elixir-cloud/cloud-registry/providers";
 import type { DeepKeys } from "@tanstack/react-form";
 import { z } from "zod";
+import {
+    environmentMessage,
+    isAllowedEnvironment,
+    maxEnvironmentLength,
+} from "@/lib/service-environments";
 
 const httpUrl = z.url({ protocol: z.regexes.httpProtocol });
 const configuredSchemes = (process.env.NEXT_PUBLIC_SERVICE_URL_SCHEMES ?? "")
@@ -139,7 +144,13 @@ export const formDataSchema = z.object({
         ),
     environment: z
         .string()
-        .max(256, "Environment must be at most 256 characters."),
+        // characters, not UTF-16 code units, as the registry counts them
+        .refine(
+            (value) => [...value].length <= maxEnvironmentLength,
+            `Environment must be at most ${maxEnvironmentLength} characters.`,
+        )
+        // as the registry checks it, also for stored values
+        .refine(isAllowedEnvironment, environmentMessage),
     createdAt: timestamp("Created At"),
 });
 

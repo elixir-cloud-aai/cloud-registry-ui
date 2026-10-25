@@ -14,6 +14,10 @@ import { UnsavedChangesGuard } from "@/components/shared/unsaved-changes-guard";
 import { useCloudRegistry, useFormChanged, useMe } from "@/hooks";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import { duplicateToast, withFieldLabels } from "@/lib/errors";
+import {
+    environmentMessage,
+    isAllowedEnvironment,
+} from "@/lib/service-environments";
 
 function Page() {
     const router = useRouter();
@@ -34,6 +38,17 @@ function Page() {
     const provider = useMemo(() => {
         if (cloudRegistryProvider === null) return null;
 
+        // cloud-components gap (cloud-components#461): the create component
+        // offers the default environments only, so others get an error
+        // before the request
+        const checkEnvironment = (
+            service: ExternalServiceRegister,
+            request: () => Promise<string>,
+        ) =>
+            isAllowedEnvironment(service.environment)
+                ? request()
+                : Promise.reject(new Error(environmentMessage));
+
         const keepError = (promise: Promise<string>) => {
             createError.current = null;
             return promise.catch((err) => {
@@ -44,7 +59,11 @@ function Page() {
 
         return Object.assign(Object.create(cloudRegistryProvider), {
             createService: (service: ExternalServiceRegister) =>
-                keepError(cloudRegistryProvider.createService(service)),
+                keepError(
+                    checkEnvironment(service, () =>
+                        cloudRegistryProvider.createService(service),
+                    ),
+                ),
             // cloud-components gap: the create component can't hide the
             // custom ID field, so non-admins get an error before the request
             createServiceWithId: (
@@ -53,7 +72,12 @@ function Page() {
             ) =>
                 keepError(
                     me?.admin
-                        ? cloudRegistryProvider.createServiceWithId(id, service)
+                        ? checkEnvironment(service, () =>
+                              cloudRegistryProvider.createServiceWithId(
+                                  id,
+                                  service,
+                              ),
+                          )
                         : Promise.reject(
                               new Error(
                                   "Only admins can choose identifiers; leave the field empty.",
