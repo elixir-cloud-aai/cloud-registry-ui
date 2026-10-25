@@ -37,6 +37,8 @@ docker run -p 3000:3000 cloud-registry-ui
 
 The app is configured through environment variables. Copy .env.example to .env and adjust as needed.
 
+Set `NEXT_PUBLIC_SERVICE_URL_SCHEMES` to `http,https` if the registry also allows `http` service URLs (`custom.endpoints.services.url_schemes`; default: `https`).
+
 
 ## Contributing
 

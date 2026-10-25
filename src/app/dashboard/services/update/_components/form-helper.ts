@@ -2,6 +2,11 @@ import type { ExternalServiceRegister } from "@elixir-cloud/cloud-registry/provi
 import { z } from "zod";
 
 const httpUrl = z.url({ protocol: z.regexes.httpProtocol });
+const serviceUrlSchemes = (
+    process.env.NEXT_PUBLIC_SERVICE_URL_SCHEMES || "https"
+)
+    .split(",")
+    .map((scheme) => scheme.trim().toLowerCase());
 const contactUrl = z.url({ protocol: /^(https?|mailto)$/ });
 const hasNoUserInfoOrSpaces = (value: string) =>
     !/\s|^https?:\/\/[^/?#]*@/i.test(value);
@@ -25,8 +30,11 @@ export const formDataSchema = z.object({
             },
         )
         .refine(
-            (value) => value.trim().toLowerCase().startsWith("https:"),
-            "Service URL must be an https URL, e.g. https://example.org/.",
+            (value) =>
+                serviceUrlSchemes.includes(
+                    value.trim().split(":")[0].toLowerCase(),
+                ),
+            `Service URL must be an ${serviceUrlSchemes.join(" or ")} URL, e.g. https://example.org/.`,
         ),
     organization: z.object({
         name: z
