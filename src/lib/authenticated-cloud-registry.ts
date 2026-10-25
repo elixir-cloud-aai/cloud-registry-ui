@@ -95,6 +95,26 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
     }
 
     /**
+     * Fetch the current user
+     * not in the package's provider yet (cloud-components gap)
+     * @returns Promise resolving to user ID, admin flag and roles on services
+     */
+    async getMe(): Promise<Me> {
+        const url = `${this.baseUrl}/me`;
+        const response = await fetch(url, {
+            headers: {
+                Authorization: `Bearer ${this.token}`,
+            },
+        });
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch current user: ${response.statusText}`,
+            );
+        }
+        return response.json();
+    }
+
+    /**
      * Create a service in the registry
      * @param service Service metadata to register
      * @returns Promise resolving to service identifier
