@@ -36,13 +36,15 @@ export async function GET(request: NextRequest) {
     await setCookie("authProvider", provider.id, cookieOptions);
 
     const redirectUrl = new URL(authorizationEndpoint);
-    redirectUrl.search = new URLSearchParams({
+    // keeps query parameters of the endpoint
+    for (const [key, val] of Object.entries({
         response_type: "code",
         client_id: provider.clientId,
         redirect_uri: loginSettings().redirectUri,
         scope: provider.scopes.join(" "),
         state: authState,
-    }).toString();
+    }))
+        redirectUrl.searchParams.set(key, val);
 
     return NextResponse.redirect(redirectUrl);
 }

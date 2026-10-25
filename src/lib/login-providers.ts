@@ -13,7 +13,10 @@ const loginProviderSchema = z.object({
     issuer: z.url().transform((val) => val.replace(/\/$/, "")),
     clientId: z.string().min(1),
     clientSecret: z.string().min(1),
-    scopes: z.array(z.string().min(1)).default(["openid", "profile", "email"]),
+    scopes: z
+        .array(z.string().min(1))
+        .refine((val) => val.includes("openid"), "Include the openid scope")
+        .default(["openid", "profile", "email"]),
 });
 
 const loginProvidersSchema = z
@@ -42,6 +45,9 @@ type OidcEndpoints = {
     token_endpoint: string;
     userinfo_endpoint: string;
 };
+
+/** @description timeout of requests to login providers, in milliseconds */
+const loginRequestTimeout = 10000;
 
 let settings: z.infer<typeof loginSettingsSchema> | undefined;
 const endpoints = new Map<string, Promise<OidcEndpoints>>();
@@ -106,19 +112,39 @@ function oidcEndpoints(provider: LoginProvider) {
     if (cached) return cached;
 
     const url = `${provider.issuer}/.well-known/openid-configuration`;
-    const promise = axios.get<OidcEndpoints>(url).then((res) => {
-        const {
-            issuer,
-            authorization_endpoint,
-            token_endpoint,
-            userinfo_endpoint,
-        } = res.data;
-        if (issuer?.replace(/\/$/, "") !== provider.issuer)
-            throw new Error(`Unexpected issuer ${issuer} at ${url}`);
-        if (!authorization_endpoint || !token_endpoint || !userinfo_endpoint)
-            throw new Error(`Incomplete OpenID Connect discovery at ${url}`);
-        return { authorization_endpoint, token_endpoint, userinfo_endpoint };
-    });
+    const promise = axios
+        .get<OidcEndpoints>(url, { timeout: loginRequestTimeout })
+        .then((res) => {
+            const {
+                issuer,
+                authorization_endpoint,
+                token_endpoint,
+                userinfo_endpoint,
+            } = res.data;
+            if (issuer?.replace(/\/$/, "") !== provider.issuer)
+                throw new Error(`Unexpected issuer ${issuer} at ${url}`);
+            if (
+                !authorization_endpoint ||
+                !token_endpoint ||
+                !userinfo_endpoint
+            )
+                throw new Error(
+                    `Incomplete OpenID Connect discovery at ${url}`,
+                );
+            if (
+                ![
+                    authorization_endpoint,
+                    token_endpoint,
+                    userinfo_endpoint,
+                ].every((val) => URL.canParse(val))
+            )
+                throw new Error(`Malformed endpoint URLs at ${url}`);
+            return {
+                authorization_endpoint,
+                token_endpoint,
+                userinfo_endpoint,
+            };
+        });
     // fetch again on the next login after a failure
     promise.catch(() => endpoints.delete(provider.id));
     endpoints.set(provider.id, promise);
@@ -126,4 +152,10 @@ function oidcEndpoints(provider: LoginProvider) {
 }
 
 export type { LoginProvider, LoginProviderInfo };
-export { loginProvider, loginProviderInfos, loginSettings, oidcEndpoints };
+export {
+    loginProvider,
+    loginProviderInfos,
+    loginRequestTimeout,
+    loginSettings,
+    oidcEndpoints,
+};
