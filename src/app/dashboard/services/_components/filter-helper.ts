@@ -1,5 +1,6 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import type { ServiceVerification } from "@/lib/cloud-registry.types";
+import { environmentRank } from "@/lib/service-environments";
 
 export type FilterValue = string | null;
 
@@ -42,6 +43,11 @@ export function filterOptions(
     return values.sort((a, b) => {
         if (a === null) return 1;
         if (b === null) return -1;
+        // configured environments first, in their order
+        if (key === "environment") {
+            const rank = environmentRank(a) - environmentRank(b);
+            if (rank) return rank;
+        }
         return a.localeCompare(b);
     });
 }
