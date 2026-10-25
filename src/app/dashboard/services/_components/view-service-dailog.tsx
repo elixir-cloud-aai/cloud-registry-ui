@@ -85,7 +85,7 @@ function ServiceDetailsDialog({
                         {canEdit && (
                             <Button size="sm" asChild>
                                 <Link
-                                    href={`/dashboard/services/update/${service.id}`}
+                                    href={`/dashboard/services/update/${encodeURIComponent(service.id)}`}
                                 >
                                     Edit
                                 </Link>
