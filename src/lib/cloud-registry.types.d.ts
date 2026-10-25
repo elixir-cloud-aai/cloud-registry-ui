@@ -29,23 +29,15 @@ export interface Permission {
 
 /**
  * Role of a group on a service.
- *
- * NOTE: Confirm the exact Group schema in OpenAPI.
- * This declaration assumes group is an array of strings.
  */
 export interface GroupPermission {
-  group: string[];
+  /** Value of the group claim of the members' tokens. */
+  group: GroupName;
   role: Role;
 }
 
-/** Request body for granting a user's permission. */
+/** Request body for granting a user's or group's permission. */
 export interface PermissionRegister {
-  role: Role;
-}
-
-/** Request body for granting a group's permission. */
-export interface GroupPermissionRegister {
-  group: string[];
   role: Role;
 }
 
@@ -71,10 +63,9 @@ export interface Me {
 /**
  * GET /services/{serviceId}/permissions
  *
- * Verify whether the endpoint returns an array
- * or an object containing permissions.
+ * Roles of users and groups, together.
  */
-export type ServicePermissions = Permission[];
+export type ServicePermissions = (Permission | GroupPermission)[];
 
 /**
  * GET /services/{serviceId}/verification
