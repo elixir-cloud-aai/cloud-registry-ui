@@ -4,17 +4,19 @@ import type {
     EccServiceCreateFailedEvent,
     EccServiceCreateValidationFailedEvent,
 } from "@elixir-cloud/cloud-registry/events";
+import type { ExternalServiceRegister } from "@elixir-cloud/cloud-registry/providers";
 import { ECCClientElixirCloudRegistryServiceCreate } from "@elixir-cloud/cloud-registry/react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { useCloudRegistry, useMe } from "@/hooks";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
-import { withFieldLabels } from "@/lib/errors";
+import { duplicateToast, withFieldLabels } from "@/lib/errors";
 
 function Page() {
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const { me, loading, error, expired } = useMe();
+    const createError = useRef<unknown>(null);
 
     useEffect(() => {
         if (error && !expired)
@@ -23,18 +25,36 @@ function Page() {
             );
     }, [error, expired]);
 
-    // cloud-components gap: the create component can't hide the custom ID
-    // field, so non-admins get an error before the request instead
+    // cloud-components gap: the create component passes on only the error
+    // message, so the provider keeps the error, e.g. for the duplicate's ID
     const provider = useMemo(() => {
-        if (cloudRegistryProvider === null || me?.admin)
-            return cloudRegistryProvider;
+        if (cloudRegistryProvider === null) return null;
+
+        const keepError = (promise: Promise<string>) => {
+            createError.current = null;
+            return promise.catch((err) => {
+                createError.current = err;
+                throw err;
+            });
+        };
 
         return Object.assign(Object.create(cloudRegistryProvider), {
-            createServiceWithId: () =>
-                Promise.reject(
-                    new Error(
-                        "Only admins can choose identifiers; leave the field empty.",
-                    ),
+            createService: (service: ExternalServiceRegister) =>
+                keepError(cloudRegistryProvider.createService(service)),
+            // cloud-components gap: the create component can't hide the
+            // custom ID field, so non-admins get an error before the request
+            createServiceWithId: (
+                id: string,
+                service: ExternalServiceRegister,
+            ) =>
+                keepError(
+                    me?.admin
+                        ? cloudRegistryProvider.createServiceWithId(id, service)
+                        : Promise.reject(
+                              new Error(
+                                  "Only admins can choose identifiers; leave the field empty.",
+                              ),
+                          ),
                 ),
         }) as AuthenticatedCloudRegistryProvider;
     }, [cloudRegistryProvider, me]);
@@ -44,6 +64,19 @@ function Page() {
     };
 
     const onServiceCreationFailed = (e: EccServiceCreateFailedEvent) => {
+        const err = createError.current;
+        createError.current = null;
+
+        const duplicate =
+            err instanceof Error && err.message === e.detail.error
+                ? duplicateToast(err)
+                : null;
+        if (duplicate) {
+            const { message, ...data } = duplicate;
+            toast.error(message, data);
+            return;
+        }
+
         toast.error(withFieldLabels(e.detail.error));
     };
 
