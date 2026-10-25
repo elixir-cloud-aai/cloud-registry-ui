@@ -3,14 +3,16 @@ import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { LogIn, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/table";
 import { useCloudRegistry, useMe, usePagination } from "@/hooks";
+import type { ServiceVerification } from "@/lib/cloud-registry.types";
 import { errorMessage } from "@/lib/errors";
 import { isUnauthorized } from "@/lib/permissions";
+import { verifiedServices } from "@/lib/verifications";
 import {
     ServicesTableBody,
     ServicesTableFilters,
@@ -32,12 +34,17 @@ function Page() {
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const { me, expired } = useMe();
     const [services, setServices] = useState<ExternalService[]>([]);
+    const [verifications, setVerifications] = useState<ServiceVerification[]>(
+        [],
+    );
     const [loading, setLoading] = useState(true);
     const [loginRequired, setLoginRequired] = useState(false);
+    const latestRequest = useRef(0);
     const [search, setSearch] = useState("");
     const [filters, setFilters] = useState<ServiceFilters>(defaultFilters);
 
     const filtered = isFiltered(search, filters);
+    const verified = verifiedServices(services, verifications);
     const filteredServices = filterServices(services, search, filters);
     const { page, pageCount, pageItems, start, end, setPage } = usePagination(
         filteredServices,
@@ -55,12 +62,26 @@ function Page() {
     };
 
     const fetchServices = () => {
-        cloudRegistryProvider
-            ?.getServices()
-            .then((_val) => {
+        if (!cloudRegistryProvider) return;
+        const request = ++latestRequest.current;
+        Promise.all([
+            cloudRegistryProvider.getServices(),
+            cloudRegistryProvider.getVerifications().catch((err) => {
+                console.error("Failed to load verifications:", err);
+                return null;
+            }),
+        ])
+            .then(([_val, verified]) => {
+                if (request !== latestRequest.current) return;
                 setServices(_val);
+                setVerifications(verified ?? []);
+                if (!verified)
+                    toast.error(
+                        "Could not load the verifications. Please try again later.",
+                    );
             })
             .catch((err) => {
+                if (request !== latestRequest.current) return;
                 if (isUnauthorized(err)) {
                     setLoginRequired(true);
                     return;
@@ -77,7 +98,7 @@ function Page() {
                 );
             })
             .finally(() => {
-                setLoading(false);
+                if (request === latestRequest.current) setLoading(false);
             });
     };
 
@@ -144,6 +165,7 @@ function Page() {
                             ) : (
                                 <ServicesTableBody
                                     services={pageItems}
+                                    verifications={verified}
                                     fetchServices={fetchServices}
                                     me={me}
                                     emptyMessage={

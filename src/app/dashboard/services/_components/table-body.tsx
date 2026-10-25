@@ -2,11 +2,13 @@ import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { useState } from "react";
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useCloudRegistry } from "@/hooks";
-import type { Me } from "@/lib/cloud-registry.types";
+import type { Me, ServiceVerification } from "@/lib/cloud-registry.types";
+import VerifiedBadge from "./verified-badge";
 import ServiceDetailsDialog from "./view-service-dailog";
 
 type Props = {
     services: ExternalService[];
+    verifications: Map<string, ServiceVerification>;
     fetchServices: () => void;
     me: Me | null;
     emptyMessage?: string;
@@ -14,6 +16,7 @@ type Props = {
 
 function ServicesTableBody({
     services,
+    verifications,
     fetchServices,
     me,
     emptyMessage = "No services found.",
@@ -21,6 +24,12 @@ function ServicesTableBody({
     const { cloudRegistryProvider } = useCloudRegistry();
     const [selectedService, setSelectedService] =
         useState<ExternalService | null>(null);
+
+    if (
+        selectedService &&
+        !services.some((val) => val.id === selectedService.id)
+    )
+        setSelectedService(null);
 
     if (services.length === 0)
         return (
@@ -43,7 +52,12 @@ function ServicesTableBody({
                         className="cursor-pointer"
                     >
                         <TableCell className="font-medium">{val.id}</TableCell>
-                        <TableCell>{val.name}</TableCell>
+                        <TableCell>
+                            <div className="flex items-center gap-2">
+                                {val.name}
+                                {verifications.has(val.id) && <VerifiedBadge />}
+                            </div>
+                        </TableCell>
                         <TableCell>{val.organization.name}</TableCell>
                         <TableCell>{val.type.artifact}</TableCell>
                         <TableCell>{val.environment}</TableCell>
@@ -53,6 +67,11 @@ function ServicesTableBody({
             </TableBody>
             <ServiceDetailsDialog
                 service={selectedService}
+                verification={
+                    selectedService
+                        ? verifications.get(selectedService.id)
+                        : undefined
+                }
                 open={!!selectedService}
                 fetchServices={fetchServices}
                 cloudRegistryProvider={cloudRegistryProvider}

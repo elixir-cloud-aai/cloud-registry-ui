@@ -33,6 +33,21 @@ function canDeleteService(me: Me | null, serviceId: string) {
     return !!me?.admin || hasRole(me, serviceId, ["owner"]);
 }
 
+/**
+ * Check if the user may verify services
+ * @param me Current user, if logged in
+ * @returns True for admins
+ */
+function canVerifyService(me: Me | null) {
+    return !!me?.admin;
+}
+
+/**
+ * Check if a request failed with a status
+ * @param err Error thrown by the provider
+ * @param status HTTP status code
+ * @returns True if the response had that status
+ */
 function hasStatus(err: unknown, status: number) {
     return err instanceof Error && "status" in err && err.status === status;
 }
@@ -56,4 +71,11 @@ function isForbidden(err: unknown) {
     return hasStatus(err, 403);
 }
 
-export { canDeleteService, canEditService, isForbidden, isUnauthorized };
+export {
+    canDeleteService,
+    canEditService,
+    canVerifyService,
+    hasStatus,
+    isForbidden,
+    isUnauthorized,
+};

@@ -13,9 +13,10 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import { useCloudRegistry, useMe } from "@/hooks";
+import { useCloudRegistry, useMe, useServiceVerification } from "@/hooks";
 import { errorMessage } from "@/lib/errors";
 import { canEditService, isUnauthorized } from "@/lib/permissions";
+import { VerifiedBadge } from "../../_components";
 import ViewServiceDialogBody from "../../_components/view-service-dailog-body";
 
 function Page() {
@@ -23,6 +24,7 @@ function Page() {
     const [loading, setLoading] = useState(true);
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const [service, setService] = useState<ExternalService>();
+    const verification = useServiceVerification(service);
     const { me } = useMe();
     const [loginRequired, setLoginRequired] = useState(false);
 
@@ -78,8 +80,12 @@ function Page() {
                 <CardDescription>
                     Complete metadata for {service.id} deployment.
                 </CardDescription>
+                {verification && <VerifiedBadge />}
             </CardHeader>
-            <ViewServiceDialogBody service={service} />
+            <ViewServiceDialogBody
+                service={service}
+                verification={verification}
+            />
             {canEditService(me, service.id) && (
                 <CardFooter className="px-4 py-4 border-t justify-end">
                     <Button size="sm" asChild>
