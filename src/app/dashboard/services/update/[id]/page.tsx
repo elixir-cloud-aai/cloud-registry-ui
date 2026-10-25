@@ -38,15 +38,19 @@ function Page() {
             .finally(() => setLoading(false));
     }, [cloudRegistryProvider, id]);
 
+    useEffect(() => {
+        if (meError && !expired)
+            toast.error(
+                "Could not check your permissions. Please try again later.",
+            );
+    }, [meError, expired]);
+
     if (cloudRegistryProvider && !isLoggedIn)
         return <LoginPrompt message="Log in to edit this service" />;
 
     if (loginRequired || expired)
-        return <LoginPrompt message="Your session expired; log in again." />;
-
-    if (meError)
         return (
-            <LoginPrompt message="Could not check your permissions; log in again." />
+            <LoginPrompt message="Your session expired. Please log in again." />
         );
 
     if (loading || meLoading)

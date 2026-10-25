@@ -17,11 +17,11 @@ function Page() {
     const { me, loading, error, expired } = useMe();
 
     useEffect(() => {
-        if (error)
+        if (error && !expired)
             toast.error(
-                "Could not check your permissions; if your session expired, log in again.",
+                "Could not check your permissions. Please try again later.",
             );
-    }, [error]);
+    }, [error, expired]);
 
     // cloud-components gap: the create component can't hide the custom ID
     // field, so non-admins get an error before the request instead
@@ -57,7 +57,9 @@ function Page() {
         return <LoginPrompt message="Log in to register a service" />;
 
     if (expired)
-        return <LoginPrompt message="Your session expired; log in again." />;
+        return (
+            <LoginPrompt message="Your session expired. Please log in again." />
+        );
 
     // cloud-components gap: the create component ignores later provider
     // changes, so it renders only once the admin flag is known
