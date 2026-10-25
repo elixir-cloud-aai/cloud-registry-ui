@@ -5,8 +5,9 @@
  * (`type.group`, `type.artifact`, trimmed and case-insensitive), as the
  * registry checks them, see `PUT /services/{id}/verification`; the registry
  * uses Python's `strip().casefold()`: trimming here uses the same whitespace
- * (JavaScript's `\s` without U+FEFF, plus U+001C-U+001F and U+0085), but a
- * few characters (e.g. `ß`) still compare differently
+ * (JavaScript's `\s` without U+FEFF, plus U+001C-U+001F and U+0085), and
+ * case folding is approximated by upper- then lower-casing (e.g. `ß` and
+ * `SS` match), which JavaScript lacks a built-in for
  */
 
 import type {
@@ -30,8 +31,12 @@ function strip(text: string) {
     return text.slice(start, end);
 }
 
+function caseFold(text: string) {
+    return strip(text).toUpperCase().toLowerCase();
+}
+
 function sameText(a: string, b: string) {
-    return strip(a).toLowerCase() === strip(b).toLowerCase();
+    return caseFold(a) === caseFold(b);
 }
 
 /**
