@@ -14,11 +14,8 @@ import {
 } from "@/components/ui/dialog";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import type { Me } from "@/lib/cloud-registry.types";
-import {
-    canDeleteService,
-    canEditService,
-    isForbidden,
-} from "@/lib/permissions";
+import { mutationError } from "@/lib/errors";
+import { canDeleteService, canEditService } from "@/lib/permissions";
 import ViewServiceDialogBody from "./view-service-dailog-body";
 
 type Props = {
@@ -55,9 +52,7 @@ function ServiceDetailsDialog({
             loading: `Deleting service with ID - ${service.id}`,
             success: (response) => `Deleted service with ID - ${response}`,
             error: (err) =>
-                isForbidden(err)
-                    ? "You don't have permission to change this service."
-                    : "Cannot delete service currently.",
+                mutationError(err, "Cannot delete service currently."),
         });
 
         try {

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { useCloudRegistry } from "@/hooks";
+import { errorMessage } from "@/lib/errors";
 import {
     CardSkeleton,
     ServiceInfoCardContent,
@@ -20,8 +21,10 @@ function Page() {
         cloudRegistryProvider
             ?.getServiceInfo()
             .then((data) => setServiceInfo(data))
-            .catch(() => {
-                toast.error("Could not fetch the service info.");
+            .catch((err) => {
+                toast.error(
+                    errorMessage(err, "Could not fetch the service info."),
+                );
                 setError(true);
             })
             .finally(() => setLoading(false));

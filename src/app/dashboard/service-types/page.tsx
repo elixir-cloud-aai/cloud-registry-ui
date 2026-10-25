@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCloudRegistry } from "@/hooks";
+import { errorMessage } from "@/lib/errors";
 import { isUnauthorized } from "@/lib/permissions";
 
 function Page() {
@@ -21,7 +22,10 @@ function Page() {
             .then((val) => setServiceTypes(val))
             .catch((err) => {
                 if (isUnauthorized(err)) setLoginRequired(true);
-                else toast.error("Could not fetch the service types.");
+                else
+                    toast.error(
+                        errorMessage(err, "Could not fetch the service types."),
+                    );
             })
             .finally(() => setLoading(false));
     }, [cloudRegistryProvider]);

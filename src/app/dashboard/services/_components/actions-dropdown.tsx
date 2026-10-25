@@ -11,6 +11,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
+import { mutationError } from "@/lib/errors";
 
 type Props = {
     cloudRegistryProvider: AuthenticatedCloudRegistryProvider | null;
@@ -31,7 +32,8 @@ function ActionDropdown(props: Props) {
         toast.promise(promise, {
             loading: `Deleting service with ID - ${id}`,
             success: (response) => `Deleted service with ID - ${response}`,
-            error: "Cannot delete service currently.",
+            error: (err) =>
+                mutationError(err, "Cannot delete service currently."),
         });
 
         try {
