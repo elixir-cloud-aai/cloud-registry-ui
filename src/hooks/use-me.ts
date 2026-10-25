@@ -13,7 +13,10 @@ function useMe() {
     const fetchMe = useCallback(() => {
         if (!cloudRegistryProvider) return;
         if (!getCookie("access_token")) {
-            // logged out: there is nobody to fetch
+            // logged out: there is nobody to fetch, and pending requests
+            // must not restore the previous user
+            latestRequest.current++;
+            setMe(null);
             setLoading(false);
             return;
         }
