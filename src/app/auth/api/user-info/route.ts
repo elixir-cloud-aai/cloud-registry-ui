@@ -2,7 +2,11 @@ import axios from "axios";
 import { getCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { loginProvider, oidcEndpoints } from "@/lib/login-providers";
+import {
+    loginProvider,
+    loginRequestTimeout,
+    oidcEndpoints,
+} from "@/lib/login-providers";
 
 export async function GET() {
     const accessToken = await getCookie("access_token", { cookies });
@@ -18,6 +22,7 @@ export async function GET() {
                 Authorization: `Bearer ${accessToken}`,
                 Accept: "application/json",
             },
+            timeout: loginRequestTimeout,
         });
 
         if (!res.data || typeof res.data !== "object") {

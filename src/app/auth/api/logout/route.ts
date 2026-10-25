@@ -8,6 +8,9 @@ export async function GET(req: NextRequest) {
         await deleteCookie("access_token", { cookies });
         await deleteCookie("id_token", { cookies });
         await deleteCookie("login_provider", { cookies });
+        // a pending login must not log the user in again
+        await deleteCookie("authState", { cookies });
+        await deleteCookie("authProvider", { cookies });
     } catch (err) {
         console.log(err);
         redirect("/auth/error?type=logout-err");

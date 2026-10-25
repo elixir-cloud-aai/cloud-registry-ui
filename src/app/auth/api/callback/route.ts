@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
 import {
     loginProvider,
+    loginRequestTimeout,
     loginSettings,
     oidcEndpoints,
 } from "@/lib/login-providers";
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
                     "Content-Type": "application/x-www-form-urlencoded",
                 },
                 validateStatus: (status) => status === 200,
+                timeout: loginRequestTimeout,
             },
         );
 
