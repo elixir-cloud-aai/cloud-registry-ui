@@ -52,9 +52,9 @@ function ManageAccessDialog({
     const latestRequest = useRef(0);
 
     const fetchPermissions = useCallback(() => {
-        if (!provider) return;
+        if (!provider) return Promise.resolve();
         const request = ++latestRequest.current;
-        provider
+        return provider
             .getServicePermissions(serviceId)
             .then((val) => {
                 if (request === latestRequest.current) setPermissions(val);
@@ -99,19 +99,16 @@ function ManageAccessDialog({
             error: (err) => accessError(err, groupGrant),
         });
 
-        try {
-            await promise;
-            fetchPermissions();
-            onChange?.();
-            return true;
-        } catch (err) {
-            // toast.promise shows the error; the list tells if the user
-            // still manages access
-            if (isForbidden(err)) fetchPermissions();
-            return false;
-        } finally {
-            setChanging(false);
-        }
+        // toast.promise shows the error; either way, the list is fetched
+        // again before the next change, as it may have changed anyway
+        const changed = await promise.then(
+            () => true,
+            () => false,
+        );
+        await fetchPermissions();
+        if (changed) onChange?.();
+        setChanging(false);
+        return changed;
     };
 
     const grant = (kind: GrantData["kind"], principal: string, role: Role) => {
@@ -156,7 +153,13 @@ function ManageAccessDialog({
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog
+            open={open}
+            onOpenChange={(val) => {
+                // a change in progress refreshes only this dialog
+                if (!changing) onOpenChange(val);
+            }}
+        >
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle className="text-lg font-bold">
