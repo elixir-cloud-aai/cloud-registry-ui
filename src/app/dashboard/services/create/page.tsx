@@ -6,6 +6,7 @@ import type {
 } from "@elixir-cloud/cloud-registry/events";
 import type { ExternalServiceRegister } from "@elixir-cloud/cloud-registry/providers";
 import { ECCClientElixirCloudRegistryServiceCreate } from "@elixir-cloud/cloud-registry/react";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
@@ -14,6 +15,7 @@ import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-clo
 import { duplicateToast, withFieldLabels } from "@/lib/errors";
 
 function Page() {
+    const router = useRouter();
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const { me, loading, error, expired } = useMe();
     const createError = useRef<unknown>(null);
@@ -60,7 +62,18 @@ function Page() {
     }, [cloudRegistryProvider, me]);
 
     const onServiceCreated = (e: EccServiceCreatedEvent) => {
-        toast.success(e.detail.message);
+        const { serviceId, serviceData } = e.detail;
+        toast.success(`Registered ${serviceData.name} with ID - ${serviceId}`, {
+            action: {
+                label: "View service",
+                onClick: () =>
+                    router.push(
+                        `/dashboard/services/view/${encodeURIComponent(serviceId)}`,
+                    ),
+            },
+            duration: 10000,
+        });
+        router.replace("/dashboard/services");
     };
 
     const onServiceCreationFailed = (e: EccServiceCreateFailedEvent) => {
