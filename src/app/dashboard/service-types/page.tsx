@@ -8,8 +8,8 @@ import { PageSubtitle } from "@/components/shared/page-subtitle";
 import { useCloudRegistry, useMe, usePagination } from "@/hooks";
 import { errorMessage, mutationError } from "@/lib/errors";
 import { isUnauthorized } from "@/lib/permissions";
+import { typeKey, typeLabel } from "@/lib/service-types";
 import { ServiceTypeAddDialog, ServiceTypeCard } from "./_components";
-import { typeKey, typeLabel } from "./_components/type-helper";
 
 const pageSize = 12;
 

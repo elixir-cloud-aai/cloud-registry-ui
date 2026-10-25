@@ -6,11 +6,3 @@ export const defaultType: ServiceType = {
     artifact: "",
     version: "",
 };
-
-export function typeLabel({ group, artifact, version }: ServiceType) {
-    return `${group} · ${artifact} · ${version}`;
-}
-
-export function typeKey({ group, artifact, version }: ServiceType) {
-    return JSON.stringify([group, artifact, version]);
-}

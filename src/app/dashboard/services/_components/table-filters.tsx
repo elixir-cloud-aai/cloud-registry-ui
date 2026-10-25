@@ -10,13 +10,13 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Toggle } from "@/components/ui/toggle";
+import { typeFromKey, typeLabel } from "@/lib/service-types";
 import {
     defaultFilters,
     type FilterValue,
     filterOptions,
     type SelectFilterKey,
     type ServiceFilters,
-    typeLabel,
 } from "./filter-helper";
 
 const anyValue = "any";
@@ -131,7 +131,7 @@ function ServicesTableFilters({
                 options={filterOptions(services, "type")}
                 disabled={disabled}
                 onValueChange={handleFilterChange("type")}
-                formatLabel={typeLabel}
+                formatLabel={(val) => typeLabel(typeFromKey(val))}
             />
             <FilterSelect
                 label="Filter by organization"

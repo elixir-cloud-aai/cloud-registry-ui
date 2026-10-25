@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/dialog";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import { mutationError } from "@/lib/errors";
-import { defaultType, typeLabel } from "./type-helper";
+import { typeLabel } from "@/lib/service-types";
+import { defaultType } from "./type-helper";
 
 type Props = {
     provider: AuthenticatedCloudRegistryProvider | null;
