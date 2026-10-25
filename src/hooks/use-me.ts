@@ -1,5 +1,6 @@
 import { getCookie } from "cookies-next/client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Me } from "@/lib/cloud-registry.types";
 import { useCloudRegistry } from "./use-cloud-registry";
 
 function useMe() {
@@ -10,9 +11,10 @@ function useMe() {
     const latestRequest = useRef(0);
 
     const fetchMe = useCallback(() => {
-        if (!cloudRegistryProvider) {
+        if (!cloudRegistryProvider) return;
+        if (!getCookie("access_token")) {
             // logged out: there is nobody to fetch
-            if (!getCookie("access_token")) setLoading(false);
+            setLoading(false);
             return;
         }
 
@@ -20,7 +22,7 @@ function useMe() {
         setLoading(true);
         setError(false);
         cloudRegistryProvider
-            .getMe()
+            .getCurrentUser()
             .then((val) => {
                 if (request === latestRequest.current) setMe(val);
             })
