@@ -42,15 +42,36 @@ function withFieldLabels(message: string) {
     );
 }
 
-/** Get the registry's detail for a failed request, else the fallback */
-function errorMessage(err: unknown, fallback: string) {
-    if (
-        err instanceof Error &&
+const duplicateMessage =
+    "A service with this URL and API type is already registered.";
+
+/** Get the registry's detail for a failed request, if any */
+function errorDetail(err: unknown) {
+    return err instanceof Error &&
         "detail" in err &&
         typeof err.detail === "string"
-    )
-        return withFieldLabels(err.detail);
-    return fallback;
+        ? err.detail
+        : undefined;
+}
+
+/**
+ * Get the form field that the registry's detail for a failed request names
+ * @param err Error of the request
+ * @param fields Paths of the form's fields
+ * @returns The field's path, if the detail names one of the fields
+ */
+function errorField<T extends string>(err: unknown, fields: readonly T[]) {
+    const detail = errorDetail(err);
+    if (detail === undefined) return undefined;
+    return fieldPaths
+        .map((pattern) => detail.match(pattern)?.[2])
+        .find((path): path is T => fields.includes(path as T));
+}
+
+/** Get the registry's detail for a failed request, else the fallback */
+function errorMessage(err: unknown, fallback: string) {
+    const detail = errorDetail(err);
+    return detail === undefined ? fallback : withFieldLabels(detail);
 }
 
 /** Get the message for a failed change: login, role, detail or fallback */
@@ -85,10 +106,7 @@ function duplicateToast(
         };
 
     return {
-        message: errorMessage(
-            err,
-            "A service with this URL and API type is already registered.",
-        ),
+        message: errorMessage(err, duplicateMessage),
         description: "Please contact its owner or an admin.",
         // a new tab keeps the form's input
         action: {
@@ -105,7 +123,9 @@ function duplicateToast(
 }
 
 export {
+    duplicateMessage,
     duplicateToast,
+    errorField,
     errorMessage,
     isDuplicate,
     mutationError,

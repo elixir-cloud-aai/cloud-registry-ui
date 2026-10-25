@@ -2,6 +2,7 @@ import type {
     ExternalService,
     ExternalServiceRegister,
 } from "@elixir-cloud/cloud-registry/providers";
+import type { DeepKeys } from "@tanstack/react-form";
 import { z } from "zod";
 
 const httpUrl = z.url({ protocol: z.regexes.httpProtocol });
@@ -108,6 +109,21 @@ export const formDataSchema = z.object({
 });
 
 export type FormData = z.infer<typeof formDataSchema>;
+
+export const formFields = [
+    "name",
+    "url",
+    "organization.name",
+    "organization.url",
+    "type.group",
+    "type.artifact",
+    "type.version",
+    "version",
+    "environment",
+    "description",
+    "contactUrl",
+    "documentationUrl",
+] as const satisfies readonly DeepKeys<FormData>[];
 
 export function normalizeFormData(data?: Partial<FormData>): FormData {
     return {

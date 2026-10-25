@@ -7,7 +7,14 @@ import { toast } from "sonner";
 import { UnsavedChangesGuard } from "@/components/shared/unsaved-changes-guard";
 import { useCloudRegistry } from "@/hooks";
 import type { Verification } from "@/lib/cloud-registry.types";
-import { duplicateToast, isDuplicate, mutationError } from "@/lib/errors";
+import {
+    duplicateMessage,
+    duplicateToast,
+    errorField,
+    errorMessage,
+    isDuplicate,
+    mutationError,
+} from "@/lib/errors";
 import { matchesVerification } from "@/lib/verifications";
 import { TextareaField } from "./_fields/textarea-field";
 import {
@@ -19,6 +26,7 @@ import {
 } from "./_sections";
 import {
     formDataSchema,
+    formFields,
     normalizeFormData,
     normalizeServiceData,
 } from "./form-helper";
@@ -41,7 +49,7 @@ function ServiceUpdationForm({
     const form = useForm({
         defaultValues: normalizeFormData(service),
         validators: {
-            onSubmit: formDataSchema,
+            onChange: formDataSchema,
         },
         onSubmit: async ({ value }) => {
             if (!cloudRegistryProvider) return;
@@ -70,17 +78,21 @@ function ServiceUpdationForm({
                 await promise;
                 onServiceUpdated?.({ ...service, ...data });
             } catch (err) {
-                // toast.promise shows the error; a duplicate is also shown
-                // on the URL field, until a field changes or loses focus
-                if (isDuplicate(err))
-                    form.setFieldMeta("url", (prev) => ({
+                // toast.promise shows the error; a duplicate or a field the
+                // registry rejected is also shown on the field, until a
+                // field changes or loses focus
+                const duplicate = isDuplicate(err);
+                const field = duplicate ? "url" : errorField(err, formFields);
+                if (field)
+                    form.setFieldMeta(field, (prev) => ({
                         ...prev,
                         isTouched: true,
                         errorMap: {
                             ...prev.errorMap,
                             onServer: {
-                                message:
-                                    "A service with this URL and API type is already registered.",
+                                message: duplicate
+                                    ? duplicateMessage
+                                    : errorMessage(err, ""),
                             },
                         },
                         errorSourceMap: {
