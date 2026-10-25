@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardHeader, CardTitle } from "@/components/ui/card";
-import { typeLabel } from "./type-helper";
+import { typeLabel } from "@/lib/service-types";
 
 type Props = {
     serviceType: ServiceType;

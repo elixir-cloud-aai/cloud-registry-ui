@@ -1,6 +1,7 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import type { ServiceVerification } from "@/lib/cloud-registry.types";
 import { environmentRank } from "@/lib/service-environments";
+import { typeKey } from "@/lib/service-types";
 
 export type FilterValue = string | null;
 
@@ -19,21 +20,12 @@ const filterValues: Record<
     SelectFilterKey,
     (service: ExternalService) => FilterValue
 > = {
-    type: (service) =>
-        JSON.stringify([
-            service.type.group,
-            service.type.artifact,
-            service.type.version,
-        ]),
+    type: (service) => typeKey(service.type),
     organization: (service) => service.organization.name || null,
     environment: (service) => service.environment || null,
 };
 
 const filterKeys = Object.keys(filterValues) as SelectFilterKey[];
-
-export function typeLabel(value: string) {
-    return (JSON.parse(value) as string[]).join(" · ");
-}
 
 export function filterOptions(
     services: ExternalService[],
