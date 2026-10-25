@@ -3,7 +3,8 @@
 const maxLineLength = 24;
 const maxLines = 2;
 
-const appTitle = process.env.NEXT_PUBLIC_APP_TITLE || "Cloud Registry";
+// a blank title falls back to the default, like an unset one
+const appTitle = process.env.NEXT_PUBLIC_APP_TITLE?.trim() || "Cloud Registry";
 const titleSize = Number(process.env.NEXT_PUBLIC_APP_TITLE_SIZE);
 const appTitleSize = titleSize > 0 ? titleSize : undefined;
 const appTitleFont = process.env.NEXT_PUBLIC_APP_TITLE_FONT || undefined;
@@ -30,6 +31,15 @@ const footerLogo = {
 };
 
 /**
+ * Count the characters of a text, not its UTF-16 code units
+ * @param text Text
+ * @returns Number of characters; an emoji counts as one
+ */
+function length(text: string) {
+    return [...text].length;
+}
+
+/**
  * Break a title into lines at spaces, as few as possible
  * @param title Title
  * @returns Lines of at most 24 characters, or an error
@@ -37,13 +47,13 @@ const footerLogo = {
 function breakTitle(title: string) {
     const lines: string[] = [];
     for (const word of title.trim().split(/\s+/)) {
-        if (word.length > maxLineLength)
+        if (length(word) > maxLineLength)
             return {
                 lines,
-                error: `the word "${word}" has ${word.length} characters; words may have at most ${maxLineLength}`,
+                error: `the word "${word}" has ${length(word)} characters; words may have at most ${maxLineLength}`,
             };
         const last = lines.at(-1);
-        if (last !== undefined && `${last} ${word}`.length <= maxLineLength)
+        if (last !== undefined && length(`${last} ${word}`) <= maxLineLength)
             lines[lines.length - 1] = `${last} ${word}`;
         else lines.push(word);
     }
