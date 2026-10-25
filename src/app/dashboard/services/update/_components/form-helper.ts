@@ -44,6 +44,26 @@ const timestamp = (label: string) =>
 const hasNoUserInfoOrSpaces = (value: string) =>
     !/\s|^https?:\/\/[^/?#]*@/i.test(value);
 
+export const defaultTypeGroup = "org.ga4gh";
+
+export const serviceTypeSchema = z.object({
+    group: z
+        .string()
+        .trim()
+        .min(1, "Type group is required.")
+        .max(256, "Type group must be at most 256 characters."),
+    artifact: z
+        .string()
+        .trim()
+        .min(1, "Type artifact is required.")
+        .max(256, "Type artifact must be at most 256 characters."),
+    version: z
+        .string()
+        .trim()
+        .min(1, "Type version is required.")
+        .max(256, "Type version must be at most 256 characters."),
+});
+
 export const formDataSchema = z.object({
     name: z
         .string()
@@ -84,20 +104,7 @@ export const formDataSchema = z.object({
                 "Organization URL must be an http(s) URL, e.g. https://example.org/.",
             ),
     }),
-    type: z.object({
-        group: z
-            .string()
-            .min(1, "Type group is required.")
-            .max(256, "Type group must be at most 256 characters."),
-        artifact: z
-            .string()
-            .min(1, "Type artifact is required.")
-            .max(256, "Type artifact must be at most 256 characters."),
-        version: z
-            .string()
-            .min(1, "Type version is required.")
-            .max(256, "Type version must be at most 256 characters."),
-    }),
+    type: serviceTypeSchema,
     version: z
         .string()
         .min(1, "Service version is required.")
@@ -174,7 +181,7 @@ export function normalizeFormData(
         },
 
         type: {
-            group: data?.type?.group ?? "org.ga4gh",
+            group: data?.type?.group ?? defaultTypeGroup,
             artifact: data?.type?.artifact ?? "",
             version: data?.type?.version ?? "",
         },
@@ -190,6 +197,12 @@ export function normalizeServiceData(
     return {
         ...data,
         url: data.url.trim(),
+        // as validated by `serviceTypeSchema`
+        type: {
+            group: data.type.group.trim(),
+            artifact: data.type.artifact.trim(),
+            version: data.type.version.trim(),
+        },
         description: data.description || undefined,
         contactUrl: data.contactUrl || undefined,
         documentationUrl: data.documentationUrl || undefined,
