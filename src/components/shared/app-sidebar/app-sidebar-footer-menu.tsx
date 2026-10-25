@@ -13,9 +13,10 @@ import { useSidebar } from "@/components/ui/sidebar";
 
 type Props = {
     user: User;
+    userId?: string;
 };
 
-function AppSidebarFooterMenu({ user }: Props) {
+function AppSidebarFooterMenu({ user, userId }: Props) {
     const { isMobile } = useSidebar();
 
     const copyToken = () => {
@@ -28,6 +29,14 @@ function AppSidebarFooterMenu({ user }: Props) {
                     toast.error("Please try again to copy the token."),
                 );
         }
+    };
+
+    const copyUserId = () => {
+        if (!userId) return;
+        navigator.clipboard
+            .writeText(userId)
+            .then(() => toast.success("User ID copied successfully."))
+            .catch(() => toast.error("Please try again to copy the user ID."));
     };
 
     return (
@@ -55,6 +64,17 @@ function AppSidebarFooterMenu({ user }: Props) {
                 </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {userId && (
+                <DropdownMenuItem onClick={copyUserId}>
+                    <Copy />
+                    <div className="grid flex-1 leading-tight">
+                        <span>Your user ID</span>
+                        <span className="truncate font-mono text-xs text-muted-foreground">
+                            {userId}
+                        </span>
+                    </div>
+                </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={copyToken}>
                 <Copy />
                 Copy token to Dashboard
