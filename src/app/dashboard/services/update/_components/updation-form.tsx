@@ -19,6 +19,7 @@ import { matchesVerification } from "@/lib/verifications";
 import { TextareaField } from "./_fields/textarea-field";
 import {
     ServiceActionButton,
+    ServiceAdvancedSection,
     ServiceBasicInfoSection,
     ServiceContactInfoSection,
     ServiceEnvSection,
@@ -34,6 +35,7 @@ import {
 type Props = {
     service: ExternalService;
     verification?: Verification;
+    admin?: boolean;
     disabled?: boolean;
     onServiceUpdated?: (service: ExternalService) => void;
 };
@@ -41,13 +43,15 @@ type Props = {
 function ServiceUpdationForm({
     service,
     verification,
+    admin = false,
     disabled,
     onServiceUpdated,
 }: Props) {
     const { cloudRegistryProvider } = useCloudRegistry();
     const [updating, setUpdating] = useState(false);
+    const initial = normalizeFormData(service, admin);
     const form = useForm({
-        defaultValues: normalizeFormData(service),
+        defaultValues: initial,
         validators: {
             onChange: formDataSchema,
         },
@@ -56,7 +60,7 @@ function ServiceUpdationForm({
 
             setUpdating(true);
 
-            const data = normalizeServiceData(value, service);
+            const data = normalizeServiceData(value, initial);
             const promise = cloudRegistryProvider.updateService(
                 service.id,
                 data,
@@ -132,6 +136,12 @@ function ServiceUpdationForm({
                     label="Description"
                     placeholder="Provide a detailed description of what your service does"
                 />
+                {admin && (
+                    <ServiceAdvancedSection
+                        form={form}
+                        updatedAt={service.updatedAt}
+                    />
+                )}
                 {verification && (
                     <form.Subscribe selector={(state) => state.values}>
                         {(values) =>
