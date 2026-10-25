@@ -61,8 +61,13 @@ function ManageAccessDialog({
             })
             .catch((err) => {
                 if (request !== latestRequest.current) return;
-                if (isForbidden(err)) setForbidden(true);
-                else toast.error(listError(err));
+                if (isForbidden(err)) {
+                    setForbidden(true);
+                    return;
+                }
+                // an outdated list must not be acted on
+                setPermissions(null);
+                toast.error(listError(err));
             })
             .finally(() => {
                 if (request === latestRequest.current) setLoading(false);
