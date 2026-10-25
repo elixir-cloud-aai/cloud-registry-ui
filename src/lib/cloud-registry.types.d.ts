@@ -110,8 +110,10 @@ export type VerifiedServices = ServiceVerification[];
 
 /** API error response. */
 export interface ApiError {
+  title?: string;
   detail?: string;
   message?: string;
+  serviceId?: string;
 }
 
 /** Provider configuration. */
