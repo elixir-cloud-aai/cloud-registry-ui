@@ -33,4 +33,16 @@ function typeFromKey(key: string): ServiceType {
     return { group, artifact, version };
 }
 
-export { typeFromKey, typeKey, typeLabel };
+/**
+ * Compare service types as the registry sorts them
+ * @param a Service type
+ * @param b Service type
+ * @returns Negative if `a` comes first, positive if `b` does, else 0
+ */
+function compareTypes(a: ServiceType, b: ServiceType) {
+    for (const key of ["group", "artifact", "version"] as const)
+        if (a[key] !== b[key]) return a[key] < b[key] ? -1 : 1;
+    return 0;
+}
+
+export { compareTypes, typeFromKey, typeKey, typeLabel };
