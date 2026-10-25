@@ -40,6 +40,7 @@ function Page() {
         // responses for a previous ID must not replace the service
         let current = true;
         setService(undefined);
+        setManageOpen(false);
         setLoading(true);
         cloudRegistryProvider
             ?.getServiceById(decodeURIComponent(id as string))

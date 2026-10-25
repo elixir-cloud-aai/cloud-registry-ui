@@ -21,6 +21,7 @@ import {
     type GrantData,
     isForbidden,
     isGroup,
+    isUnauthorized,
     listError,
 } from "./access-helper";
 import AccessList from "./access-list";
@@ -48,7 +49,8 @@ function ManageAccessDialog({
     );
     const [loading, setLoading] = useState(true);
     const [changing, setChanging] = useState(false);
-    const [forbidden, setForbidden] = useState(false);
+    // why the dialog must close, e.g. after removing one's own owner role
+    const [closeReason, setCloseReason] = useState<string | null>(null);
     const latestRequest = useRef(0);
 
     const fetchPermissions = useCallback(() => {
@@ -61,8 +63,16 @@ function ManageAccessDialog({
             })
             .catch((err) => {
                 if (request !== latestRequest.current) return;
+                if (isUnauthorized(err)) {
+                    setCloseReason(
+                        "Your session expired. Please log in again.",
+                    );
+                    return;
+                }
                 if (isForbidden(err)) {
-                    setForbidden(true);
+                    setCloseReason(
+                        "You can no longer manage access to this service.",
+                    );
                     return;
                 }
                 // an outdated list must not be acted on
@@ -78,13 +88,13 @@ function ManageAccessDialog({
         if (open) fetchPermissions();
     }, [open, fetchPermissions]);
 
-    // e.g. after removing one's own owner role
     useEffect(() => {
-        if (!forbidden) return;
-        toast.error("You can no longer manage access to this service.");
+        if (!closeReason) return;
+        toast.error(closeReason);
+        // refreshes the user: hides lost controls, or clears an expired login
         onChange?.();
         onOpenChange(false);
-    }, [forbidden, onChange, onOpenChange]);
+    }, [closeReason, onChange, onOpenChange]);
 
     const applyChange = async (
         promise: Promise<unknown>,

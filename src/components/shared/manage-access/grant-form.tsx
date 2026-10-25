@@ -53,6 +53,7 @@ function AccessGrantForm({ onGrant, disabled = false }: Props) {
                             </FieldLabel>
                             <Select
                                 value={field.state.value}
+                                disabled={disabled}
                                 onValueChange={(value) =>
                                     field.handleChange(
                                         value as GrantData["kind"],
@@ -93,6 +94,7 @@ function AccessGrantForm({ onGrant, disabled = false }: Props) {
                                             name={field.name}
                                             value={field.state.value}
                                             onBlur={field.handleBlur}
+                                            disabled={disabled}
                                             onChange={(e) =>
                                                 field.handleChange(
                                                     e.target.value,
@@ -125,6 +127,7 @@ function AccessGrantForm({ onGrant, disabled = false }: Props) {
                                 value={field.state.value}
                                 onChange={(role) => field.handleChange(role)}
                                 className="w-full"
+                                disabled={disabled}
                             />
                         </Field>
                     )}
