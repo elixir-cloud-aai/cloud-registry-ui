@@ -37,7 +37,7 @@ function ServiceUpdationForm({ service }: Props) {
 
             const promise = cloudRegistryProvider.updateService(
                 service.id,
-                normalizeServiceData(value),
+                normalizeServiceData(value, service),
             );
             toast.promise(promise, {
                 loading: `Updating service with ID - ${service.id}`,
