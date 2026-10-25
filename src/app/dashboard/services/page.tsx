@@ -1,6 +1,7 @@
 "use client";
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
-import { PlusIcon } from "lucide-react";
+import { LogIn, PlusIcon } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -123,7 +124,7 @@ function Page() {
                     </p>
                 </div>
                 <div className="hidden md:flex flex-wrap gap-2 justify-end">
-                    {isLoggedIn && !expired ? (
+                    {isLoggedIn && !expired && (
                         <Button
                             onClick={() =>
                                 router.push("/dashboard/services/create")
@@ -132,12 +133,19 @@ function Page() {
                             <PlusIcon />
                             Register Service
                         </Button>
-                    ) : (
-                        !isLoggedIn && (
-                            <p className="text-sm text-muted-foreground">
-                                Log in above to register a service
-                            </p>
-                        )
+                    )}
+                    {isLoggedIn && expired && (
+                        <Button variant={"outline"} asChild>
+                            <Link href={"/auth/login"}>
+                                <LogIn />
+                                Log in again
+                            </Link>
+                        </Button>
+                    )}
+                    {!isLoggedIn && (
+                        <p className="text-sm text-muted-foreground">
+                            Log in above to register a service
+                        </p>
                     )}
                 </div>
             </div>
