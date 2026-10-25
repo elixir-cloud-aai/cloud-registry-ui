@@ -1,6 +1,7 @@
 "use client";
 import type { ServiceType } from "@elixir-cloud/cloud-registry/providers";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCloudRegistry } from "@/hooks";
 
@@ -15,6 +16,7 @@ function Page() {
         cloudRegistryProvider
             ?.getServiceTypes()
             .then((val) => setServiceTypes(val))
+            .catch(() => toast.error("Could not fetch the service types."))
             .finally(() => setLoading(false));
     }, [cloudRegistryProvider]);
 
@@ -52,7 +54,7 @@ function Page() {
                                 </Card>
                             </div>
                         ))}
-                    {loading === false && serviceTypes === null && (
+                    {loading === false && !serviceTypes?.length && (
                         <p className="font-bold text-lg mt-20 text-center w-full">
                             No service types
                         </p>
