@@ -29,7 +29,13 @@
                     "options": {
                         "paths": {
                             "zod": "Import z from \"@/lib/zod\", which sets zod up for the Content Security Policy."
-                        }
+                        },
+                        "patterns": [
+                            {
+                                "group": ["zod/**"],
+                                "message": "Import z from \"@/lib/zod\", which sets zod up for the Content Security Policy."
+                            }
+                        ]
                     }
                 }
             }
