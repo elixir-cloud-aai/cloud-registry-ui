@@ -19,8 +19,8 @@ certificates
 **/*.key
 **/*.p12
 **/*.pfx
-.npmrc
-bunfig.toml
+**/.npmrc
+**/bunfig.toml
 
 # OS junk
 .DS_Store
