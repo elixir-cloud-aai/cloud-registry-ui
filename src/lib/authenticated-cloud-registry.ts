@@ -28,6 +28,10 @@ import type {
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
+// Whether the registries (by base URL) have GET /approvals, for the
+// providers of all pages; see `hasApprovals`.
+const approvalsSupport = new Map<string, Promise<boolean>>();
+
 interface RequestOptions {
   method?: HttpMethod;
   body?: unknown;
@@ -39,7 +43,6 @@ class AuthenticatedCloudRegistryProvider
 {
   private readonly baseUrl: string;
   private readonly token?: string;
-  private approvalsSupport?: Promise<boolean>;
 
   constructor(options: CloudRegistryProviderOptions);
   constructor(baseUrl: string, token?: string);
@@ -266,27 +269,33 @@ class AuthenticatedCloudRegistryProvider
   }
 
   /**
-   * GET /approvals without a token, once per provider.
-   * Public.
+   * Probe for GET /approvals (cloud-registry 0.5.0 and later), once per
+   * registry until the page is reloaded. Not a registry operation.
    *
-   * Tells if the registry has approvals (cloud-registry 0.5.0 and later).
-   * Without a token, browsers send no CORS preflight and can read the 404
-   * of older registries; with one, they reject the preflight's 404, and
-   * the request fails without a status.
+   * Sent without a token on purpose, and so not by `request()`, which
+   * would add it on a 401: without one, browsers send no CORS preflight
+   * and can read the status, 401 from registries with approvals and 404
+   * from older ones. With a token, browsers reject the preflight's 404,
+   * and the request fails without a status.
    *
-   * @returns false if the registry has no GET /approvals (404)
+   * @returns false if the route is missing (404), true otherwise (e.g. 401;
+   * the request with the token then reports other errors)
    * @throws TypeError if the registry can't be reached
    */
   async hasApprovals(): Promise<boolean> {
-    this.approvalsSupport ??= fetch(this.url("/approvals")).then(
-      (response) => response.status !== 404,
-      (err: unknown) => {
-        // ask again next time, e.g. once the registry is up
-        this.approvalsSupport = undefined;
-        throw err;
-      },
-    );
-    return this.approvalsSupport;
+    let support = approvalsSupport.get(this.baseUrl);
+    if (!support) {
+      support = fetch(this.url("/approvals"), { cache: "no-store" }).then(
+        (response) => response.status !== 404,
+        (err: unknown) => {
+          // ask again next time, e.g. once the registry is up
+          approvalsSupport.delete(this.baseUrl);
+          throw err;
+        },
+      );
+      approvalsSupport.set(this.baseUrl, support);
+    }
+    return support;
   }
 
   /**
