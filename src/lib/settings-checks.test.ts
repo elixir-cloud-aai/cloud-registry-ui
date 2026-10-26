@@ -1,4 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// settings of the test process must not leak into the tests
+function clearPublicSettings() {
+    for (const name of Object.keys(process.env))
+        if (name.startsWith("NEXT_PUBLIC_")) vi.stubEnv(name, undefined);
+}
 
 async function load() {
     vi.resetModules();
@@ -6,6 +12,8 @@ async function load() {
 }
 
 describe("publicSettingsChecks", () => {
+    beforeEach(clearPublicSettings);
+
     it("accepts valid settings", async () => {
         vi.stubEnv(
             "NEXT_PUBLIC_CLOUD_REGISTRY_URL",

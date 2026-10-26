@@ -1,4 +1,10 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// settings of the test process must not leak into the tests
+function clearPublicSettings() {
+    for (const name of Object.keys(process.env))
+        if (name.startsWith("NEXT_PUBLIC_")) vi.stubEnv(name, undefined);
+}
 
 const url = "https://registry.example.org/ga4gh/registry/v1";
 
@@ -6,6 +12,8 @@ async function load() {
     vi.resetModules();
     return import("./public-settings");
 }
+
+beforeEach(clearPublicSettings);
 
 afterEach(() => {
     vi.unstubAllGlobals();
