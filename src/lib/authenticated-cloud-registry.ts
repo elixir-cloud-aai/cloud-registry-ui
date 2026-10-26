@@ -69,6 +69,9 @@ class AuthenticatedCloudRegistryProvider
   }
 
   private idPath(id: string): string {
+    // encodeURIComponent leaves dots, and URLs resolve dot segments, so
+    // `.` and `..` would reach other paths
+    if (id === "." || id === "..") throw new Error(`Invalid ID: '${id}'`);
     return encodeURIComponent(id);
   }
 
