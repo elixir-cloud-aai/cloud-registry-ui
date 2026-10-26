@@ -34,6 +34,8 @@ test.describe("services", () => {
         await page.getByText(service.name, { exact: true }).click();
         await expect(page.getByRole("dialog")).toContainText(service.url);
         await page.keyboard.press("Escape");
+        // requests cut off by leaving the page fail, and the app logs them
+        await page.waitForLoadState("networkidle");
 
         await page.goto(`/dashboard/services/view/${service.id}`);
         await page.getByRole("link", { name: "Edit" }).click();
@@ -48,6 +50,7 @@ test.describe("services", () => {
                         .body?.name,
             )
             .toBe(renamed);
+        await page.waitForLoadState("networkidle");
 
         await page.goto(`/dashboard/services/view/${service.id}`);
         await expect(page.getByText(renamed, { exact: true })).toBeVisible();
