@@ -97,7 +97,8 @@ function AppSidebarFooterMenu({ user, userId }: Props) {
                     Copy token to Dashboard
                 </DropdownMenuItem>
             )}
-            <DropdownMenuSeparator />
+            {/* only between items, e.g. not without a user ID in production */}
+            {(userId || canCopyToken) && <DropdownMenuSeparator />}
             <DropdownMenuItem onSelect={logOut} className="text-red-500">
                 <LogOut />
                 Log out
