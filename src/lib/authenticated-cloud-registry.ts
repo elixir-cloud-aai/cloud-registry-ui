@@ -39,6 +39,7 @@ class AuthenticatedCloudRegistryProvider
 {
   private readonly baseUrl: string;
   private readonly token?: string;
+  private approvalsSupport?: Promise<boolean>;
 
   constructor(options: CloudRegistryProviderOptions);
   constructor(baseUrl: string, token?: string);
@@ -262,6 +263,30 @@ class AuthenticatedCloudRegistryProvider
     return this.request("/approvals", {
       authenticated: true,
     });
+  }
+
+  /**
+   * GET /approvals without a token, once per provider.
+   * Public.
+   *
+   * Tells if the registry has approvals (cloud-registry 0.5.0 and later).
+   * Without a token, browsers send no CORS preflight and can read the 404
+   * of older registries; with one, they reject the preflight's 404, and
+   * the request fails without a status.
+   *
+   * @returns false if the registry has no GET /approvals (404)
+   * @throws TypeError if the registry can't be reached
+   */
+  async hasApprovals(): Promise<boolean> {
+    this.approvalsSupport ??= fetch(this.url("/approvals")).then(
+      (response) => response.status !== 404,
+      (err: unknown) => {
+        // ask again next time, e.g. once the registry is up
+        this.approvalsSupport = undefined;
+        throw err;
+      },
+    );
+    return this.approvalsSupport;
   }
 
   /**
