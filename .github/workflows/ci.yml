@@ -115,13 +115,13 @@ jobs:
                   exit 1
 
     # The stack of `e2e/stack/compose.yaml`; Playwright builds and starts the
-    # app (`playwright.config.ts`). `oidc.localhost` must resolve on the
-    # runner too, for the app's requests to the login provider
+    # app (`playwright.config.ts`). The tests run in Playwright's image, which
+    # has the browsers and their system packages (installing them from the
+    # runner's package mirror can take half an hour), with Bun of the runner
+    # for the web server; keep its version in line with `@playwright/test`
     e2e:
         name: End-to-end tests
-        # Playwright 1.56 installs browsers only on Ubuntu up to 24.04, the
-        # base of its Docker image (mcr.microsoft.com/playwright:*-noble)
-        runs-on: ubuntu-24.04
+        runs-on: ubuntu-latest
         timeout-minutes: 30
         steps:
             - name: Check out repository
@@ -132,20 +132,20 @@ jobs:
               uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
               with:
                   bun-version: 1.3.14
-            - name: Set up Node.js
-              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-              with:
-                  node-version: 22
             - name: Install dependencies
               run: bun install --frozen-lockfile
-            - name: Install browsers
-              run: npx playwright install --with-deps chromium firefox
             - name: Start the registry and the login provider
-              run: |
-                  echo "127.0.0.1 oidc.localhost" | sudo tee -a /etc/hosts
-                  docker compose -f e2e/stack/compose.yaml up -d --wait
+              run: docker compose -f e2e/stack/compose.yaml up -d --wait
             - name: Run end-to-end tests
-              run: npx playwright test
+              run: >-
+                  docker run --rm --network host
+                  --add-host oidc.localhost:127.0.0.1
+                  --user "$(id -u):$(id -g)" --env HOME=/tmp --env CI
+                  --env PATH=/opt/bun:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+                  --volume "$(readlink -f "$(command -v bun)"):/opt/bun/bun:ro"
+                  --volume "${PWD}:/app" --workdir /app
+                  mcr.microsoft.com/playwright:v1.56.1-noble
+                  npx playwright test
             - name: Show logs of the stack
               if: failure()
               run: docker compose -f e2e/stack/compose.yaml logs
