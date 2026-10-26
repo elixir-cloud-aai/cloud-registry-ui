@@ -128,7 +128,7 @@ Each provider has these fields:
 | `issuer`       | yes      | Issuer URL, as in its `/.well-known/openid-configuration`, which lists the endpoints |
 | `clientId`     | yes      | Client ID registered with the provider                                               |
 | `clientSecret` | yes      | Client secret                                                                        |
-| `scopes`       | no       | Scopes to request (default: `["openid", "profile", "email"]`)                        |
+| `scopes`       | no       | Default: `["openid", "profile", "email"]`; add `eduperson_entitlement` for LS Login  |
 
 Example for [LS Login](https://lifescience-ri.eu/ls-login/), whose logo is in `public/`:
 
