@@ -8,9 +8,13 @@ npm-debug.log
 yarn-error.log
 bun.lockb.tmp
 
-# env files: settings and secrets stay out of the image (see README)
-.env*
+# settings and secrets stay out of the image (see README), in all folders:
+# env files (also from `vercel pull`, in .vercel) and keys
+**/.env*
 !.env.example
+.vercel
+certificates
+**/*.pem
 
 # OS junk
 .DS_Store

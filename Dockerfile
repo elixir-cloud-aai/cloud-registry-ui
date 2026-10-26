@@ -9,6 +9,7 @@ RUN bun install --frozen-lockfile
 # Settings built into the app, passed with `docker build --build-arg`; they
 # are public (they reach the browser and the image history). The login
 # settings, with the client secret, are passed when the container starts.
+# Keep the list in line with the `process.env.NEXT_PUBLIC_*` uses in src/.
 ARG NEXT_PUBLIC_CLOUD_REGISTRY_URL
 ARG NEXT_PUBLIC_SERVICE_URL_SCHEMES
 ARG NEXT_PUBLIC_SERVICE_ENVIRONMENTS
@@ -20,6 +21,8 @@ ARG NEXT_PUBLIC_APP_LOGO_DARK
 ARG NEXT_PUBLIC_FOOTER_LOGO
 ARG NEXT_PUBLIC_FOOTER_LOGO_DARK
 ARG NEXT_PUBLIC_FOOTER_START_YEAR
+RUN test -n "$NEXT_PUBLIC_CLOUD_REGISTRY_URL" || { \
+    echo "Set NEXT_PUBLIC_CLOUD_REGISTRY_URL with --build-arg" >&2; exit 1; }
 
 # Build (`.env*` files are excluded by `.dockerignore`)
 COPY . .

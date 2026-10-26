@@ -37,7 +37,7 @@ The app runs at http://localhost:3000.
 
 ### Docker
 
-The image is built with the settings that are read at build time (`NEXT_PUBLIC_*`, see [Configurations](#configurations)). Pass them as build arguments, e.g.:
+The image is built with the settings that are read at build time (`NEXT_PUBLIC_*`, see [Configurations](#configurations)). Pass them as build arguments, at least `NEXT_PUBLIC_CLOUD_REGISTRY_URL` (the build fails without it), e.g.:
 
 ```
 docker build -t cloud-registry-ui \
@@ -46,15 +46,15 @@ docker build -t cloud-registry-ui \
   .
 ```
 
-`docker build` doesn't read `.env` or other `.env*` files: `.dockerignore` keeps them out of the image, so that client secrets can't end up in it. Build arguments are stored in the image's history (`docker history`), so pass only the `NEXT_PUBLIC_*` settings with them, which are public anyway, never the login settings.
+`docker build` reads only the settings passed with `--build-arg`: not `.env` files, nor variables exported in the shell (`--build-arg NAME`, without a value, passes the shell's value). `.dockerignore` keeps `.env*` files in all folders, `.vercel` (from `vercel pull`) and `*.pem` keys out of the image. Build arguments are stored in the image's history (`docker history`), so pass only the `NEXT_PUBLIC_*` settings with them, which are public anyway, never the login settings.
 
-Pass the login settings, which hold the client secret, when the container starts, e.g. from a file outside the repository, such as `~/cloud-registry-ui/login.env`:
+Pass the login settings (`LOGIN_PROVIDERS` and `LOGIN_REDIRECT_URI`, see [Login](#login)), which hold the client secret, when the container starts, e.g. from a file outside the repository, such as `~/cloud-registry-ui/login.env`. `--env-file` takes each line as `NAME=value`, literally: don't quote the values.
 
 ```
 docker run -p 3000:3000 --env-file ~/cloud-registry-ui/login.env cloud-registry-ui
 ```
 
-Without them, the container refuses to start. Settings passed with `docker run` don't change the `NEXT_PUBLIC_*` values: those need a new image.
+Without the login settings, the container refuses to start. Settings passed with `docker run` don't change the `NEXT_PUBLIC_*` values: those need a new image.
 
 The image runs the production server (`bun run start`) on port 3000. Serve it over HTTPS, e.g. behind a reverse proxy: the login cookies are marked `Secure`, and browsers accept them over plain HTTP only on `localhost`.
 
