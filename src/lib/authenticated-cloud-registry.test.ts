@@ -81,7 +81,12 @@ describe("requests", () => {
     it("keeps status and problem details of failures", async () => {
         fetchMock.mockResolvedValue(
             json(
-                { title: "Conflict", detail: "Duplicate", serviceId: "x" },
+                {
+                    title: "Conflict",
+                    detail: "Duplicate",
+                    code: "duplicate-service",
+                    serviceId: "x",
+                },
                 409,
             ),
         );
@@ -92,6 +97,7 @@ describe("requests", () => {
                 status: 409,
                 title: "Conflict",
                 detail: "Duplicate",
+                code: "duplicate-service",
                 serviceId: "x",
             },
         );

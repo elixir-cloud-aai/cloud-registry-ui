@@ -4,8 +4,8 @@ import type {
     Permission,
     Role,
 } from "@/lib/cloud-registry.types";
-import { errorMessage, mutationError } from "@/lib/errors";
-import { isConflict, isForbidden, isUnauthorized } from "@/lib/permissions";
+import { errorMessage, isLastOwner, mutationError } from "@/lib/errors";
+import { isForbidden, isUnauthorized } from "@/lib/permissions";
 import { z } from "@/lib/zod";
 
 export type AccessProvider = Pick<
@@ -86,7 +86,7 @@ export function listError(err: unknown) {
 /** Get the message for a failed change of access to a service */
 export function accessError(err: unknown, groupGrant = false) {
     // the registry keeps at least one owner (user or group)
-    if (isConflict(err))
+    if (isLastOwner(err))
         return "Add another owner first, or delete the service.";
     if (groupGrant && isForbidden(err))
         return "You can grant roles only to groups you are a member of.";
