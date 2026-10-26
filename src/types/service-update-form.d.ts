@@ -1,4 +1,4 @@
-import z from "@/lib/zod";
+import type { z } from "@/lib/zod";
 
 type FormData = z.infer<typeof formDataSchema>;
 
