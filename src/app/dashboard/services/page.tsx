@@ -34,7 +34,7 @@ const pageSize = 10;
 function Page() {
     const router = useRouter();
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
-    const { me, loading: meLoading, expired } = useMe();
+    const { me, loading: meLoading, expired, refetch: refetchMe } = useMe();
     const [services, setServices] = useState<ExternalService[]>([]);
     const [verifications, setVerifications] = useState<ServiceVerification[]>(
         [],
@@ -196,6 +196,7 @@ function Page() {
                                     verifications={verified}
                                     pending={pending}
                                     fetchServices={fetchServices}
+                                    refetchMe={refetchMe}
                                     me={me}
                                     emptyMessage={
                                         filtered
