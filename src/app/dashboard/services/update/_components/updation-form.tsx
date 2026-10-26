@@ -40,6 +40,7 @@ type Props = {
     admin?: boolean;
     pending?: boolean;
     typesPending?: boolean;
+    approvedTypes?: Set<string>;
     disabled?: boolean;
     onServiceUpdated?: (service: ExternalService) => void;
 };
@@ -50,6 +51,7 @@ function ServiceUpdationForm({
     admin = false,
     pending,
     typesPending = false,
+    approvedTypes,
     disabled,
     onServiceUpdated,
 }: Props) {
@@ -151,7 +153,15 @@ function ServiceUpdationForm({
                 {typesPending && !pending && (
                     <form.Subscribe selector={(state) => state.values.type}>
                         {(type) =>
-                            typeKey(type) !== typeKey(initial.type) && (
+                            // approved types, if known, stay approved
+                            typeKey(type) !== typeKey(initial.type) &&
+                            !approvedTypes?.has(
+                                typeKey({
+                                    group: type.group.trim(),
+                                    artifact: type.artifact.trim(),
+                                    version: type.version.trim(),
+                                }),
+                            ) && (
                                 <p className="flex items-center gap-2 text-sm text-muted-foreground">
                                     <ClockIcon className="size-4 shrink-0" />A
                                     service type that isn't registered yet is
