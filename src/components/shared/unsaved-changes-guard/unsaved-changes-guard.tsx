@@ -68,7 +68,8 @@ function UnsavedChangesGuard({ when }: Props) {
                 const from = window.location.href;
                 leaving.current = true;
                 // links in menus (e.g., Log out) are gone once the dialog
-                // opens, and clicks on detached links do nothing
+                // opens, and clicks on detached links do nothing (so load
+                // the URL instead, without the client-side router)
                 if (anchor.isConnected) anchor.click();
                 else window.location.assign(url.href);
                 // guard again if the link didn't leave the page
