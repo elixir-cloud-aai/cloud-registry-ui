@@ -3,7 +3,7 @@ import { deleteCookie, getCookie, setCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
-import { idTokenNonce } from "@/lib/login-flow";
+import { idTokenNonce, loginCookies } from "@/lib/login-flow";
 import {
     loginErrorSummary,
     loginProvider,
@@ -52,12 +52,7 @@ export async function GET(request: NextRequest) {
     const providerId = await getCookie("authProvider", { cookies });
     // a state can be used once, also if this callback fails or the provider
     // sends an error (e.g. a denied login) instead of a code
-    for (const name of [
-        "authState",
-        "authProvider",
-        "authVerifier",
-        "authNonce",
-    ])
+    for (const name of loginCookies)
         await deleteCookie(name, { cookies, path: "/" });
     if (code === null) redirect("/auth/error?type=params");
 

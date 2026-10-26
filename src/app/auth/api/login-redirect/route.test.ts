@@ -1,7 +1,7 @@
 import axios from "axios";
 import { NextRequest } from "next/server";
 import { describe, expect, it, vi } from "vitest";
-import { pkceChallenge } from "@/lib/login-flow";
+import { loginCookies, pkceChallenge } from "@/lib/login-flow";
 import {
     cookieStore,
     jar,
@@ -51,12 +51,7 @@ describe("GET /auth/api/login-redirect", () => {
         });
         expect(verifier).toMatch(/^[A-Za-z0-9_-]{43}$/);
         expect(nonce).toMatch(/^[A-Za-z0-9_-]{43}$/);
-        for (const name of [
-            "authState",
-            "authProvider",
-            "authVerifier",
-            "authNonce",
-        ])
+        for (const name of loginCookies)
             expect(jar.get(name)).toMatchObject({
                 httpOnly: true,
                 sameSite: "lax",

@@ -10,6 +10,8 @@ const session = {
     login_provider: "mock",
     authState: "s",
     authProvider: "mock",
+    authVerifier: "v",
+    authNonce: "n",
 };
 
 async function logout(headers: Record<string, string>) {
@@ -58,7 +60,7 @@ describe("POST /auth/api/logout", () => {
         expect(await logout(headers)).toBe(
             `${appOrigin}/auth/error?type=logout-origin`,
         );
-        expect(jar.size).toBe(5);
+        expect(jar.size).toBe(Object.keys(session).length);
     });
 
     it("reports failures", async () => {

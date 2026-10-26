@@ -18,8 +18,7 @@ async function Page({ searchParams }: Props) {
     let message = "Internal server error occured.";
 
     if (type === "params") message = "Invalid request parameters found.";
-    else if (type === "state")
-        message = "Invalid state found. State does not match.";
+    else if (type === "state") message = "The login is invalid or has expired.";
     else if (type === "issuer")
         message =
             "The login response came from another login provider than the one you chose.";
