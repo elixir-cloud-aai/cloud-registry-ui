@@ -58,7 +58,7 @@ docker run -p 3000:3000 --env-file ~/cloud-registry-ui/login.env cloud-registry-
 
 Without the login settings, the container refuses to start. Settings passed with `docker run` don't change the `NEXT_PUBLIC_*` values: those need a new image.
 
-The image holds only the built app: Next's standalone server (`bun server.js`, port 3000), its static files and `public/`, without sources or development dependencies. It runs as the unprivileged user `bun` and reports its health (`docker ps`) by requesting the start page every 30 seconds. Serve it over HTTPS, e.g. behind a reverse proxy: the login cookies are marked `Secure`, and browsers accept them over plain HTTP only on `localhost`.
+The image holds only the built app: Next's standalone server (`bun server.js`), its static files and `public/`, without sources or development dependencies. It runs as the unprivileged user `bun`, which can write only to `.next/cache`, listens on all IPv4 interfaces (set `LISTEN_HOSTNAME`, e.g. to `::` for IPv6, to change this) and on `PORT` (default: 3000), and reports its health (`docker ps`) by requesting the start page every 30 seconds. Serve it over HTTPS, e.g. behind a reverse proxy: the login cookies are marked `Secure`, and browsers accept them over plain HTTP only on `localhost`.
 
 ## Configurations
 
