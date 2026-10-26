@@ -6,6 +6,7 @@ import {
 } from "next/constants";
 import { brandingSettings } from "./src/lib/branding";
 import { loginSettings } from "./src/lib/login-providers";
+import { registrySettings } from "./src/lib/registry-settings";
 import { securityHeaders } from "./src/lib/security-headers";
 import { environmentSettings } from "./src/lib/service-environments";
 
@@ -13,16 +14,23 @@ function nextConfig(phase: string): NextConfig {
     // login settings are read at runtime: check them when `next start` or
     // `next dev` loads this file; invalid settings stop the start. The
     // standalone server of the Docker image doesn't load this file:
-    // `src/instrumentation.ts` checks them there
-    if (phase === PHASE_DEVELOPMENT_SERVER || phase === PHASE_PRODUCTION_SERVER)
+    // `src/instrumentation.ts` checks them there. Vercel builds
+    // (`VERCEL=1`) have the runtime settings too, and deploy what they
+    // build without starting it first: check them there when building
+    if (
+        phase === PHASE_DEVELOPMENT_SERVER ||
+        phase === PHASE_PRODUCTION_SERVER ||
+        (phase === PHASE_PRODUCTION_BUILD && process.env.VERCEL === "1")
+    )
         loginSettings();
-    // branding and environment settings are built into the app: check them
-    // when `next build` or `next dev` loads this file; invalid settings stop
-    // the build
+    // the other settings are built into the app: check them when
+    // `next build` or `next dev` loads this file; invalid settings stop the
+    // build
     if (
         phase === PHASE_DEVELOPMENT_SERVER ||
         phase === PHASE_PRODUCTION_BUILD
     ) {
+        registrySettings();
         brandingSettings();
         environmentSettings();
     }

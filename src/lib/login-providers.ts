@@ -60,6 +60,18 @@ const endpoints = new Map<string, Promise<OidcEndpoints>>();
 function loginSettings() {
     if (settings) return settings;
 
+    // settings of earlier versions, which the app no longer reads
+    const legacy = [
+        "LS_LOGIN_URL",
+        "OIDC_CLIENT_ID",
+        "OIDC_CLIENT_SECRET",
+        "OIDC_REDIRECT_URI",
+    ].filter((name) => process.env[name]);
+    if (!process.env.LOGIN_PROVIDERS && legacy.length)
+        throw new Error(
+            `Missing setting LOGIN_PROVIDERS: the app no longer reads ${legacy.join(", ")}; replace them with LOGIN_PROVIDERS and LOGIN_REDIRECT_URI (see "Migrating from LS_LOGIN_URL and OIDC_*" in the README)`,
+        );
+
     let providers: unknown;
     try {
         providers = JSON.parse(process.env.LOGIN_PROVIDERS || "[]");
