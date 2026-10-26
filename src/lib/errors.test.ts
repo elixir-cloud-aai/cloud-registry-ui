@@ -6,6 +6,8 @@ import {
     errorField,
     errorMessage,
     isDuplicate,
+    isLastOwner,
+    isVerificationMismatch,
     mutationError,
     withFieldLabels,
 } from "./errors";
@@ -75,10 +77,53 @@ describe("mutationError", () => {
     });
 });
 
+describe("conflicts", () => {
+    it.each([
+        ["duplicate-service", true, false, false],
+        ["verification-mismatch", false, true, false],
+        ["last-owner", false, false, true],
+        ["pending-service", false, false, false],
+        ["conflict", false, false, false],
+        ["added-later", false, false, false],
+    ])("tells %s apart by its code", (code, duplicate, mismatch, lastOwner) => {
+        // the detail of a duplicate, so that only the code decides
+        const err = failure(409, { detail: "Registered: 'x'.", code });
+        expect(isDuplicate(err)).toBe(duplicate);
+        expect(isVerificationMismatch(err)).toBe(mismatch);
+        expect(isLastOwner(err)).toBe(lastOwner);
+    });
+
+    it("tells conflicts apart without codes, as older registries send them", () => {
+        for (const err of [failure(409), failure(409, { code: null })]) {
+            expect(isDuplicate(err)).toBe(true);
+            expect(isVerificationMismatch(err)).toBe(true);
+            expect(isLastOwner(err)).toBe(true);
+        }
+    });
+
+    it("ignores codes of other failures", () => {
+        const err = failure(400, { code: "duplicate-service" });
+        expect(isDuplicate(err)).toBe(false);
+        expect(isVerificationMismatch(err)).toBe(false);
+        expect(isLastOwner(err)).toBe(false);
+    });
+});
+
 describe("duplicates", () => {
     it("tells duplicates from pending conflicts", () => {
         expect(isDuplicate(failure(409))).toBe(true);
         expect(isDuplicate(failure(409, { detail: pendingDetail }))).toBe(
+            false,
+        );
+        expect(
+            isDuplicate(
+                failure(409, {
+                    detail: pendingDetail,
+                    code: "duplicate-service",
+                }),
+            ),
+        ).toBe(true);
+        expect(isDuplicate(failure(409, { code: "pending-service" }))).toBe(
             false,
         );
         expect(isDuplicate(failure(400))).toBe(false);

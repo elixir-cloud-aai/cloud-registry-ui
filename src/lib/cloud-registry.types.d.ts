@@ -118,6 +118,8 @@ export interface ApiError {
   title?: string;
   detail?: string;
   message?: string;
+  /** Kind of a conflict (409). */
+  code?: string;
   serviceId?: string;
 }
 

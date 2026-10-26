@@ -17,14 +17,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import type { Me, Verification } from "@/lib/cloud-registry.types";
-import { mutationError } from "@/lib/errors";
+import { isVerificationMismatch, mutationError } from "@/lib/errors";
 import {
     canApproveServiceType,
     canDeleteService,
     canEditService,
     canManageAccess,
     canVerifyService,
-    hasStatus,
 } from "@/lib/permissions";
 import VerifiedBadge from "./verified-badge";
 import ViewServiceDialogBody from "./view-service-dailog-body";
@@ -159,7 +158,7 @@ function ServiceDetails({
                 ? `Removed verification of service with ID - ${service.id}`
                 : `Verified service with ID - ${service.id}`,
             error: (err) =>
-                hasStatus(err, 409)
+                isVerificationMismatch(err)
                     ? "The service changed after it was checked. Please check it again."
                     : mutationError(
                           err,

@@ -45,10 +45,18 @@ function withFieldLabels(message: string) {
 const duplicateMessage =
     "A service with this URL and API type is already registered.";
 
-// the registry's detail for changes of pending services (see
-// `@/lib/approvals`) to types that aren't approved, by users other than
-// admins (409, like duplicates), as of cloud-registry 0.5.0 (`PendingService`);
-// a field to tell them apart is coming in elixir-cloud-aai/cloud-registry#247
+// the registry's codes for the conflicts (409) that the UI tells apart, as of
+// cloud-registry 0.5.0; others (e.g. `pending-service`, `conflict` or codes
+// added later) show the registry's detail
+type ConflictCode =
+    | "duplicate-service"
+    | "verification-mismatch"
+    | "last-owner";
+
+// for registries that send no code (cloud-registry#247): the detail of the
+// 409 for changes of pending services (see `@/lib/approvals`) to types that
+// aren't approved; any other 409 of a change is a duplicate; drop it once
+// all registries send codes
 const pendingDetail =
     "The service has a service type that is pending until an admin approves it; until then, it can only be updated to an approved type, or deleted.";
 
@@ -93,19 +101,46 @@ function mutationError(
     return errorMessage(err, fallback);
 }
 
-/** Check if a change of a pending service failed as its type isn't approved */
-function isPendingConflict(err: unknown) {
-    return isConflict(err) && errorDetail(err) === pendingDetail;
+/**
+ * Check if a request failed with a conflict of a kind
+ * @param err Error of the request
+ * @param expected The registry's code for the conflict
+ * @param legacy Check by detail for registries that send no code (default:
+ * any 409)
+ */
+function isConflictOf(
+    err: unknown,
+    expected: ConflictCode,
+    legacy: (detail?: string) => boolean = () => true,
+) {
+    if (!isConflict(err)) return false;
+    const code =
+        err instanceof Error && "code" in err && typeof err.code === "string"
+            ? err.code
+            : undefined;
+    return code === undefined ? legacy(errorDetail(err)) : code === expected;
 }
 
 /** Check if a change failed as it duplicates a registered service */
 function isDuplicate(err: unknown): err is Error {
     return (
         err instanceof Error &&
-        "status" in err &&
-        err.status === 409 &&
-        !isPendingConflict(err)
+        isConflictOf(
+            err,
+            "duplicate-service",
+            (detail) => detail !== pendingDetail,
+        )
     );
+}
+
+/** Check if a verification failed as the service changed after the check */
+function isVerificationMismatch(err: unknown) {
+    return isConflictOf(err, "verification-mismatch");
+}
+
+/** Check if a change of access failed as it removes the last owner */
+function isLastOwner(err: unknown) {
+    return isConflictOf(err, "last-owner");
 }
 
 /** Get the toast for a change that duplicates a registered service */
@@ -148,6 +183,8 @@ export {
     errorField,
     errorMessage,
     isDuplicate,
+    isLastOwner,
+    isVerificationMismatch,
     mutationError,
     withFieldLabels,
 };

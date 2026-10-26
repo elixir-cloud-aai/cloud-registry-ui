@@ -146,6 +146,7 @@ class AuthenticatedCloudRegistryProvider
         status: response.status,
         title: body.title,
         detail: body.detail,
+        code: body.code,
         serviceId: body.serviceId,
       });
     }
