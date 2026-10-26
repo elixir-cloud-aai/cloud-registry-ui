@@ -142,7 +142,7 @@ Register the app with [LS Login](https://lifescience-ri.eu/ls-login/) as a servi
 - **Redirect URI:** the value of `LOGIN_REDIRECT_URI`, e.g. `https://registry.example.org/auth/api/callback`. Use a separate client for local development, with `http://localhost:3000/auth/api/callback`.
 - **Scopes:** `openid`, `profile`, `email` and `eduperson_entitlement`. LS Login releases the groups (`eduperson_entitlement`), which the registry needs to recognise admins, only with this scope, and only via user info.
 
-Put the client ID and secret in `LOGIN_PROVIDERS` (see the example above). The app sends the user's access token to the registry, never the ID token.
+Put the client ID and secret in `LOGIN_PROVIDERS` (see the example above), and keep its `scopes`: without them, the app requests only the default scopes, and the registry doesn't recognise admins. The app sends the user's access token to the registry, never the ID token.
 
 #### Registry settings for the app
 
