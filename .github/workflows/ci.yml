@@ -1,0 +1,160 @@
+# Everything that must pass on pull requests and pushes: unit tests with
+# coverage, type checks and the build, the Docker image, and the end-to-end
+# tests against a registry and a mock login provider. The gate `passed`
+# ("CI passed") is the only required check. No `paths:` filters, so that the
+# gate always reports; skip jobs with `if:` instead (and allow the skip in
+# the gate). Lint isn't checked yet: the code has Biome errors to fix first
+
+name: CI
+on:
+    push:
+        branches: [main, ai]
+    pull_request:
+
+permissions:
+    contents: read
+
+# Cancel superseded runs of a pull request; runs for pushes get their own
+# group, so that queued runs for successive pushes are not dropped
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event_name == 'push' && github.sha || github.ref }}
+    cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+    NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+    # Vitest runs on Node.js, not on Bun's runtime
+    test:
+        name: Test
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+            - name: Set up Bun
+              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+              with:
+                  bun-version: 1.3.14
+            - name: Set up Node.js
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: 22
+            - name: Install dependencies
+              run: bun install --frozen-lockfile
+            - name: Run unit tests with coverage
+              run: npm run test:coverage
+
+    build:
+        name: Build
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+            - name: Set up Bun
+              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+              with:
+                  bun-version: 1.3.14
+            - name: Install dependencies
+              run: bun install --frozen-lockfile
+            - name: Check types
+              run: bunx tsc --noEmit
+            - name: Build the app
+              env:
+                  NEXT_PUBLIC_CLOUD_REGISTRY_URL: https://registry.example.org/ga4gh/registry/v1
+              run: bun run build
+
+    image:
+        name: Build image
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+            - name: Build the Docker image
+              run: >-
+                  docker build -t cloud-registry-ui:ci
+                  --build-arg NEXT_PUBLIC_CLOUD_REGISTRY_URL=https://registry.example.org/ga4gh/registry/v1
+                  .
+            # the container stops (status 1) without login settings
+            - name: Check that the image needs the login settings
+              run: |
+                  status=0
+                  timeout 60 docker run --rm cloud-registry-ui:ci || status=$?
+                  if [[ "${status}" != 1 ]]; then
+                    echo "::error::The container didn't stop for missing login settings (status ${status})"
+                    exit 1
+                  fi
+
+    # The stack of `e2e/stack/compose.yaml`; Playwright builds and starts the
+    # app (`playwright.config.ts`). `oidc.localhost` must resolve on the
+    # runner too, for the app's requests to the login provider
+    e2e:
+        name: End-to-end tests
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+            - name: Set up Bun
+              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+              with:
+                  bun-version: 1.3.14
+            - name: Set up Node.js
+              uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+              with:
+                  node-version: 22
+            - name: Install dependencies
+              run: bun install --frozen-lockfile
+            - name: Install browsers
+              run: npx playwright install --with-deps chromium firefox
+            - name: Start the registry and the login provider
+              run: |
+                  echo "127.0.0.1 oidc.localhost" | sudo tee -a /etc/hosts
+                  docker compose -f e2e/stack/compose.yaml up -d --wait
+                  for _ in $(seq 60); do
+                    curl -fsS http://localhost:8180/ga4gh/registry/v1/service-info >/dev/null && exit 0
+                    sleep 2
+                  done
+                  docker compose -f e2e/stack/compose.yaml logs registry
+                  exit 1
+            - name: Run end-to-end tests
+              run: npx playwright test
+            - name: Show logs of the stack
+              if: failure()
+              run: docker compose -f e2e/stack/compose.yaml logs
+            - name: Upload the test report
+              if: failure()
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: playwright-report
+                  path: playwright-report/
+                  retention-days: 7
+
+    passed:
+        name: CI passed
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        if: always()
+        needs: [test, build, image, e2e]
+        steps:
+            - name: Check results of all jobs
+              env:
+                  NEEDS: ${{ toJSON(needs) }}
+              run: |
+                  failed="$(jq -r 'to_entries[]
+                    | select(.value.result != "success")
+                    | "\(.key): \(.value.result)"' <<< "${NEEDS}")"
+                  if [[ -n "${failed}" ]]; then
+                    echo "::error::Jobs did not pass: ${failed//$'\n'/, }"
+                    exit 1
+                  fi
