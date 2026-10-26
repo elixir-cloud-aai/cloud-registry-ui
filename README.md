@@ -46,7 +46,9 @@ docker build -t cloud-registry-ui \
   .
 ```
 
-`docker build` reads only the settings passed with `--build-arg`: not `.env` files, nor variables exported in the shell (`--build-arg NAME`, without a value, passes the shell's value). `.dockerignore` keeps `.env*` files in all folders, `.vercel` (from `vercel pull`) and `*.pem` keys out of the image. Build arguments are stored in the image's history (`docker history`), so pass only the `NEXT_PUBLIC_*` settings with them, which are public anyway, never the login settings.
+`docker build` reads only the settings passed with `--build-arg`: not `.env` files, nor variables exported in the shell (`--build-arg NAME`, without a value, passes the shell's value).
+
+`.dockerignore` keeps `.env*` files in all folders, `.vercel` (from `vercel pull`), keys and package registry credentials out of the image. Build arguments, however, are stored in the image's history (`docker history`): pass only the `NEXT_PUBLIC_*` settings with them, which are public anyway, never the login settings.
 
 Pass the login settings (`LOGIN_PROVIDERS` and `LOGIN_REDIRECT_URI`, see [Login](#login)), which hold the client secret, when the container starts, e.g. from a file outside the repository, such as `~/cloud-registry-ui/login.env`. `--env-file` takes each line as `NAME=value`, literally: don't quote the values.
 
