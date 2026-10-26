@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { failure } from "@/test/errors";
 import type { Me } from "./cloud-registry.types";
 import {
     canApproveServiceType,
@@ -17,7 +18,6 @@ const me = (admin: boolean, services: [string, string][] = []) =>
         admin,
         services: services.map(([service_id, role]) => ({ service_id, role })),
     }) as unknown as Me;
-const failure = (status: number) => Object.assign(new Error("x"), { status });
 
 describe("service permissions", () => {
     const owner = me(false, [["s1", "owner"]]);

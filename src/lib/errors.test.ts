@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { failure } from "@/test/errors";
 import {
     duplicateMessage,
     duplicateToast,
@@ -9,8 +10,6 @@ import {
     withFieldLabels,
 } from "./errors";
 
-const failure = (status: number, extra: Record<string, unknown> = {}) =>
-    Object.assign(new Error("x"), { status, ...extra });
 const pendingDetail =
     "The service has a service type that is pending until an admin approves it; until then, it can only be updated to an approved type, or deleted.";
 
