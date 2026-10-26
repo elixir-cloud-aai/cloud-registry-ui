@@ -360,14 +360,14 @@ jobs:
             # repository setting) can still get their notes; re-runs finish
             # the draft of an earlier attempt and leave a published release as
             # it is. GitHub's generated notes list the merged pull requests
-            # since the previous published release in the history of the
-            # release commit, on an earlier commit (tags without a release,
-            # e.g. of a failed run, don't count; for stable releases, neither
-            # do pre-releases, e.g. their release candidates; without one, all
-            # of them); the maintainers add the
-            # curated sections afterwards (the notes of published releases
-            # stay editable). GitHub never marks pre-releases as the latest
-            # release
+            # since the previous published release by version in the history
+            # of the release commit, on an earlier commit (tags without a
+            # release, e.g. of a failed run, don't count; for stable releases,
+            # neither do pre-releases, e.g. their release candidates; without
+            # one, GitHub picks the start, e.g. all changes for the first
+            # release); the maintainers check them and add the curated
+            # sections afterwards (the notes of published releases stay
+            # editable). GitHub never marks pre-releases as the latest release
             - name: Create release
               env:
                   GH_TOKEN: ${{ github.token }}
@@ -400,7 +400,8 @@ jobs:
                               previous="${tag}"
                               break
                           fi
-                      done < <(git tag -l 'v*' --merged HEAD --sort=-creatordate)
+                      done < <(git -c versionsort.suffix=-alpha -c versionsort.suffix=-beta \
+                          -c versionsort.suffix=-rc tag -l 'v*' --merged HEAD --sort=-v:refname)
                       args=(-f "tag_name=${TAG}")
                       if [[ -n "${previous}" ]]; then
                           args+=(-f "previous_tag_name=${previous}")
