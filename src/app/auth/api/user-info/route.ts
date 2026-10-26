@@ -3,6 +3,7 @@ import { getCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
+    loginErrorSummary,
     loginProvider,
     loginRequestTimeout,
     oidcEndpoints,
@@ -32,7 +33,10 @@ export async function GET() {
         }
 
         return NextResponse.json({ error: false, user: res.data });
-    } catch {
+    } catch (err) {
+        // expired or revoked tokens (401) are expected, other failures not
+        if (!axios.isAxiosError(err) || err.response?.status !== 401)
+            console.error("User info failed:", loginErrorSummary(err));
         return NextResponse.json({ error: true, user: null }, { status: 401 });
     }
 }

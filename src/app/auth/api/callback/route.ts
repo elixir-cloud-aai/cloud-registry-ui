@@ -28,16 +28,17 @@ export async function GET(request: NextRequest) {
     const code = searchParams.get("code");
     const state = searchParams.get("state");
 
-    if (code === null || state === null) redirect("/auth/error?type=params");
-
     // a wrong state, e.g. from another site, leaves a pending login intact
     const authState = await getCookie("authState", { cookies });
-    if (!authState || authState !== state) redirect("/auth/error?type=state");
+    if (state === null || !authState || authState !== state)
+        redirect("/auth/error?type=state");
 
     const providerId = await getCookie("authProvider", { cookies });
-    // a state can be used once, also if this callback fails
+    // a state can be used once, also if this callback fails or the provider
+    // sends an error (e.g. a denied login) instead of a code
     await deleteCookie("authState", { cookies, path: "/" });
     await deleteCookie("authProvider", { cookies, path: "/" });
+    if (code === null) redirect("/auth/error?type=params");
 
     const provider = providerId ? loginProvider(providerId) : undefined;
     if (!provider) redirect("/auth/error?type=provider");

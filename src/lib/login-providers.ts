@@ -163,8 +163,12 @@ function loginErrorSummary(err: unknown) {
     const { config, response } = err;
     const url = config?.url ? config.url.split("?")[0] : "unknown URL";
     const data = response?.data as { error?: unknown } | undefined;
+    // only codes as in RFC 6749 (e.g. invalid_grant): other text from the
+    // provider could hold secrets or forge log lines
     const oauthError =
-        typeof data?.error === "string" ? `, error ${data.error}` : "";
+        typeof data?.error === "string" && /^[a-z_]{1,64}$/.test(data.error)
+            ? `, error ${data.error}`
+            : "";
     return `${config?.method?.toUpperCase() ?? "Request"} ${url} failed: ${
         response ? `status ${response.status}${oauthError}` : err.message
     }`;
