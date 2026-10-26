@@ -1,9 +1,10 @@
 # Everything that must pass on pull requests and pushes: unit tests with
 # coverage, type checks and the build, the Docker image, and the end-to-end
 # tests against a registry and a mock login provider. The gate `passed`
-# ("CI passed") is the only required check. No `paths:` filters, so that the
-# gate always reports; skip jobs with `if:` instead (and allow the skip in
-# the gate). Lint isn't checked yet: the code has Biome errors to fix first
+# ("CI passed") is the only required check and needs every other job to
+# succeed. No `paths:` filters, so that the gate always reports; to skip a
+# job with `if:`, allow that skip in the gate. Lint isn't checked yet: the
+# code has Biome errors to fix first
 
 name: CI
 on:
@@ -83,15 +84,35 @@ jobs:
                   docker build -t cloud-registry-ui:ci
                   --build-arg NEXT_PUBLIC_CLOUD_REGISTRY_URL=https://registry.example.org/ga4gh/registry/v1
                   .
-            # the container stops (status 1) without login settings
+            # without login settings, the container stops with the reason
             - name: Check that the image needs the login settings
               run: |
                   status=0
-                  timeout 60 docker run --rm cloud-registry-ui:ci || status=$?
-                  if [[ "${status}" != 1 ]]; then
+                  output="$(timeout 60 docker run --rm cloud-registry-ui:ci 2>&1)" || status=$?
+                  echo "${output}"
+                  if [[ "${status}" != 1 ]] || ! grep -q "LOGIN_PROVIDERS" <<< "${output}"; then
                     echo "::error::The container didn't stop for missing login settings (status ${status})"
                     exit 1
                   fi
+            # with login settings, it serves the login page (the provider is
+            # only contacted on login)
+            - name: Check that the image serves the app
+              env:
+                  LOGIN_PROVIDERS: '[{"id":"ci","name":"CI","logo":"/elixir-on-cloud-mark.svg","issuer":"https://login.example.org","clientId":"ci","clientSecret":"ci"}]'
+                  LOGIN_REDIRECT_URI: http://localhost:3000/auth/api/callback
+              run: |
+                  docker run -d --name app -p 127.0.0.1:3000:3000 \
+                    -e LOGIN_PROVIDERS -e LOGIN_REDIRECT_URI cloud-registry-ui:ci
+                  for _ in $(seq 30); do
+                    if curl -fs http://localhost:3000/auth/login | grep -q "login-redirect?provider=ci"; then
+                      docker rm -f app
+                      exit 0
+                    fi
+                    sleep 2
+                  done
+                  docker logs app
+                  echo "::error::The container didn't serve the login page"
+                  exit 1
 
     # The stack of `e2e/stack/compose.yaml`; Playwright builds and starts the
     # app (`playwright.config.ts`). `oidc.localhost` must resolve on the
@@ -121,12 +142,6 @@ jobs:
               run: |
                   echo "127.0.0.1 oidc.localhost" | sudo tee -a /etc/hosts
                   docker compose -f e2e/stack/compose.yaml up -d --wait
-                  for _ in $(seq 60); do
-                    curl -fsS http://localhost:8180/ga4gh/registry/v1/service-info >/dev/null && exit 0
-                    sleep 2
-                  done
-                  docker compose -f e2e/stack/compose.yaml logs registry
-                  exit 1
             - name: Run end-to-end tests
               run: npx playwright test
             - name: Show logs of the stack
