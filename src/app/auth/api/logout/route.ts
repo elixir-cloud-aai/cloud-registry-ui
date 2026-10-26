@@ -35,12 +35,14 @@ export async function POST(request: NextRequest) {
         );
 
     try {
-        await deleteCookie("access_token", { cookies });
-        await deleteCookie("id_token", { cookies });
-        await deleteCookie("login_provider", { cookies });
+        // the path the cookies were set with
+        const options = { cookies, path: "/" };
+        await deleteCookie("access_token", options);
+        await deleteCookie("id_token", options);
+        await deleteCookie("login_provider", options);
         // a pending login must not log the user in again
-        await deleteCookie("authState", { cookies });
-        await deleteCookie("authProvider", { cookies });
+        await deleteCookie("authState", options);
+        await deleteCookie("authProvider", options);
     } catch (err) {
         console.error("Logout failed:", loginErrorSummary(err));
         return NextResponse.redirect(

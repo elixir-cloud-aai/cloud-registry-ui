@@ -26,7 +26,7 @@ async function Page({ searchParams }: Props) {
             "An internal server error occurred while logging you out. Please try logging out again.";
     else if (type === "logout-origin")
         message =
-            "Log out from the app's own pages, at the address it was set up for.";
+            "Could not log you out: use the Log out button of the app, at the address it was set up for.";
 
     return (
         <div className="flex w-full h-screen justify-center items-center">
