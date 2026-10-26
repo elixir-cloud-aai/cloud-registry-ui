@@ -49,14 +49,14 @@ const discovery = {
 /**
  * Start a test: request cookies, the login settings, fresh modules, and
  * the provider's discovery document
- * @param cookies Cookies of the request, by name
+ * @param cookies Cookies of the request, by name (undefined: not set)
  */
-function setUp(cookies: Record<string, string> = {}) {
+function setUp(cookies: Record<string, string | undefined> = {}) {
     vi.resetModules();
     jar.clear();
     setCookies.length = 0;
     for (const [name, value] of Object.entries(cookies))
-        jar.set(name, { name, value });
+        if (value !== undefined) jar.set(name, { name, value });
     vi.stubEnv("LOGIN_PROVIDERS", JSON.stringify([provider]));
     vi.stubEnv("LOGIN_REDIRECT_URI", `${appOrigin}/auth/api/callback`);
     vi.spyOn(axios, "get").mockImplementation(async (url) => {

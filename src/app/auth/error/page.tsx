@@ -6,6 +6,7 @@ interface Props {
             | "params"
             | "state"
             | "internal"
+            | "issuer"
             | "logout-err"
             | "logout-origin"
             | "provider";
@@ -19,6 +20,9 @@ async function Page({ searchParams }: Props) {
     if (type === "params") message = "Invalid request parameters found.";
     else if (type === "state")
         message = "Invalid state found. State does not match.";
+    else if (type === "issuer")
+        message =
+            "The login response came from another login provider than the one you chose.";
     else if (type === "provider")
         message = "Unknown login provider. Please choose one from the list.";
     else if (type === "logout-err")

@@ -35,6 +35,31 @@ test.describe("login", () => {
         expect(names).not.toContain("id_token");
     });
 
+    test("logs in with PKCE and a nonce", async ({ page }) => {
+        const authorize = page.waitForRequest(/\/oidc\/authorize\?/);
+        await login(page, "owner");
+        const params = new URL((await authorize).url()).searchParams;
+        expect(params.get("code_challenge_method")).toBe("S256");
+        expect(params.get("code_challenge")).toMatch(/^[\w-]{43}$/);
+        const nonce = params.get("nonce");
+        expect(nonce).toMatch(/^[\w-]{43}$/);
+
+        // the provider checked the code verifier, and the ID token is of
+        // this login
+        const cookies = await page.context().cookies();
+        const idToken = cookies.find((val) => val.name === "id_token");
+        const claims = JSON.parse(
+            Buffer.from(
+                idToken?.value.split(".")[1] ?? "",
+                "base64url",
+            ).toString(),
+        );
+        expect(claims.nonce).toBe(nonce);
+        // the secrets of the login are used up
+        for (const name of ["authState", "authVerifier", "authNonce"])
+            expect(cookies.map((val) => val.name)).not.toContain(name);
+    });
+
     test("rejects a forged callback", async ({ page }) => {
         await page.goto("/auth/api/callback?code=x&state=forged");
         await expect(page).toHaveURL(/\/auth\/error\?type=state/);
