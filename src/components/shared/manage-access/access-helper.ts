@@ -47,6 +47,16 @@ export const grantSchema = z
                 path: ["principal"],
                 message: "Group can't start with '/'.",
             });
+        // `.` and `..` would be dot segments of the path
+        else if (/^\.+$/.test(val.principal))
+            ctx.addIssue({
+                code: "custom",
+                path: ["principal"],
+                message:
+                    val.kind === "user"
+                        ? "User ID can't consist of dots only."
+                        : "Group can't consist of dots only.",
+            });
     });
 
 export type GrantData = z.infer<typeof grantSchema>;
