@@ -62,16 +62,6 @@
                     }
                 }
             }
-        },
-        {
-            "includes": ["src/**", "!src/**/*.test.ts"],
-            "linter": {
-                "rules": {
-                    "suspicious": {
-                        "noFocusedTests": "off"
-                    }
-                }
-            }
         }
     ]
 }
