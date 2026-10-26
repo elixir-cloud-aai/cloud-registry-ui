@@ -7,6 +7,10 @@ import { hasStatus } from "@/lib/permissions";
 import { matchesVerification } from "@/lib/verifications";
 import { useCloudRegistry } from "./use-cloud-registry";
 
+/**
+ * Verification of a service, and whether it has loaded: until then,
+ * verification is undefined as for unverified services
+ */
 export function useServiceVerification(service?: ExternalService) {
     const { cloudRegistryProvider } = useCloudRegistry();
     const [state, setState] = useState<{
@@ -44,5 +48,9 @@ export function useServiceVerification(service?: ExternalService) {
         };
     }, [cloudRegistryProvider, service]);
 
-    return state?.service === service ? state?.verification : undefined;
+    const loaded = !!service && state?.service === service;
+    return {
+        verification: loaded ? state?.verification : undefined,
+        loaded,
+    };
 }
