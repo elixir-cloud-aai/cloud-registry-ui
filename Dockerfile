@@ -32,17 +32,22 @@ RUN NEXT_OUTPUT=standalone bun run build
 FROM oven/bun:1.3.14
 WORKDIR /app
 ENV NODE_ENV=production \
-    HOSTNAME=0.0.0.0 \
     PORT=3000
 
-COPY --from=build --chown=bun:bun /app/.next/standalone ./
-COPY --from=build --chown=bun:bun /app/.next/static ./.next/static
-COPY --from=build --chown=bun:bun /app/public ./public
+# Owned by root, so that the server can't change its own code; it writes
+# only to `.next/cache`
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static ./.next/static
+COPY --from=build /app/public ./public
+RUN mkdir -p .next/cache && chown bun:bun .next/cache
 
 USER bun
 EXPOSE 3000
 
+# The start page redirects to the dashboard; the redirect is enough
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD ["bun", "-e", "fetch('http://localhost:3000/').then((res) => process.exit(res.ok ? 0 : 1), () => process.exit(1))"]
+    CMD ["bun", "-e", "fetch(`http://127.0.0.1:${process.env.PORT || 3000}/`, { redirect: 'manual' }).then((res) => process.exit(res.status < 400 ? 0 : 1), () => process.exit(1))"]
 
-CMD ["bun", "server.js"]
+# Listen on all interfaces; set here, as container platforms such as
+# Kubernetes set `HOSTNAME` to the container's host name
+CMD ["env", "HOSTNAME=0.0.0.0", "bun", "server.js"]

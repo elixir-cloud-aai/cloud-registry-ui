@@ -13,8 +13,8 @@ bun.lockb.tmp
 # keys and package registry credentials
 **/.env*
 !.env.example
-.vercel
-certificates
+**/.vercel
+**/certificates
 **/*.pem
 **/*.key
 **/*.p12

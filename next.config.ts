@@ -10,7 +10,9 @@ import { environmentSettings } from "./src/lib/service-environments";
 
 function nextConfig(phase: string): NextConfig {
     // login settings are read at runtime: check them when `next start` or
-    // `next dev` loads this file; invalid settings stop the start
+    // `next dev` loads this file; invalid settings stop the start. The
+    // standalone server of the Docker image doesn't load this file:
+    // `src/instrumentation.ts` checks them there
     if (phase === PHASE_DEVELOPMENT_SERVER || phase === PHASE_PRODUCTION_SERVER)
         loginSettings();
     // branding and environment settings are built into the app: check them
