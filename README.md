@@ -162,6 +162,15 @@ After logging in, the app keeps the session in cookies for as long as the access
 
 Failed requests to login providers are logged without secrets or tokens.
 
+#### Copying the access token
+
+Development servers (`bun run dev`) offer "Copy token to Dashboard" in the user menu; production builds (`bun run build`, the Docker image, Vercel) don't. Builds with Next's development settings (`next build --debug-prerender`, `experimental.allowDevelopmentBuild`) count as development builds and offer it too: don't deploy them. It copies the user's access token, e.g. to paste it into a dashboard or a CLI that has no login of its own yet. It's a convenience for development only:
+
+- It puts a bearer token on the clipboard, where any app, and any page allowed to read the clipboard, can read it.
+- Whoever has the token acts as the user until it expires (up to 4 hours with LS Login), at the registry and at every other service that accepts it.
+
+Tools that need tokens should get their own login (e.g. [elixir-cloud-aai/krini#46](https://github.com/elixir-cloud-aai/krini/issues/46) for the web portal).
+
 #### Registry settings for the app
 
 The registry accepts the app's tokens only if it is configured for them (see the registry's [configuration docs](https://github.com/elixir-cloud-aai/cloud-registry/blob/dev/docs/configuration.md#deployment-configuration)). For LS Login, in a config overlay (with the registry's Helm chart, in its `config` value):
