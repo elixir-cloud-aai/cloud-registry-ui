@@ -1,4 +1,3 @@
-import { z } from "zod";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import type {
     GroupPermission,
@@ -7,6 +6,7 @@ import type {
 } from "@/lib/cloud-registry.types";
 import { errorMessage, mutationError } from "@/lib/errors";
 import { isConflict, isForbidden, isUnauthorized } from "@/lib/permissions";
+import { z } from "@/lib/zod";
 
 export type AccessProvider = Pick<
     AuthenticatedCloudRegistryProvider,

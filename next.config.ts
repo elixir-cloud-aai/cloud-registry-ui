@@ -6,6 +6,7 @@ import {
 } from "next/constants";
 import { brandingSettings } from "./src/lib/branding";
 import { loginSettings } from "./src/lib/login-providers";
+import { securityHeaders } from "./src/lib/security-headers";
 import { environmentSettings } from "./src/lib/service-environments";
 
 function nextConfig(phase: string): NextConfig {
@@ -27,6 +28,10 @@ function nextConfig(phase: string): NextConfig {
     }
 
     return {
+        poweredByHeader: false,
+        // on all responses; the Content Security Policy is set per page by
+        // `src/proxy.ts`
+        headers: async () => [{ source: "/:path*", headers: securityHeaders }],
         // the Docker image runs the standalone server (`NEXT_OUTPUT` is set
         // in the Dockerfile); `next start` doesn't work with it
         output:
