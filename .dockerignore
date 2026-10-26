@@ -9,12 +9,18 @@ yarn-error.log
 bun.lockb.tmp
 
 # settings and secrets stay out of the image (see README), in all folders:
-# env files (also from `vercel pull`, in .vercel) and keys
+# env files except .env.example (also from `vercel pull`, in .vercel),
+# keys and package registry credentials
 **/.env*
 !.env.example
 .vercel
 certificates
 **/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+.npmrc
+bunfig.toml
 
 # OS junk
 .DS_Store
