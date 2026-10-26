@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { Inter, Open_Sans } from "next/font/google";
 import { headers } from "next/headers";
+import Script from "next/script";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { appTitle } from "@/lib/branding";
+import { publicSettingsScript } from "@/lib/public-settings";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 
@@ -15,10 +17,13 @@ const openSans = Open_Sans({
     variable: "--font-title",
 });
 
-export const metadata: Metadata = {
-    title: appTitle,
-    description: "Register and find services",
-};
+// per request, as the title is read when the server runs
+export function generateMetadata(): Metadata {
+    return {
+        title: appTitle,
+        description: "Register and find services",
+    };
+}
 
 export default async function RootLayout({
     children,
@@ -42,6 +47,15 @@ export default async function RootLayout({
             suppressHydrationWarning
         >
             <body className="min-h-full flex flex-col">
+                {/* the settings of this deployment, before the app's
+                    scripts run (see `public-settings.ts`) */}
+                <Script
+                    id="public-settings"
+                    strategy="beforeInteractive"
+                    nonce={nonce}
+                    // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON of the public settings, with `<` escaped
+                    dangerouslySetInnerHTML={{ __html: publicSettingsScript() }}
+                />
                 <ThemeProvider
                     attribute="class"
                     defaultTheme="system"

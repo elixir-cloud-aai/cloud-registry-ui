@@ -1,7 +1,9 @@
 /**
  * @description environments of services from
- * `NEXT_PUBLIC_SERVICE_ENVIRONMENTS`, set at build time
+ * `NEXT_PUBLIC_SERVICE_ENVIRONMENTS`, read when the server runs (see
+ * `public-settings.ts`)
  */
+import { publicSetting } from "./public-settings";
 
 // as the registry allows them (`custom.endpoints.services.environments`),
 // comma-separated: unset or empty for the values that the GA4GH
@@ -9,7 +11,7 @@
 // an empty list in the registry
 const configured = [
     ...new Set(
-        (process.env.NEXT_PUBLIC_SERVICE_ENVIRONMENTS ?? "")
+        (publicSetting("NEXT_PUBLIC_SERVICE_ENVIRONMENTS") ?? "")
             .split(",")
             .map((value) => value.trim())
             .filter(Boolean),
@@ -31,7 +33,7 @@ const serviceEnvironments =
 const environmentMessage = `Environment must be one of: ${serviceEnvironments.map((value) => `'${value}'`).join(", ")}.`;
 
 /**
- * Check the environment setting; invalid values stop the build
+ * Check the environment setting; invalid values stop the server
  * @throws Error naming the invalid value
  */
 function environmentSettings() {

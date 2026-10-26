@@ -1,14 +1,18 @@
 /**
  * @description registry settings, `NEXT_PUBLIC_CLOUD_REGISTRY_URL` and
- * `NEXT_PUBLIC_SERVICE_URL_SCHEMES`, set at build time
+ * `NEXT_PUBLIC_SERVICE_URL_SCHEMES`, read when the server runs (see
+ * `public-settings.ts`)
  */
+import { publicSetting } from "./public-settings";
 
 // schemes the registry can allow for service URLs
 // (`custom.endpoints.services.url_schemes`)
 const allowedSchemes = ["http", "https"];
 // as the registry allows them, comma-separated; unset or empty for its
 // default
-const configuredSchemes = (process.env.NEXT_PUBLIC_SERVICE_URL_SCHEMES ?? "")
+const configuredSchemes = (
+    publicSetting("NEXT_PUBLIC_SERVICE_URL_SCHEMES") ?? ""
+)
     .split(",")
     .map((scheme) => scheme.trim().toLowerCase())
     .filter(Boolean);
@@ -32,11 +36,11 @@ function isLocalHost(hostname: string) {
 }
 
 /**
- * Check the registry settings; invalid values stop the build
+ * Check the registry settings; invalid values stop the server
  * @throws Error naming the missing or invalid setting
  */
 function registrySettings() {
-    const url = process.env.NEXT_PUBLIC_CLOUD_REGISTRY_URL ?? "";
+    const url = publicSetting("NEXT_PUBLIC_CLOUD_REGISTRY_URL") ?? "";
     // for messages: without a user or password, which belong in no log
     const shown = url.replace(/\/\/[^/?#]*@/, "//***@");
     if (!url.trim())

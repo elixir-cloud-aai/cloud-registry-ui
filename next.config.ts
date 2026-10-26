@@ -11,23 +11,23 @@ import { securityHeaders } from "./src/lib/security-headers";
 import { environmentSettings } from "./src/lib/service-environments";
 
 function nextConfig(phase: string): NextConfig {
-    // login settings are read at runtime: check them when `next start` or
+    // all settings are read at runtime: check them when `next start` or
     // `next dev` loads this file; invalid settings stop the start. The
     // standalone server of the Docker image doesn't load this file:
     // `src/instrumentation.ts` checks them there
-    if (phase === PHASE_DEVELOPMENT_SERVER || phase === PHASE_PRODUCTION_SERVER)
-        loginSettings();
-    // Vercel builds (`VERCEL=1`) have the runtime settings too, and deploy
-    // what they build: check them when building there
-    if (phase === PHASE_PRODUCTION_BUILD && process.env.VERCEL === "1")
-        loginSettingsAtBuild();
-    // the other settings are built into the app: check them when
-    // `next build` or `next dev` loads this file; invalid settings stop the
-    // build
     if (
         phase === PHASE_DEVELOPMENT_SERVER ||
-        phase === PHASE_PRODUCTION_BUILD
+        phase === PHASE_PRODUCTION_SERVER
     ) {
+        loginSettings();
+        registrySettings();
+        brandingSettings();
+        environmentSettings();
+    }
+    // Vercel builds (`VERCEL=1`) have the runtime settings too, and deploy
+    // what they build: check them when building there
+    if (phase === PHASE_PRODUCTION_BUILD && process.env.VERCEL === "1") {
+        loginSettingsAtBuild();
         registrySettings();
         brandingSettings();
         environmentSettings();

@@ -3,6 +3,7 @@
  * Policy (set per request by `src/proxy.ts`, as it needs a nonce) and the
  * headers of all responses (set in `next.config.ts`)
  */
+import { publicSetting } from "./public-settings";
 
 /** @description headers of all responses */
 const securityHeaders = [
@@ -32,7 +33,7 @@ function originOf(url?: string) {
  */
 function contentSecurityPolicy(nonce: string) {
     const development = process.env.NODE_ENV === "development";
-    const registry = originOf(process.env.NEXT_PUBLIC_CLOUD_REGISTRY_URL);
+    const registry = originOf(publicSetting("NEXT_PUBLIC_CLOUD_REGISTRY_URL"));
     const directives: Record<string, (string | undefined)[]> = {
         "default-src": ["'self'"],
         // scripts with the nonce, and the scripts they load; React needs

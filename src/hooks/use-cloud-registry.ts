@@ -1,6 +1,7 @@
 import { getCookie } from "cookies-next/client";
 import { useEffect, useState } from "react";
 import { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
+import { publicSetting } from "@/lib/public-settings";
 
 function useCloudRegistry() {
     const [cloudRegistryProvider, setCloudRegistryProvider] =
@@ -12,11 +13,11 @@ function useCloudRegistry() {
         let provider;
         if (!token)
             provider = new AuthenticatedCloudRegistryProvider(
-                process.env.NEXT_PUBLIC_CLOUD_REGISTRY_URL || "",
+                publicSetting("NEXT_PUBLIC_CLOUD_REGISTRY_URL") || "",
             );
         else
             provider = new AuthenticatedCloudRegistryProvider(
-                process.env.NEXT_PUBLIC_CLOUD_REGISTRY_URL || "",
+                publicSetting("NEXT_PUBLIC_CLOUD_REGISTRY_URL") || "",
                 token as string,
             );
         setIsLoggedIn(!!token);
