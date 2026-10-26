@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { jwt } from "@/test/jwt";
-import { idTokenNonce, pkceChallenge, randomSecret } from "./login-flow";
+import { checkIdToken, pkceChallenge, randomSecret } from "./login-flow";
 
 describe("randomSecret", () => {
     it("makes a new URL-safe secret of 256 bits each time", () => {
@@ -23,24 +23,46 @@ describe("pkceChallenge", () => {
     });
 });
 
-describe("idTokenNonce", () => {
-    it("reads the nonce of an ID token", () => {
-        expect(idTokenNonce(jwt({ sub: "a", nonce: "n-1" }))).toBe("n-1");
+describe("checkIdToken", () => {
+    const expected = {
+        issuer: "https://login.example.org/oidc/",
+        clientId: "client",
+        nonce: "n-1",
+    };
+    const claims = {
+        iss: expected.issuer,
+        aud: "client",
+        sub: "a",
+        nonce: "n-1",
+    };
+
+    it.each([
+        ["an audience", claims],
+        ["a list of audiences", { ...claims, aud: ["other", "client"] }],
+    ])("accepts an ID token of this login with %s", (_, val) => {
+        expect(() => checkIdToken(jwt(val), expected)).not.toThrow();
     });
 
     it.each([
-        ["no nonce", jwt({ sub: "a" })],
-        ["a nonce that isn't a string", jwt({ nonce: 1 })],
-        ["claims that aren't an object", jwt(["n-1"])],
-    ])("is undefined for %s", (_, token) => {
-        expect(idTokenNonce(token)).toBeUndefined();
+        ["another nonce", { nonce: "n-2" }, "nonce"],
+        ["no nonce", { nonce: undefined }, "nonce"],
+        ["another issuer", { iss: "https://login.example.org/oidc" }, "iss"],
+        ["another audience", { aud: "other" }, "aud"],
+        ["a list without the client", { aud: ["other"] }, "aud"],
+        ["no audience", { aud: undefined }, "aud"],
+    ])("rejects an ID token with %s", (_, change, claim) => {
+        expect(() =>
+            checkIdToken(jwt({ ...claims, ...change }), expected),
+        ).toThrow(`ID token with another ${claim}`);
     });
 
     it.each([
         ["no JWT", "id"],
         ["a payload that isn't JSON", `e30.${"x".repeat(8)}.sig`],
-        ["too many parts", `${jwt({ nonce: "n-1" })}.more`],
+        ["too many parts", `${jwt(claims)}.more`],
+        ["claims that aren't an object", jwt(["n-1"])],
+        ["null claims", jwt(null)],
     ])("rejects %s", (_, token) => {
-        expect(() => idTokenNonce(token)).toThrow("Invalid ID token");
+        expect(() => checkIdToken(token, expected)).toThrow("Invalid ID token");
     });
 });

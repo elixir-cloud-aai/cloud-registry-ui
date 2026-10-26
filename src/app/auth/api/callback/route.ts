@@ -3,7 +3,7 @@ import { deleteCookie, getCookie, setCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
-import { idTokenNonce, loginCookies } from "@/lib/login-flow";
+import { checkIdToken, loginCookies } from "@/lib/login-flow";
 import {
     loginErrorSummary,
     loginProvider,
@@ -78,8 +78,18 @@ export async function GET(request: NextRequest) {
         iss === null
             ? endpoints.issParameterSupported
             : iss !== endpoints.issuer
-    )
+    ) {
+        // issuers aren't secret; `loginErrorSummary` makes the text safe
+        console.error(
+            `Login with ${provider.id} failed:`,
+            loginErrorSummary(
+                new Error(
+                    `Unexpected iss ${iss ?? "(none)"}, expected ${endpoints.issuer}`,
+                ),
+            ),
+        );
         redirect("/auth/error?type=issuer");
+    }
 
     let tokens: z.infer<typeof tokenResponseSchema>;
     try {
@@ -110,8 +120,11 @@ export async function GET(request: NextRequest) {
             throw new Error(`Invalid token response: ${fields.join(", ")}`);
         }
         // the ID token must be of this login, not a replayed one
-        if (idTokenNonce(result.data.id_token) !== nonce)
-            throw new Error("ID token without the login's nonce");
+        checkIdToken(result.data.id_token, {
+            issuer: endpoints.issuer,
+            clientId: provider.clientId,
+            nonce,
+        });
         tokens = result.data;
     } catch (err) {
         console.error(
