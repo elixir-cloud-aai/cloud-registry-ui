@@ -40,13 +40,28 @@ test.describe("login", () => {
         await expect(page).toHaveURL(/\/auth\/error\?type=state/);
     });
 
-    test("logs out only from the app's pages", async ({ page, request }) => {
+    test("logs out only from the app's pages", async ({ page, baseURL }) => {
         await login(page, "owner");
-        const response = await request.post("/auth/api/logout", {
+        const sessionCookies = async () =>
+            (await page.context().cookies())
+                .map((val) => val.name)
+                .filter((name) => ["access_token", "id_token"].includes(name));
+
+        // the page's request context, with the session's cookies
+        const forged = await page.request.post("/auth/api/logout", {
             headers: { Origin: "https://evil.example.org" },
             maxRedirects: 0,
         });
-        expect(response.status()).toBe(303);
-        expect(response.headers().location).toContain("type=logout-origin");
+        expect(forged.status()).toBe(303);
+        expect(forged.headers().location).toContain("type=logout-origin");
+        expect(await sessionCookies()).toHaveLength(2);
+
+        const own = await page.request.post("/auth/api/logout", {
+            headers: { Origin: new URL(baseURL as string).origin },
+            maxRedirects: 0,
+        });
+        expect(own.status()).toBe(303);
+        expect(own.headers().location).not.toContain("type=logout-origin");
+        expect(await sessionCookies()).toEqual([]);
     });
 });

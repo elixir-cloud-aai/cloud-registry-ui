@@ -46,10 +46,10 @@ Unit and route handler tests (`src/**/*.test.ts`, Vitest), with coverage, which 
 npm run test:coverage
 ```
 
-End-to-end tests (`e2e/`, Playwright, in Chromium and Firefox) need a registry and a login provider: `e2e/stack/compose.yaml` runs cloud-registry, MongoDB and a mock OpenID Connect provider on ports 8180 and 8190. The tests build and start the app on port 3100, log in as test users through the mock provider (`e2e/fixtures.ts`), and fail on Content Security Policy violations and page errors. The browsers must resolve `oidc.localhost` to the local machine, as Chromium and Firefox do; so must the app, which most systems do (otherwise add `127.0.0.1 oidc.localhost` to `/etc/hosts`):
+End-to-end tests (`e2e/`, Playwright, in Chromium and Firefox) need a registry and a login provider: `e2e/stack/compose.yaml` runs cloud-registry, MongoDB and a mock OpenID Connect provider on ports 8180 and 8190. The tests build and start the app on port 3100, log in as test users through the mock provider (`e2e/fixtures.ts`), and fail on Content Security Policy violations, page errors, logged errors and failed requests of the app's pages. The browsers must resolve `oidc.localhost` to the local machine, as Chromium and Firefox do; so must the app, which most systems do (otherwise add `127.0.0.1 oidc.localhost` to `/etc/hosts`):
 
 ```
-docker compose -f e2e/stack/compose.yaml up -d
+docker compose -f e2e/stack/compose.yaml up -d --wait
 npx playwright install chromium firefox
 npm run test:e2e
 docker compose -f e2e/stack/compose.yaml down

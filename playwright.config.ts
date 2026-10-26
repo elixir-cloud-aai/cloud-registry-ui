@@ -19,7 +19,7 @@ export default defineConfig({
         { name: "firefox", use: { ...devices["Desktop Firefox"] } },
     ],
     webServer: {
-        command: `npm run build && npm run start -- --port ${port}`,
+        command: `bun run build && bun run start --port ${port}`,
         url: `${baseURL}/auth/login`,
         reuseExistingServer: !process.env.CI,
         timeout: 300_000,

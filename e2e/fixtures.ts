@@ -1,7 +1,8 @@
 /**
  * @description fixtures of the end-to-end tests: test users, login through
  * the mock provider, registry calls with a user's token, and a check that
- * no page breaks the Content Security Policy or throws
+ * no page breaks the Content Security Policy, throws, logs errors or fails
+ * requests
  */
 import {
     type Browser,
@@ -43,6 +44,9 @@ async function login(page: Page, user: User) {
         .fill(JSON.stringify({ name, eduperson_entitlement: groups }));
     await page.locator("input[type=submit]").click();
     await page.waitForURL(/\/dashboard/);
+    // Firefox fails the dashboard's requests that are still running when the
+    // test moves on to another page, and the app logs them as errors
+    await page.waitForLoadState("networkidle");
     const cookies = await page.context().cookies();
     const token = cookies.find((val) => val.name === "access_token")?.value;
     expect(token).toBeTruthy();
@@ -65,27 +69,62 @@ async function tokenOf(browser: Browser, user: User) {
 }
 
 type Fixtures = {
-    /** Problems in the browser, which fail the test: CSP violations and
-     * page errors */
+    /** Problems in the browser, which fail the test: CSP violations, page
+     * errors, logged errors and failed requests */
     problems: string[];
 };
+
+/**
+ * Whether a console message is one that the app causes on purpose
+ * @param text Text of the message
+ * @returns Whether to ignore it
+ */
+function expectedMessage(text: string) {
+    return (
+        // Firefox notes that 'self' is ignored next to 'strict-dynamic',
+        // the intended fallback for older browsers
+        /Ignoring .'self'. within script-src/.test(text) ||
+        // client errors of the registry (e.g. 404 for a service without
+        // verification) are handled by the app; browsers log them anyway
+        /Failed to load resource: the server responded with a status of 4\d\d/.test(
+            text,
+        )
+    );
+}
 
 const test = base.extend<Fixtures>({
     // for every test, also those that don't use the list
     problems: [
-        async ({ page }, use) => {
+        async ({ page, baseURL }, use) => {
             const problems: string[] = [];
+            // the app's pages, not the login provider's
+            const ofApp = (url: string) =>
+                new URL(url).origin === new URL(baseURL as string).origin;
             page.on("console", (msg) => {
                 const text = msg.text();
-                // Firefox notes that 'self' is ignored next to 'strict-dynamic',
-                // the intended fallback for older browsers
-                if (/Ignoring .'self'. within script-src/.test(text)) return;
+                if (!ofApp(page.url())) return;
+                if (expectedMessage(text)) return;
                 if (/Content.Security.Policy|Refused to/i.test(text))
                     problems.push(`CSP: ${text}`);
+                else if (msg.type() === "error")
+                    problems.push(`console error: ${text}`);
             });
             page.on("pageerror", (err) =>
                 problems.push(`page error: ${err.message}`),
             );
+            page.on("requestfailed", (request) => {
+                if (!ofApp(page.url())) return;
+                const failure = request.failure()?.errorText ?? "";
+                // navigations and prefetches that a later one replaced
+                if (/ERR_ABORTED|NS_BINDING_ABORTED/.test(failure)) return;
+                problems.push(`failed request: ${request.url()} ${failure}`);
+            });
+            page.on("response", (response) => {
+                if (response.status() >= 500)
+                    problems.push(
+                        `server error: ${response.status()} ${response.url()}`,
+                    );
+            });
             await use(problems);
             expect(problems).toEqual([]);
         },
@@ -122,6 +161,14 @@ async function api(
     };
 }
 
+/**
+ * An ID that no other test run uses, for names in the shared registry
+ * @returns The ID
+ */
+function uniqueId() {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 /** The service type of `newService()`, which only admins can add */
 const tesType = { group: "org.ga4gh", artifact: "tes", version: "1.1.0" };
 
@@ -131,7 +178,7 @@ const tesType = { group: "org.ga4gh", artifact: "tes", version: "1.1.0" };
  * @returns The service
  */
 function newService(name: string) {
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const id = uniqueId();
     return {
         name: `${name} ${id}`,
         url: `https://${id}.tes.example.org/ga4gh/tes/v1`,
@@ -171,8 +218,8 @@ export {
     newService,
     registerService,
     registry,
-    tesType,
     test,
     tokenOf,
+    uniqueId,
     users,
 };
