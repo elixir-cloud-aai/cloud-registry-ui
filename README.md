@@ -7,7 +7,7 @@ Web frontend for the ELIXIR Cloud service registry, providing a user interface f
 ### Requirements
 
 - [Git](https://git-scm.com/)
-- [Bun 1.2+](https://bun.com/)
+- [Bun 1.3+](https://bun.com/)
 - [Docker](https://www.docker.com/)
 
 ### Development
