@@ -1,11 +1,11 @@
 import type { ExternalServiceRegister } from "@elixir-cloud/cloud-registry/providers";
 import type { DeepKeys } from "@tanstack/react-form";
-import { z } from "zod";
 import {
     environmentMessage,
     isAllowedEnvironment,
     maxEnvironmentLength,
 } from "@/lib/service-environments";
+import { z } from "@/lib/zod";
 
 const httpUrl = z.url({ protocol: z.regexes.httpProtocol });
 const configuredSchemes = (process.env.NEXT_PUBLIC_SERVICE_URL_SCHEMES ?? "")

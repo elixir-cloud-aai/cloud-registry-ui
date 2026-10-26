@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Open_Sans } from "next/font/google";
+import { headers } from "next/headers";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,11 +20,15 @@ export const metadata: Metadata = {
     description: "Register and find services",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
     children,
 }: Readonly<{
     children: React.ReactNode;
 }>) {
+    // set by `src/proxy.ts`, for the theme's inline script; reading it
+    // renders every page per request, which the nonce needs
+    const nonce = (await headers()).get("x-nonce") ?? undefined;
+
     return (
         <html
             lang="en"
@@ -42,6 +47,7 @@ export default function RootLayout({
                     defaultTheme="system"
                     enableSystem
                     disableTransitionOnChange={false}
+                    nonce={nonce}
                 >
                     <TooltipProvider>{children}</TooltipProvider>
                     <Toaster />

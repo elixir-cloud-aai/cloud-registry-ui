@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { loginProviderInfos } from "@/lib/login-providers";
 
@@ -19,9 +18,10 @@ function Page() {
                         className="w-full h-auto py-3 flex-col gap-2"
                         asChild
                     >
-                        <Link
+                        {/* a plain link: the route redirects to the provider,
+                            which client-side navigation can't fetch */}
+                        <a
                             href={`/auth/api/login-redirect?provider=${provider.id}`}
-                            prefetch={false}
                         >
                             <span className="relative h-10 w-full">
                                 <Image
@@ -34,7 +34,7 @@ function Page() {
                                 />
                             </span>
                             {provider.name}
-                        </Link>
+                        </a>
                     </Button>
                 ))}
             </div>
