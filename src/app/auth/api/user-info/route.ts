@@ -11,6 +11,8 @@ import {
 export async function GET() {
     const accessToken = await getCookie("access_token", { cookies });
     const providerId = await getCookie("login_provider", { cookies });
+    if (!accessToken)
+        return NextResponse.json({ error: true, user: null }, { status: 401 });
 
     try {
         // sessions without the cookie, e.g. older ones, use the only provider

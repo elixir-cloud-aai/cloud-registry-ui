@@ -1,14 +1,26 @@
 import axios from "axios";
-import { getCookie, setCookie } from "cookies-next/server";
+import { deleteCookie, getCookie, setCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
+import { z } from "zod";
 import {
+    loginErrorSummary,
     loginProvider,
     loginRequestTimeout,
     loginSettings,
     oidcEndpoints,
 } from "@/lib/login-providers";
+
+// the tokens the app needs; the ID token marks the session as logged in
+const tokenResponseSchema = z.object({
+    access_token: z.string().min(1),
+    id_token: z.string().min(1),
+    token_type: z
+        .string()
+        .refine((val) => val.toLowerCase() === "bearer")
+        .optional(),
+});
 
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
@@ -18,12 +30,16 @@ export async function GET(request: NextRequest) {
     if (code === null || state === null) redirect("/auth/error?type=params");
 
     const authState = await getCookie("authState", { cookies });
-    if (authState !== state) redirect("/auth/error?type=state");
+    if (!authState || authState !== state) redirect("/auth/error?type=state");
 
     const providerId = await getCookie("authProvider", { cookies });
+    // a state can be used once
+    await deleteCookie("authState", { cookies });
+    await deleteCookie("authProvider", { cookies });
     const provider = providerId ? loginProvider(providerId) : undefined;
     if (!provider) redirect("/auth/error?type=provider");
 
+    let tokens: z.infer<typeof tokenResponseSchema>;
     try {
         const { token_endpoint } = await oidcEndpoints(provider);
         const response = await axios.post(
@@ -43,35 +59,40 @@ export async function GET(request: NextRequest) {
                 timeout: loginRequestTimeout,
             },
         );
-
-        if (response.status === 200) {
-            setCookie("access_token", response.data.access_token, {
-                cookies: cookies,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "lax",
-                maxAge: 60 * 60 * 12,
-                path: "/",
-            });
-            setCookie("id_token", response.data.id_token, {
-                cookies: cookies,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "lax",
-                maxAge: 60 * 60 * 12,
-                path: "/",
-            });
-            setCookie("login_provider", provider.id, {
-                cookies: cookies,
-                httpOnly: true,
-                secure: process.env.NODE_ENV === "production",
-                sameSite: "lax",
-                maxAge: 60 * 60 * 12,
-                path: "/",
-            });
-        }
+        const result = tokenResponseSchema.safeParse(response.data);
+        if (!result.success)
+            throw new Error(
+                `Invalid token response from ${provider.id}: ${result.error.issues
+                    .map((issue) => issue.path.join(".") || "body")
+                    .join(", ")}`,
+            );
+        tokens = result.data;
     } catch (err) {
-        console.log(err);
+        console.error(
+            `Login with ${provider.id} failed:`,
+            loginErrorSummary(err),
+        );
         redirect("/auth/error?type=internal");
     }
+
+    const cookieOptions = {
+        cookies: cookies,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax" as const,
+        maxAge: 60 * 60 * 12,
+        path: "/",
+    };
+    // read by the browser, which sends it to the registry
+    await setCookie("access_token", tokens.access_token, cookieOptions);
+    // read on the server only
+    await setCookie("id_token", tokens.id_token, {
+        ...cookieOptions,
+        httpOnly: true,
+    });
+    await setCookie("login_provider", provider.id, {
+        ...cookieOptions,
+        httpOnly: true,
+    });
 
     redirect("/dashboard");
 }
