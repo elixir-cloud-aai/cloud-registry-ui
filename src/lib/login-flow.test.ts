@@ -29,16 +29,24 @@ describe("checkIdToken", () => {
         clientId: "client",
         nonce: "n-1",
     };
+    const now = Math.floor(Date.now() / 1000);
     const claims = {
         iss: expected.issuer,
         aud: "client",
         sub: "a",
         nonce: "n-1",
+        exp: now + 300,
     };
 
     it.each([
         ["an audience", claims],
-        ["a list of audiences", { ...claims, aud: ["other", "client"] }],
+        [
+            "a list of audiences and this client as authorized party",
+            { ...claims, aud: ["other", "client"], azp: "client" },
+        ],
+        ["this client as authorized party", { ...claims, azp: "client" }],
+        // clocks may differ a little
+        ["an expiry a few seconds ago", { ...claims, exp: now - 30 }],
     ])("accepts an ID token of this login with %s", (_, val) => {
         expect(() => checkIdToken(jwt(val), expected)).not.toThrow();
     });
@@ -50,6 +58,15 @@ describe("checkIdToken", () => {
         ["another audience", { aud: "other" }, "aud"],
         ["a list without the client", { aud: ["other"] }, "aud"],
         ["no audience", { aud: undefined }, "aud"],
+        ["another authorized party", { azp: "other" }, "azp"],
+        [
+            "a list of audiences without authorized party",
+            { aud: ["other", "client"] },
+            "azp",
+        ],
+        ["an expiry long ago", { exp: now - 120 }, "exp"],
+        ["no expiry", { exp: undefined }, "exp"],
+        ["an expiry that isn't a number", { exp: `${now + 300}` }, "exp"],
     ])("rejects an ID token with %s", (_, change, claim) => {
         expect(() =>
             checkIdToken(jwt({ ...claims, ...change }), expected),
