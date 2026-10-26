@@ -1,5 +1,6 @@
 import type { ExternalServiceRegister } from "@elixir-cloud/cloud-registry/providers";
 import type { DeepKeys } from "@tanstack/react-form";
+import { serviceUrlSchemes } from "@/lib/registry-settings";
 import {
     environmentMessage,
     isAllowedEnvironment,
@@ -8,13 +9,6 @@ import {
 import { z } from "@/lib/zod";
 
 const httpUrl = z.url({ protocol: z.regexes.httpProtocol });
-const configuredSchemes = (process.env.NEXT_PUBLIC_SERVICE_URL_SCHEMES ?? "")
-    .split(",")
-    .map((scheme) => scheme.trim().toLowerCase())
-    .filter(Boolean);
-const serviceUrlSchemes = configuredSchemes.length
-    ? configuredSchemes
-    : ["https"];
 const contactUrl = z.url({ protocol: /^(https?|mailto)$/ });
 // as the registry checks timestamps (`is_date_time()` of cloud-registry)
 const dateTime =

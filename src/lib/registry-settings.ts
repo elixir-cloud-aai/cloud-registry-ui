@@ -1,11 +1,20 @@
 /**
- * @description checks of the registry settings, `NEXT_PUBLIC_CLOUD_REGISTRY_URL`
- * and `NEXT_PUBLIC_SERVICE_URL_SCHEMES`, which are built into the app
+ * @description registry settings, `NEXT_PUBLIC_CLOUD_REGISTRY_URL` and
+ * `NEXT_PUBLIC_SERVICE_URL_SCHEMES`, set at build time
  */
 
 // schemes the registry can allow for service URLs
 // (`custom.endpoints.services.url_schemes`)
 const allowedSchemes = ["http", "https"];
+// as the registry allows them, comma-separated; unset or empty for its
+// default
+const configuredSchemes = (process.env.NEXT_PUBLIC_SERVICE_URL_SCHEMES ?? "")
+    .split(",")
+    .map((scheme) => scheme.trim().toLowerCase())
+    .filter(Boolean);
+const serviceUrlSchemes = configuredSchemes.length
+    ? configuredSchemes
+    : ["https"];
 
 /**
  * Check whether a host name is the local machine
@@ -32,6 +41,10 @@ function registrySettings() {
         throw new Error(
             "Missing setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: set it to the registry's API, e.g. https://registry.example.org/ga4gh/registry/v1",
         );
+    if (url !== url.trim())
+        throw new Error(
+            `Invalid setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: "${url}" has spaces at the start or end`,
+        );
     if (!URL.canParse(url))
         throw new Error(
             `Invalid setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: "${url}" is not an absolute URL`,
@@ -47,15 +60,13 @@ function registrySettings() {
             `Invalid setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: "${url}" must not have a user, password, query or fragment`,
         );
 
-    const schemes = (process.env.NEXT_PUBLIC_SERVICE_URL_SCHEMES ?? "")
-        .split(",")
-        .map((scheme) => scheme.trim().toLowerCase())
-        .filter(Boolean);
-    const invalid = schemes.find((scheme) => !allowedSchemes.includes(scheme));
+    const invalid = configuredSchemes.find(
+        (scheme) => !allowedSchemes.includes(scheme),
+    );
     if (invalid !== undefined)
         throw new Error(
             `Invalid setting NEXT_PUBLIC_SERVICE_URL_SCHEMES: "${invalid}" is not one of ${allowedSchemes.join(", ")}`,
         );
 }
 
-export { registrySettings };
+export { registrySettings, serviceUrlSchemes };

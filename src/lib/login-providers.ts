@@ -49,6 +49,17 @@ type OidcEndpoints = {
 /** @description timeout of requests to login providers, in milliseconds */
 const loginRequestTimeout = 10000;
 
+// settings of earlier versions, which the app no longer reads (the README's
+// "Migrating from `LS_LOGIN_URL` and `OIDC_*`")
+const legacySettings = [
+    "LS_LOGIN_URL",
+    "OIDC_CLIENT_ID",
+    "OIDC_CLIENT_SECRET",
+    "OIDC_REDIRECT_URI",
+];
+// what `vercel pull` writes for sensitive variables, which it can't read
+const unreadableValues = ["", "[SENSITIVE]"];
+
 let settings: z.infer<typeof loginSettingsSchema> | undefined;
 const endpoints = new Map<string, Promise<OidcEndpoints>>();
 
@@ -59,18 +70,7 @@ const endpoints = new Map<string, Promise<OidcEndpoints>>();
  */
 function loginSettings() {
     if (settings) return settings;
-
-    // settings of earlier versions, which the app no longer reads
-    const legacy = [
-        "LS_LOGIN_URL",
-        "OIDC_CLIENT_ID",
-        "OIDC_CLIENT_SECRET",
-        "OIDC_REDIRECT_URI",
-    ].filter((name) => process.env[name]);
-    if (!process.env.LOGIN_PROVIDERS && legacy.length)
-        throw new Error(
-            `Missing setting LOGIN_PROVIDERS: the app no longer reads ${legacy.join(", ")}; replace them with LOGIN_PROVIDERS and LOGIN_REDIRECT_URI (see "Migrating from LS_LOGIN_URL and OIDC_*" in the README)`,
-        );
+    legacyLoginSettings();
 
     let providers: unknown;
     try {
@@ -89,6 +89,38 @@ function loginSettings() {
 
     settings = result.data;
     return settings;
+}
+
+/**
+ * Check for the settings of earlier versions
+ * @throws Error naming them if they are set without `LOGIN_PROVIDERS`
+ */
+function legacyLoginSettings() {
+    const legacy = legacySettings.filter((name) => process.env[name]);
+    if (!process.env.LOGIN_PROVIDERS && legacy.length)
+        throw new Error(
+            `Missing setting LOGIN_PROVIDERS: the app no longer reads ${legacy.join(", ")}; replace them with LOGIN_PROVIDERS and LOGIN_REDIRECT_URI (see "Migrating from LS_LOGIN_URL and OIDC_*" in the README, section Login)`,
+        );
+}
+
+/**
+ * Check the login settings when building on Vercel, which deploys what it
+ * builds. Builds with `vercel pull` get sensitive variables without their
+ * values: those are only checked to be set, and fully when the app starts.
+ * @throws Error naming each invalid or missing setting
+ */
+function loginSettingsAtBuild() {
+    legacyLoginSettings();
+    const unreadable = ["LOGIN_PROVIDERS", "LOGIN_REDIRECT_URI"].filter(
+        (name) => unreadableValues.includes(process.env[name] ?? "-"),
+    );
+    if (unreadable.length) {
+        console.warn(
+            `Can't check ${unreadable.join(", ")} when building: sensitive variables have no value here; they are checked when the app starts`,
+        );
+        return;
+    }
+    loginSettings();
 }
 
 /**
@@ -217,5 +249,6 @@ export {
     loginProviderInfos,
     loginRequestTimeout,
     loginSettings,
+    loginSettingsAtBuild,
     oidcEndpoints,
 };
