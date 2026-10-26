@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software, please cite it using the metadata from this file.
+  Authors are listed by the number of lines they committed, then by the
+  number of their commits.
+title: Cloud Registry UI
+abstract: >-
+  Cloud Registry UI is the web front end of Cloud Registry, a registry of web
+  services that implements the GA4GH Service Registry API: anyone can browse
+  the registered services and their types; users who log in with an OpenID
+  Connect provider can register and manage services, share them with others,
+  and add service types, and admins can verify services and approve types.
+type: software
+authors:
+  - given-names: Alexander
+    family-names: Kanitz
+    orcid: "https://orcid.org/0000-0002-3468-0652"
+    affiliation: >-
+      Biozentrum, University of Basel, Basel, Switzerland; SIB Swiss Institute
+      of Bioinformatics, Lausanne, Switzerland
+  - given-names: Chitransh
+    alias: AnonymousXC
+repository-code: "https://github.com/elixir-cloud-aai/cloud-registry-ui"
+keywords:
+  - GA4GH
+  - Service Registry
+  - service discovery
+  - web front end
+license: Apache-2.0
+version: "0.5.0"

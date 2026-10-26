@@ -4,7 +4,9 @@ Web frontend for the ELIXIR Cloud service registry ([cloud-registry](https://git
 
 ## Compatibility
 
-UI versions follow the registry in major and minor version: UI 0.5.x works with cloud-registry 0.5.x. Until the first release of the UI, the `ai` branch goes with cloud-registry 0.5.0.
+UI versions follow the registry in major and minor version: UI 0.5.x works with cloud-registry 0.5.x, and UI 1.0.0-rc1 with cloud-registry 1.0.0-rc1; patch releases are independent. Until the first release of the UI, the `ai` branch goes with cloud-registry 0.5.0.
+
+Releases are published as GitHub releases and as images on Docker Hub, `elixircloud/cloud-registry-ui:<version>` (`latest` for the highest stable release), built by the release workflow (`.github/workflows/release.yml`) with an SBOM and the build provenance attached, and signed (see [Verifying images](#verifying-images)). Until 1.0.0, all releases are marked as pre-releases on GitHub.
 
 ## Installation
 
@@ -59,9 +61,11 @@ docker compose -f e2e/stack/compose.yaml down
 
 ### Docker
 
-The image has no settings of its own, so one image serves any deployment: build it without settings, and pass them all when the container starts (see [Configurations](#configurations)).
+The image has no settings of its own, so one image serves any deployment: use a released image (see [Compatibility](#compatibility)), or build it without settings, and pass them all when the container starts (see [Configurations](#configurations)).
 
 ```
+docker pull elixircloud/cloud-registry-ui:<version>
+# or
 docker build -t cloud-registry-ui .
 ```
 
@@ -78,6 +82,22 @@ Without the required settings, or with invalid ones, the container refuses to st
 Before, the `NEXT_PUBLIC_*` settings were build arguments. Existing deployments must pass them with `docker run` now: `docker build --build-arg NEXT_PUBLIC_*` only prints a warning, and new images no longer hold them in their history. One image can now be used for all environments of a deployment (e.g. staging and production).
 
 The image holds only the built app: Next's standalone server (`bun server.js`), its static files and `public/`, without sources or development dependencies. It runs as the unprivileged user `bun`, which can write only to `.next/cache`, listens on all IPv4 interfaces (set `LISTEN_HOSTNAME`, e.g. to `::` for IPv6, to change this) and on `PORT` (default: 3000), and reports its health (`docker ps`) by requesting the start page every 30 seconds. Serve it over HTTPS, e.g. behind a reverse proxy: the login cookies are marked `Secure`, and browsers accept them over plain HTTP only on `localhost`.
+
+### Verifying images
+
+Released images are built by the release workflow on GitHub Actions, with an SBOM and the build provenance attached as attestations, a [GitHub artifact attestation](https://docs.github.com/en/actions/concepts/security/artifact-attestations) of their provenance, and a keyless [Sigstore](https://www.sigstore.dev/) signature. To check that an image was built by the release workflow for its tag, run (with the [GitHub CLI](https://cli.github.com/) or [cosign](https://docs.sigstore.dev/cosign/system_config/installation/) 3 or later), e.g. for 0.5.0:
+
+```
+gh attestation verify oci://docker.io/elixircloud/cloud-registry-ui:0.5.0 \
+  --repo elixir-cloud-aai/cloud-registry-ui \
+  --signer-workflow elixir-cloud-aai/cloud-registry-ui/.github/workflows/release.yml \
+  --source-ref refs/tags/v0.5.0
+cosign verify docker.io/elixircloud/cloud-registry-ui:0.5.0 \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity https://github.com/elixir-cloud-aai/cloud-registry-ui/.github/workflows/release.yml@refs/tags/v0.5.0
+```
+
+To show an image's SBOM or provenance, run `docker buildx imagetools inspect docker.io/elixircloud/cloud-registry-ui:0.5.0 --format '{{ json .SBOM }}'` (or `.Provenance`).
 
 ## Configurations
 
