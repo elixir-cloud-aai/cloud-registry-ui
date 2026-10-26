@@ -1,18 +1,18 @@
-node_modules
-.next
-.git
-.gitignore
-Dockerfile
-docker-compose.yml
-npm-debug.log
-yarn-error.log
-bun.lockb.tmp
+# Allow list: the build gets only what it needs, so that local settings and
+# secrets (env files, keys, credentials) can't reach the build stage, its
+# cache or the image (see README)
+*
+!src/
+!public/
+!package.json
+!bun.lock
+!next.config.ts
+!tsconfig.json
+!postcss.config.mjs
+!components.json
 
-# settings and secrets stay out of the image (see README), in all folders:
-# env files except .env.example (also from `vercel pull`, in .vercel),
-# keys and package registry credentials
+# also not inside the allowed folders
 **/.env*
-!.env.example
 **/.vercel
 **/certificates
 **/*.pem
@@ -21,10 +21,5 @@ bun.lockb.tmp
 **/*.pfx
 **/.npmrc
 **/bunfig.toml
-
-# OS junk
-.DS_Store
-
-# logs
-logs
-*.log
+**/.DS_Store
+**/*.log

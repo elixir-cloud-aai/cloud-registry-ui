@@ -24,7 +24,8 @@ ARG NEXT_PUBLIC_FOOTER_START_YEAR
 RUN test -n "$NEXT_PUBLIC_CLOUD_REGISTRY_URL" || { \
     echo "Set NEXT_PUBLIC_CLOUD_REGISTRY_URL with --build-arg" >&2; exit 1; }
 
-# Build the standalone server (`.env*` files are excluded by `.dockerignore`)
+# Build the standalone server (`.dockerignore` lets in only the sources and
+# build files, no `.env*` files, keys or credentials)
 COPY . .
 RUN NEXT_OUTPUT=standalone bun run build
 
