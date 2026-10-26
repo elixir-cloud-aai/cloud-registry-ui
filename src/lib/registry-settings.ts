@@ -51,11 +51,21 @@ function registrySettings() {
         );
     const parsed = new URL(url);
     const local = parsed.protocol === "http:" && isLocalHost(parsed.hostname);
+    // the browser takes `https:host/path` as a path of the app's own site
+    if (!url.toLowerCase().startsWith(`${parsed.protocol}//`))
+        throw new Error(
+            `Invalid setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: "${url}" needs "//" after the scheme`,
+        );
     if (parsed.protocol !== "https:" && !local)
         throw new Error(
             `Invalid setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: "${url}" must be an https URL (http only for localhost)`,
         );
-    if (parsed.username || parsed.password || parsed.search || parsed.hash)
+    if (
+        parsed.username ||
+        parsed.password ||
+        url.includes("?") ||
+        url.includes("#")
+    )
         throw new Error(
             `Invalid setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: "${url}" must not have a user, password, query or fragment`,
         );
