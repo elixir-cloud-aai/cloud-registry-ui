@@ -104,7 +104,8 @@ function withPendingTypes(
  * unknown, as the pending entries couldn't be loaded
  * @throws Error of the failed request for the service, e.g. 404 for
  * services that don't exist or that the user may not see, or 401 for an
- * expired login
+ * expired login; or an Error if the service wasn't found and the pending
+ * services couldn't be loaded, as it may be one of them
  */
 async function getServiceWithApproval(
     provider: AuthenticatedCloudRegistryProvider,
@@ -127,6 +128,9 @@ async function getServiceWithApproval(
     ]);
     const pending = approvals?.services.find((val) => val.id === serviceId);
     const service = found.service ?? pending;
+    // without the pending services, a 404 may be one of them
+    if (!service && approvals === null)
+        throw new Error("Could not load the pending services.");
     if (!service) throw found.error;
     return {
         service,

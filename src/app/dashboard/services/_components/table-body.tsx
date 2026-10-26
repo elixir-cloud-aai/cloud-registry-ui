@@ -12,6 +12,7 @@ type Props = {
     verifications: Map<string, ServiceVerification>;
     pending: Set<string>;
     fetchServices: () => void;
+    refetchMe: () => void;
     me: Me | null;
     emptyMessage?: string;
 };
@@ -21,6 +22,7 @@ function ServicesTableBody({
     verifications,
     pending,
     fetchServices,
+    refetchMe,
     me,
     emptyMessage = "No services found.",
 }: Props) {
@@ -79,6 +81,7 @@ function ServicesTableBody({
                 pending={!!selectedService && pending.has(selectedService.id)}
                 open={!!selectedService}
                 fetchServices={fetchServices}
+                refetchMe={refetchMe}
                 cloudRegistryProvider={cloudRegistryProvider}
                 me={me}
                 onOpenChange={(open) => !open && setSelectedService(null)}
