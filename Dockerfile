@@ -35,7 +35,8 @@ ENV NODE_ENV=production \
     PORT=3000
 
 # Owned by root, so that the server can't change its own code; it writes
-# only to `.next/cache`
+# only to `.next/cache` (pages regenerated at runtime, e.g. with
+# `revalidate`, would also need `.next/server` to be writable)
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
@@ -48,6 +49,7 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD ["bun", "-e", "fetch(`http://127.0.0.1:${process.env.PORT || 3000}/`, { redirect: 'manual' }).then((res) => process.exit(res.status < 400 ? 0 : 1), () => process.exit(1))"]
 
-# Listen on all interfaces; set here, as container platforms such as
-# Kubernetes set `HOSTNAME` to the container's host name
-CMD ["env", "HOSTNAME=0.0.0.0", "bun", "server.js"]
+# Listen on all IPv4 interfaces, or on `LISTEN_HOSTNAME` (e.g. `::` for
+# IPv6); set in CMD, not with ENV, as container runtimes such as
+# Kubernetes' set `HOSTNAME` to the container's host name
+CMD ["sh", "-c", "HOSTNAME=\"${LISTEN_HOSTNAME:-0.0.0.0}\" exec bun server.js"]
