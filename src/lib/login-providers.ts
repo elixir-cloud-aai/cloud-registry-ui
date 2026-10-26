@@ -152,26 +152,50 @@ function oidcEndpoints(provider: LoginProvider) {
 }
 
 /**
+ * Make text safe for a log line: no control characters (they could forge
+ * log entries), at most 300 characters
+ * @param text Text, e.g. from a login provider
+ * @returns The text, with control characters replaced by spaces
+ */
+function logSafe(text: string) {
+    return text.replace(/\p{Cc}/gu, " ").slice(0, 300);
+}
+
+/**
+ * Get a URL for logs: origin and path only, without credentials, query or
+ * fragment
+ * @param url URL
+ * @returns Origin and path, or a placeholder for unparsable URLs
+ */
+function logUrl(url?: string) {
+    if (!url || !URL.canParse(url)) return "unknown URL";
+    const { origin, pathname } = new URL(url);
+    return `${origin}${pathname}`;
+}
+
+/**
  * Describe a failed request to a login provider without secrets: the
- * request's body (e.g. the client secret) and headers stay out
+ * request's body (e.g. the client secret), headers and the URL's
+ * credentials, query and fragment stay out
  * @param err Error of a request, or any other error
- * @returns Method, URL without query, status, OAuth error code and message
+ * @returns Method, URL, status, OAuth error code or message, safe for logs
  */
 function loginErrorSummary(err: unknown) {
     if (!axios.isAxiosError(err))
-        return err instanceof Error ? err.message : String(err);
+        return logSafe(err instanceof Error ? err.message : String(err));
     const { config, response } = err;
-    const url = config?.url ? config.url.split("?")[0] : "unknown URL";
     const data = response?.data as { error?: unknown } | undefined;
     // only codes as in RFC 6749 (e.g. invalid_grant): other text from the
-    // provider could hold secrets or forge log lines
+    // provider could hold secrets
     const oauthError =
         typeof data?.error === "string" && /^[a-z_]{1,64}$/.test(data.error)
             ? `, error ${data.error}`
             : "";
-    return `${config?.method?.toUpperCase() ?? "Request"} ${url} failed: ${
-        response ? `status ${response.status}${oauthError}` : err.message
-    }`;
+    return logSafe(
+        `${config?.method?.toUpperCase() ?? "Request"} ${logUrl(config?.url)} failed: ${
+            response ? `status ${response.status}${oauthError}` : err.message
+        }`,
+    );
 }
 
 export type { LoginProvider, LoginProviderInfo };
