@@ -151,6 +151,10 @@ Register the app with [LS Login](https://lifescience-ri.eu/ls-login/) as a servi
 
 Put the client ID and secret in `LOGIN_PROVIDERS` (see the example above), and keep its `scopes`: without them, the app requests only the default scopes, and the registry doesn't recognise admins. The app sends the user's access token to the registry, never the ID token.
 
+#### Sessions and logout
+
+After logging in, the app keeps the session in cookies for 12 hours: `access_token`, which the browser sends to the registry, and the ID token and provider, which only the server reads (`httpOnly`). Logging out is a `POST` to `/auth/api/logout` from the app's pages: the app accepts it only from the origin of `LOGIN_REDIRECT_URI`, so serve the app at that address. Failed requests to login providers are logged without secrets or tokens.
+
 #### Registry settings for the app
 
 The registry accepts the app's tokens only if it is configured for them (see the registry's [configuration docs](https://github.com/elixir-cloud-aai/cloud-registry/blob/dev/docs/configuration.md#deployment-configuration)). For LS Login, in a config overlay (with the registry's Helm chart, in its `config` value):

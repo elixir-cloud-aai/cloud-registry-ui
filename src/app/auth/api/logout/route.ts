@@ -4,18 +4,34 @@ import { type NextRequest, NextResponse } from "next/server";
 import { loginErrorSummary, loginSettings } from "@/lib/login-providers";
 
 /**
- * Log out: a POST from the app's own pages only (checked by `Origin`), so
- * that other sites and prefetching can't log users out
+ * Check that a request comes from the app's own pages
+ * @param request Request
+ * @param appOrigin The app's public origin
+ * @returns Whether `Origin` is the app's, or, without a usable `Origin`
+ * (missing, or `null`, e.g. with `Referrer-Policy: no-referrer`), the browser
+ * says the request is from the same origin
+ */
+function fromApp(request: NextRequest, appOrigin: string) {
+    const origin = request.headers.get("origin");
+    if (origin !== null && origin !== "null") return origin === appOrigin;
+    return request.headers.get("sec-fetch-site") === "same-origin";
+}
+
+/**
+ * Log out: a POST from the app's own pages only, so that other sites and
+ * prefetching can't log users out
  * @param request Request, a form submission
- * @returns Redirect to the login page, or 403 for other origins
+ * @returns Redirect (303, so that the browser follows with a GET) to the
+ * login page, or to the error page for requests from other origins
  */
 export async function POST(request: NextRequest) {
-    // the app's public origin, also behind a reverse proxy
+    // the app's public origin, also behind a reverse proxy; absolute URLs, as
+    // the redirects need the status 303
     const appOrigin = new URL(loginSettings().redirectUri).origin;
-    if (request.headers.get("origin") !== appOrigin)
-        return NextResponse.json(
-            { error: "Log out from the app's pages" },
-            { status: 403 },
+    if (!fromApp(request, appOrigin))
+        return NextResponse.redirect(
+            new URL("/auth/error?type=logout-origin", appOrigin),
+            303,
         );
 
     try {
@@ -32,6 +48,5 @@ export async function POST(request: NextRequest) {
             303,
         );
     }
-    // 303: the browser follows with a GET
     return NextResponse.redirect(new URL("/auth/login", appOrigin), 303);
 }

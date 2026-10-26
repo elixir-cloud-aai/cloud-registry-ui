@@ -12,7 +12,8 @@ import {
     oidcEndpoints,
 } from "@/lib/login-providers";
 
-// the tokens the app needs; the ID token marks the session as logged in
+// the tokens the app needs; the ID token marks the session as logged in,
+// and the access token is sent as a bearer token, so it must be one
 const tokenResponseSchema = z.object({
     access_token: z.string().min(1),
     id_token: z.string().min(1),
@@ -30,12 +31,12 @@ export async function GET(request: NextRequest) {
     if (code === null || state === null) redirect("/auth/error?type=params");
 
     const authState = await getCookie("authState", { cookies });
+    const providerId = await getCookie("authProvider", { cookies });
+    // a state can be used once, also if this callback fails
+    await deleteCookie("authState", { cookies, path: "/" });
+    await deleteCookie("authProvider", { cookies, path: "/" });
     if (!authState || authState !== state) redirect("/auth/error?type=state");
 
-    const providerId = await getCookie("authProvider", { cookies });
-    // a state can be used once
-    await deleteCookie("authState", { cookies });
-    await deleteCookie("authProvider", { cookies });
     const provider = providerId ? loginProvider(providerId) : undefined;
     if (!provider) redirect("/auth/error?type=provider");
 
@@ -60,12 +61,13 @@ export async function GET(request: NextRequest) {
             },
         );
         const result = tokenResponseSchema.safeParse(response.data);
-        if (!result.success)
-            throw new Error(
-                `Invalid token response from ${provider.id}: ${result.error.issues
-                    .map((issue) => issue.path.join(".") || "body")
-                    .join(", ")}`,
+        // names the invalid fields, never their values
+        if (!result.success) {
+            const fields = result.error.issues.map(
+                (issue) => issue.path.join(".") || "body",
             );
+            throw new Error(`Invalid token response: ${fields.join(", ")}`);
+        }
         tokens = result.data;
     } catch (err) {
         console.error(
