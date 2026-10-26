@@ -37,25 +37,30 @@ The app runs at http://localhost:3000.
 
 ### Docker
 
-The image is built with the settings that are read at build time (`NEXT_PUBLIC_*`, see [Configurations](#configurations)). Set them in `.env` before `docker build`: it reads them from there, not from the shell environment.
+The image is built with the settings that are read at build time (`NEXT_PUBLIC_*`, see [Configurations](#configurations)). Pass them as build arguments, e.g.:
 
 ```
-docker build -t cloud-registry-ui .
+docker build -t cloud-registry-ui \
+  --build-arg NEXT_PUBLIC_CLOUD_REGISTRY_URL=https://registry.example.org/ga4gh/registry/v1 \
+  --build-arg NEXT_PUBLIC_APP_TITLE="My Cloud Registry" \
+  .
 ```
 
-`docker build` copies `.env` into the image. So keep the login settings, which hold the client secret, out of `.env` when you build an image: put them in a separate file outside the repository, e.g. `~/cloud-registry-ui/login.env`, and pass it when the container starts:
+`docker build` doesn't read `.env` or other `.env*` files: `.dockerignore` keeps them out of the image, so that client secrets can't end up in it. Build arguments are stored in the image's history (`docker history`), so pass only the `NEXT_PUBLIC_*` settings with them, which are public anyway, never the login settings.
+
+Pass the login settings, which hold the client secret, when the container starts, e.g. from a file outside the repository, such as `~/cloud-registry-ui/login.env`:
 
 ```
 docker run -p 3000:3000 --env-file ~/cloud-registry-ui/login.env cloud-registry-ui
 ```
 
-Settings passed with `docker run` take precedence over those in the image's `.env`, but they don't change the `NEXT_PUBLIC_*` values: those need a new image.
+Without them, the container refuses to start. Settings passed with `docker run` don't change the `NEXT_PUBLIC_*` values: those need a new image.
 
 The image runs the production server (`bun run start`) on port 3000. Serve it over HTTPS, e.g. behind a reverse proxy: the login cookies are marked `Secure`, and browsers accept them over plain HTTP only on `localhost`.
 
 ## Configurations
 
-The app is configured through environment variables. Copy `.env.example` to `.env` and adjust as needed.
+The app is configured through environment variables. For `bun run dev`, `bun run build` and `bun run start`, copy `.env.example` to `.env` and adjust as needed; for the Docker image, pass them as build arguments and with `docker run` (see [Docker](#docker)).
 
 Most settings are read when the app is built (`bun run build`, `docker build`) and are fixed in the build: change them, then build again. Only the login settings are read when the app starts (`bun run start`, `docker run`). `bun run dev` reads all of them.
 

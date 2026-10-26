@@ -8,6 +8,10 @@ npm-debug.log
 yarn-error.log
 bun.lockb.tmp
 
+# env files: settings and secrets stay out of the image (see README)
+.env*
+!.env.example
+
 # OS junk
 .DS_Store
 
