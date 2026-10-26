@@ -85,11 +85,11 @@ Most settings are read when the app is built (`bun run build`, `docker build`) a
 Missing or invalid settings stop the app with a message that names the setting:
 
 - The settings read at build time stop `bun run build` (also in `docker build`) and `bun run dev`.
-- The login settings stop `bun run start`, `docker run` and `bun run dev`. On Vercel, which deploys what it builds, they also stop the build (`vercel build`, or the build on Vercel's servers), so set them for every environment that builds, Preview included. `vercel pull` can't read sensitive variables: if `LOGIN_PROVIDERS` is one, as it should be for the client secret, `vercel build` only checks that it is set.
+- The login settings stop `bun run start`, `docker run` and `bun run dev`. On Vercel, which deploys what it builds, they also stop the build (`vercel build`, or the build on Vercel's servers), so set them for every environment that builds, Preview included. `vercel pull` can't read sensitive variables: for those, such as `LOGIN_PROVIDERS` with the client secret, `vercel build` only checks that they are set, and checks the others as usual.
 
 ### Registry
 
-Set `NEXT_PUBLIC_CLOUD_REGISTRY_URL` (required) to the registry's API, including the base path, e.g. `https://registry.example.org/ga4gh/registry/v1`. It must be an absolute `https` URL, or `http` for `localhost` and loopback addresses, without a query or fragment. Browsers call the API directly, so it must accept cross-origin requests from the app's address: the registry allows any origin by default (FOCA's `security.cors`).
+Set `NEXT_PUBLIC_CLOUD_REGISTRY_URL` (required) to the registry's API, including the base path, e.g. `https://registry.example.org/ga4gh/registry/v1`. It must be an absolute `https` URL, or `http` for `localhost` and loopback addresses, without a user, password, query or fragment. Browsers call the API directly, so it must accept cross-origin requests from the app's address: the registry allows any origin by default (FOCA's `security.cors`).
 
 The app's Content Security Policy lets browsers connect only to the app and to this URL's origin, and other sites can't frame the app. Scripts run only with a nonce that changes on every request, so pages are rendered per request and not cached. The policy still allows inline styles (used by components and libraries) and images from any `https` URL (logos). Don't let a proxy in front of the app add a second Content Security Policy: browsers enforce both, and one without the nonce blocks the app's scripts. On Vercel, the toolbar of preview deployments is blocked.
 
@@ -197,7 +197,7 @@ Earlier versions supported only LS Login. Replace these variables:
 | `OIDC_CLIENT_SECRET` | `clientSecret` of the provider                                |
 | `OIDC_REDIRECT_URI`  | `LOGIN_REDIRECT_URI` (same value)                             |
 
-Use the LS Login example above, with `"scopes"` as shown to keep requesting the same scopes. Users who are logged in stay logged in. The app stops with a message if it finds the old variables without `LOGIN_PROVIDERS`. On Vercel, change the project's environment variables before deploying this version: the build fails with the old ones.
+Use the LS Login example above, with `"scopes"` as shown to keep requesting the same scopes. Users who are logged in stay logged in. The app stops with a message if it finds the old variables without `LOGIN_PROVIDERS`. On Vercel, change the project's environment variables before deploying this version: the build fails if the old ones are set without `LOGIN_PROVIDERS`.
 
 ## Known gaps
 

@@ -58,7 +58,7 @@ const legacySettings = [
     "OIDC_REDIRECT_URI",
 ];
 // what `vercel pull` writes for sensitive variables, which it can't read
-const unreadableValues = ["", "[SENSITIVE]"];
+const sensitivePlaceholder = "[SENSITIVE]";
 
 let settings: z.infer<typeof loginSettingsSchema> | undefined;
 const endpoints = new Map<string, Promise<OidcEndpoints>>();
@@ -72,14 +72,8 @@ function loginSettings() {
     if (settings) return settings;
     legacyLoginSettings();
 
-    let providers: unknown;
-    try {
-        providers = JSON.parse(process.env.LOGIN_PROVIDERS || "[]");
-    } catch {
-        throw new Error("LOGIN_PROVIDERS is not valid JSON");
-    }
     const result = loginSettingsSchema.safeParse({
-        providers,
+        providers: providersJson(),
         redirectUri: process.env.LOGIN_REDIRECT_URI,
     });
     if (!result.success)
@@ -89,6 +83,19 @@ function loginSettings() {
 
     settings = result.data;
     return settings;
+}
+
+/**
+ * Read `LOGIN_PROVIDERS`
+ * @returns Its value, parsed, or an empty list if it is unset or empty
+ * @throws Error if it isn't JSON
+ */
+function providersJson(): unknown {
+    try {
+        return JSON.parse(process.env.LOGIN_PROVIDERS || "[]");
+    } catch {
+        throw new Error("LOGIN_PROVIDERS is not valid JSON");
+    }
 }
 
 /**
@@ -105,22 +112,39 @@ function legacyLoginSettings() {
 
 /**
  * Check the login settings when building on Vercel, which deploys what it
- * builds. Builds with `vercel pull` get sensitive variables without their
- * values: those are only checked to be set, and fully when the app starts.
+ * builds. Builds with `vercel pull` get sensitive variables with a
+ * placeholder instead of their values: those are only checked to be set,
+ * and fully when the app starts; the others are checked as usual.
  * @throws Error naming each invalid or missing setting
  */
 function loginSettingsAtBuild() {
     legacyLoginSettings();
-    const unreadable = ["LOGIN_PROVIDERS", "LOGIN_REDIRECT_URI"].filter(
-        (name) => unreadableValues.includes(process.env[name] ?? "-"),
+    const sensitive = ["LOGIN_PROVIDERS", "LOGIN_REDIRECT_URI"].filter(
+        (name) => process.env[name] === sensitivePlaceholder,
     );
-    if (unreadable.length) {
-        console.warn(
-            `Can't check ${unreadable.join(", ")} when building: sensitive variables have no value here; they are checked when the app starts`,
-        );
+    if (!sensitive.length) {
+        loginSettings();
         return;
     }
-    loginSettings();
+    console.warn(
+        `Can't check ${sensitive.join(", ")} when building: sensitive variables have no value here; they are checked when the app starts`,
+    );
+    const schema = loginSettingsSchema.partial({
+        providers: true,
+        redirectUri: true,
+    });
+    const result = schema.safeParse({
+        providers: sensitive.includes("LOGIN_PROVIDERS")
+            ? undefined
+            : providersJson(),
+        redirectUri: sensitive.includes("LOGIN_REDIRECT_URI")
+            ? undefined
+            : (process.env.LOGIN_REDIRECT_URI ?? ""),
+    });
+    if (!result.success)
+        throw new Error(
+            `Invalid login settings (LOGIN_PROVIDERS, LOGIN_REDIRECT_URI):\n${z.prettifyError(result.error)}`,
+        );
 }
 
 /**
