@@ -14,7 +14,7 @@ function useFitText<T extends HTMLElement>(maxSize: number, text?: string) {
     useLayoutEffect(() => {
         const el = ref.current;
         if (!el) return;
-        const fit = () => {
+        const fitText = () => {
             let size = maxSize;
             el.style.fontSize = `${size}px`;
             // text width isn't quite proportional to the size, so step down
@@ -26,10 +26,10 @@ function useFitText<T extends HTMLElement>(maxSize: number, text?: string) {
                 el.style.fontSize = `${size}px`;
             }
         };
-        fit();
-        const observer = new ResizeObserver(fit);
+        fitText();
+        const observer = new ResizeObserver(fitText);
         observer.observe(el);
-        document.fonts?.ready.then(fit);
+        document.fonts?.ready.then(fitText);
         return () => observer.disconnect();
     }, [maxSize, text]);
 
