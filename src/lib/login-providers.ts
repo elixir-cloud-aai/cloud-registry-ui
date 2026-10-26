@@ -39,11 +39,22 @@ type LoginProvider = z.infer<typeof loginProviderSchema>;
 
 type LoginProviderInfo = Pick<LoginProvider, "id" | "name" | "logo">;
 
-type OidcEndpoints = {
+type OidcDiscovery = {
     issuer?: string;
     authorization_endpoint: string;
     token_endpoint: string;
     userinfo_endpoint: string;
+    authorization_response_iss_parameter_supported?: boolean;
+};
+
+type OidcEndpoints = {
+    /** The issuer as discovered, which responses with `iss` must match */
+    issuer: string;
+    authorization_endpoint: string;
+    token_endpoint: string;
+    userinfo_endpoint: string;
+    /** Whether authorization responses have `iss` (RFC 9207) */
+    issParameterSupported: boolean;
 };
 
 /** @description timeout of requests to login providers, in milliseconds */
@@ -173,23 +184,25 @@ function loginProvider(id?: string) {
 /**
  * Get a provider's endpoints from its OpenID Connect discovery document
  * @param provider Login provider
- * @returns Promise resolving to the authorization, token and user info URLs
+ * @returns Promise resolving to the issuer, the authorization, token and
+ * user info URLs, and whether authorization responses name the issuer
  */
-function oidcEndpoints(provider: LoginProvider) {
+function oidcEndpoints(provider: LoginProvider): Promise<OidcEndpoints> {
     const cached = endpoints.get(provider.id);
     if (cached) return cached;
 
     const url = `${provider.issuer}/.well-known/openid-configuration`;
     const promise = axios
-        .get<OidcEndpoints>(url, { timeout: loginRequestTimeout })
+        .get<OidcDiscovery>(url, { timeout: loginRequestTimeout })
         .then((res) => {
             const {
                 issuer,
                 authorization_endpoint,
                 token_endpoint,
                 userinfo_endpoint,
+                authorization_response_iss_parameter_supported,
             } = res.data;
-            if (issuer?.replace(/\/$/, "") !== provider.issuer)
+            if (!issuer || issuer.replace(/\/$/, "") !== provider.issuer)
                 throw new Error(`Unexpected issuer ${issuer} at ${url}`);
             if (
                 !authorization_endpoint ||
@@ -208,9 +221,12 @@ function oidcEndpoints(provider: LoginProvider) {
             )
                 throw new Error(`Malformed endpoint URLs at ${url}`);
             return {
+                issuer,
                 authorization_endpoint,
                 token_endpoint,
                 userinfo_endpoint,
+                issParameterSupported:
+                    authorization_response_iss_parameter_supported === true,
             };
         });
     // fetch again on the next login after a failure

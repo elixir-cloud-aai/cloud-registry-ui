@@ -2,6 +2,7 @@ import { setCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
+import { pkceChallenge, randomSecret } from "@/lib/login-flow";
 import {
     loginErrorSummary,
     loginProvider,
@@ -27,7 +28,12 @@ export async function GET(request: NextRequest) {
         redirect("/auth/error?type=internal");
     }
 
-    const authState = crypto.randomUUID();
+    // secrets of this login, checked in the callback: the state, the PKCE
+    // code verifier, which only this app can send with the code, and the
+    // nonce, which the ID token must carry
+    const authState = randomSecret();
+    const verifier = randomSecret();
+    const nonce = randomSecret();
     const cookieOptions = {
         cookies: cookies,
         httpOnly: true,
@@ -38,6 +44,8 @@ export async function GET(request: NextRequest) {
     };
     await setCookie("authState", authState, cookieOptions);
     await setCookie("authProvider", provider.id, cookieOptions);
+    await setCookie("authVerifier", verifier, cookieOptions);
+    await setCookie("authNonce", nonce, cookieOptions);
 
     const redirectUrl = new URL(authorizationEndpoint);
     // keeps query parameters of the endpoint
@@ -47,6 +55,9 @@ export async function GET(request: NextRequest) {
         redirect_uri: loginSettings().redirectUri,
         scope: provider.scopes.join(" "),
         state: authState,
+        code_challenge: pkceChallenge(verifier),
+        code_challenge_method: "S256",
+        nonce,
     }))
         redirectUrl.searchParams.set(key, val);
 
