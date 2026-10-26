@@ -58,7 +58,7 @@ docker run -p 3000:3000 --env-file ~/cloud-registry-ui/login.env cloud-registry-
 
 Without the login settings, the container refuses to start. Settings passed with `docker run` don't change the `NEXT_PUBLIC_*` values: those need a new image.
 
-The image runs the production server (`bun run start`) on port 3000. Serve it over HTTPS, e.g. behind a reverse proxy: the login cookies are marked `Secure`, and browsers accept them over plain HTTP only on `localhost`.
+The image holds only the built app: Next's standalone server (`bun server.js`, port 3000), its static files and `public/`, without sources or development dependencies. It runs as the unprivileged user `bun` and reports its health (`docker ps`) by loading the start page every 30 seconds. Serve it over HTTPS, e.g. behind a reverse proxy: the login cookies are marked `Secure`, and browsers accept them over plain HTTP only on `localhost`.
 
 ## Configurations
 
@@ -111,7 +111,7 @@ All optional; read at build time. Logos given as paths must be in `public/` when
 
 ### Login
 
-Users log in with one of the login providers that you configure (OpenID Connect, authorization code flow). The app reads these settings when the server starts and refuses to start without at least one valid provider. They are read at runtime, so `docker run -e` and `--env-file` work, and they stay on the server: client secrets never reach the browser.
+Users log in with one of the login providers that you configure (OpenID Connect, authorization code flow). The app reads these settings when the server starts and refuses to start without at least one valid provider. They are read at runtime, so `docker run -e` and `--env-file` work, and they stay on the server: client secrets never reach the browser, nor the image when passed with `docker run` (see [Docker](#docker)).
 
 | Variable             | Required | Description                                                                                  |
 | -------------------- | -------- | -------------------------------------------------------------------------------------------- |
