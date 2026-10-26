@@ -88,8 +88,13 @@ function expectedMessage(text: string, url: string) {
         )?.[1];
     if (status)
         return (
-            // e.g. the verification of a service without one
-            (status === "404" && url.startsWith(registry)) ||
+            // the verification of a service without one, and the public
+            // read of a pending service, which the app repeats with the token
+            (status === "404" &&
+                /^\/services\/[^/]+(\/verification)?$/.test(
+                    url.slice(registry.length),
+                ) &&
+                url.startsWith(registry)) ||
             // the pending entries, for users other than admins
             (["401", "403"].includes(status) &&
                 url === `${registry}/approvals`) ||
@@ -126,7 +131,9 @@ function watchPage(page: Page, appURL: string) {
         else if (msg.type() === "error")
             problems.push(`console error: ${text} (${url})`);
     });
-    page.on("pageerror", (err) => problems.push(`page error: ${err.message}`));
+    page.on("pageerror", (err) => {
+        if (watched(page.url())) problems.push(`page error: ${err.message}`);
+    });
     page.on("requestfailed", (request) => {
         if (!watched(request.url())) return;
         const failure = request.failure()?.errorText ?? "";

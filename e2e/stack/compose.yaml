@@ -20,6 +20,20 @@ services:
             - "127.0.0.1:8190:8190"
         volumes:
             - ./oidc.json:/config/oidc.json:ro
+        # ready once it serves the discovery document
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "wget",
+                    "-q",
+                    "-O",
+                    "/dev/null",
+                    "http://localhost:8190/oidc/.well-known/openid-configuration",
+                ]
+            interval: 2s
+            timeout: 5s
+            retries: 60
         networks:
             default:
                 aliases:
@@ -33,7 +47,7 @@ services:
             mongodb:
                 condition: service_healthy
             oidc:
-                condition: service_started
+                condition: service_healthy
         ports:
             - "127.0.0.1:8180:8080"
         environment:
