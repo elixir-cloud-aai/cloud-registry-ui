@@ -155,7 +155,7 @@ Put the client ID and secret in `LOGIN_PROVIDERS` (see the example above), and k
 
 #### Sessions and logout
 
-After logging in, the app keeps the session in cookies for 12 hours: `access_token`, which the browser sends to the registry, and the ID token and provider, which only the server reads (`httpOnly`). Logging out is a `POST` to `/auth/api/logout` from the app's own pages (same origin; a sent `Origin` must be that of `LOGIN_REDIRECT_URI`), so serve the app at that address; other requests lead to an error page.
+After logging in, the app keeps the session in cookies for as long as the access token is valid (`expires_in` of the provider's token response), at most 12 hours (also if the provider doesn't say); the app doesn't refresh tokens, so users log in again afterwards. The cookies are `access_token`, which the browser sends to the registry, and the ID token and provider, which only the server reads (`httpOnly`). Logging out is a `POST` to `/auth/api/logout` from the app's own pages (same origin; a sent `Origin` must be that of `LOGIN_REDIRECT_URI`), so serve the app at that address; other requests lead to an error page.
 
 Failed requests to login providers are logged without secrets or tokens.
 

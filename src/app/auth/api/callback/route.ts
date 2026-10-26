@@ -3,7 +3,6 @@ import { deleteCookie, getCookie, setCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
-import { z } from "zod";
 import {
     loginErrorSummary,
     loginProvider,
@@ -11,6 +10,7 @@ import {
     loginSettings,
     oidcEndpoints,
 } from "@/lib/login-providers";
+import { z } from "@/lib/zod";
 
 // the tokens the app needs; the ID token marks the session as logged in,
 // and the access token is sent as a bearer token, so it must be one
@@ -21,7 +21,18 @@ const tokenResponseSchema = z.object({
         .string()
         .refine((val) => val.toLowerCase() === "bearer")
         .optional(),
+    // lifetime of the access token, in seconds (a number, or a string with
+    // one), or null; a value under 1 second fails the login, as the token
+    // is expired
+    expires_in: z
+        .union([z.number(), z.string().trim().min(1)])
+        .pipe(z.coerce.number<string | number>().min(1))
+        .transform(Math.floor)
+        .nullish(),
 });
+
+// longest session, also for tokens that live longer or don't say how long
+const maxSessionAge = 60 * 60 * 12;
 
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
@@ -84,7 +95,9 @@ export async function GET(request: NextRequest) {
         cookies: cookies,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax" as const,
-        maxAge: 60 * 60 * 12,
+        // the session ends with the access token, which the registry
+        // rejects afterwards
+        maxAge: Math.min(tokens.expires_in ?? maxSessionAge, maxSessionAge),
         path: "/",
     };
     // read by the browser, which sends it to the registry
