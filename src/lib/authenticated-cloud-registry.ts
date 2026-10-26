@@ -269,8 +269,10 @@ class AuthenticatedCloudRegistryProvider
   }
 
   /**
-   * Probe for GET /approvals (cloud-registry 0.5.0 and later), once per
-   * registry until the page is reloaded. Not a registry operation.
+   * Probe for GET /approvals (cloud-registry 0.5.0 and later). Not a
+   * registry operation. Only support is kept, until the page is reloaded:
+   * registries without it are asked again by each page, e.g. once an
+   * upgrade has rolled out.
    *
    * Sent without a token on purpose, and so not by `request()`, which
    * would add it on a 401: without one, browsers send no CORS preflight
@@ -281,7 +283,7 @@ class AuthenticatedCloudRegistryProvider
    * @returns false if the route is missing (404), true for any other status
    * (e.g. 401 or 5xx; the request with the token then reports errors)
    * @throws TypeError if the registry can't be reached, or an error if it
-   * doesn't answer within 10 seconds; failed probes aren't kept
+   * doesn't answer within 10 seconds
    */
   async hasApprovals(): Promise<boolean> {
     let support = approvalsSupport.get(this.baseUrl);
@@ -291,7 +293,11 @@ class AuthenticatedCloudRegistryProvider
         // a stalled probe must not hold up the pages until a reload
         signal: AbortSignal.timeout(10_000),
       }).then(
-        (response) => response.status !== 404,
+        (response) => {
+          const found = response.status !== 404;
+          if (!found) approvalsSupport.delete(this.baseUrl);
+          return found;
+        },
         (err: unknown) => {
           // ask again next time, e.g. once the registry is up
           approvalsSupport.delete(this.baseUrl);
