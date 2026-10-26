@@ -24,8 +24,9 @@ const noApprovals: Approvals = { service_types: [], services: [] };
  * Get the pending service types and services that the user may see
  * @param provider Registry provider
  * @returns Pending types and services; none for guests, for registries
- * without approvals (before cloud-registry 0.5.0, see `hasApprovals`) and
- * for users who may not list them (403, e.g. with policies that lack
+ * without approvals (before cloud-registry 0.5.0, see `hasApprovals`; or
+ * 404 to the request with the token, e.g. during a rollout) and for users
+ * who may not list them (403, e.g. with policies that lack
  * `list-approvals`)
  * @throws Error of other failed requests, e.g. 401 for an expired login,
  * or TypeError if the registry can't be reached
