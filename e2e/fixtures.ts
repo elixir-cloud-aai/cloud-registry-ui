@@ -77,54 +77,78 @@ type Fixtures = {
 /**
  * Whether a console message is one that the app causes on purpose
  * @param text Text of the message
+ * @param url URL that the message is about, e.g. of a failed request
  * @returns Whether to ignore it
  */
-function expectedMessage(text: string) {
-    return (
-        // Firefox notes that 'self' is ignored next to 'strict-dynamic',
-        // the intended fallback for older browsers
-        /Ignoring .'self'. within script-src/.test(text) ||
-        // client errors of the registry (e.g. 404 for a service without
-        // verification) are handled by the app; browsers log them anyway
-        /Failed to load resource: the server responded with a status of 4\d\d/.test(
+function expectedMessage(text: string, url: string) {
+    // browsers log failed requests even if the app handles them
+    const status =
+        /Failed to load resource: the server responded with a status of (\d+)/.exec(
             text,
-        )
-    );
+        )?.[1];
+    if (status)
+        return (
+            // e.g. the verification of a service without one
+            (status === "404" && url.startsWith(registry)) ||
+            // the pending entries, for users other than admins
+            (["401", "403"].includes(status) &&
+                url === `${registry}/approvals`) ||
+            // the user of guests
+            (status === "401" && url.endsWith("/auth/api/user-info"))
+        );
+    // Firefox notes that 'self' is ignored next to 'strict-dynamic', the
+    // intended fallback for older browsers
+    return /Ignoring .'self'. within script-src/.test(text);
+}
+
+/**
+ * Collect the problems of a page: CSP violations, page errors, logged
+ * errors, failed requests and server errors of the app and the registry
+ * (not of the login provider's pages)
+ * @param page Page
+ * @param appURL Base URL of the app
+ * @returns The list of problems, which grows while the page runs
+ */
+function watchPage(page: Page, appURL: string) {
+    const problems: string[] = [];
+    const watched = (url: string) =>
+        [appURL, registry].some(
+            (val) => new URL(val).origin === new URL(url).origin,
+        );
+    page.on("console", (msg) => {
+        const text = msg.text();
+        // Firefox gives some messages a location that isn't a URL
+        const location = msg.location().url;
+        const url = URL.canParse(location) ? location : page.url();
+        if (!watched(url) || expectedMessage(text, url)) return;
+        if (/Content.Security.Policy|Refused to/i.test(text))
+            problems.push(`CSP: ${text}`);
+        else if (msg.type() === "error")
+            problems.push(`console error: ${text} (${url})`);
+    });
+    page.on("pageerror", (err) => problems.push(`page error: ${err.message}`));
+    page.on("requestfailed", (request) => {
+        if (!watched(request.url())) return;
+        const failure = request.failure()?.errorText ?? "";
+        // navigations and prefetches that a later one replaced
+        if (/ERR_ABORTED|NS_BINDING_ABORTED/.test(failure)) return;
+        problems.push(`failed request: ${request.url()} ${failure}`);
+    });
+    page.on("response", (response) => {
+        if (watched(response.url()) && response.status() >= 500)
+            problems.push(
+                `server error: ${response.status()} ${response.url()}`,
+            );
+    });
+    return problems;
 }
 
 const test = base.extend<Fixtures>({
-    // for every test, also those that don't use the list
+    // for every test, also those that don't use the list; tests that cause
+    // problems on purpose check and clear it
     problems: [
         async ({ page, baseURL }, use) => {
-            const problems: string[] = [];
-            // the app's pages, not the login provider's
-            const ofApp = (url: string) =>
-                new URL(url).origin === new URL(baseURL as string).origin;
-            page.on("console", (msg) => {
-                const text = msg.text();
-                if (!ofApp(page.url())) return;
-                if (expectedMessage(text)) return;
-                if (/Content.Security.Policy|Refused to/i.test(text))
-                    problems.push(`CSP: ${text}`);
-                else if (msg.type() === "error")
-                    problems.push(`console error: ${text}`);
-            });
-            page.on("pageerror", (err) =>
-                problems.push(`page error: ${err.message}`),
-            );
-            page.on("requestfailed", (request) => {
-                if (!ofApp(page.url())) return;
-                const failure = request.failure()?.errorText ?? "";
-                // navigations and prefetches that a later one replaced
-                if (/ERR_ABORTED|NS_BINDING_ABORTED/.test(failure)) return;
-                problems.push(`failed request: ${request.url()} ${failure}`);
-            });
-            page.on("response", (response) => {
-                if (response.status() >= 500)
-                    problems.push(
-                        `server error: ${response.status()} ${response.url()}`,
-                    );
-            });
+            const problems = watchPage(page, baseURL as string);
             await use(problems);
             expect(problems).toEqual([]);
         },
@@ -222,4 +246,5 @@ export {
     tokenOf,
     uniqueId,
     users,
+    watchPage,
 };

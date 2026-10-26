@@ -4,9 +4,9 @@ import {
     expect,
     login,
     registerService,
-    registry,
     test,
     users,
+    watchPage,
 } from "./fixtures";
 
 /**
@@ -16,15 +16,9 @@ import {
  * @param id ID of the service
  */
 async function openAsUser(page: Page, id: string) {
-    const me = page.waitForResponse(
-        (response) => response.url() === `${registry}/me` && response.ok(),
-    );
     await page.goto(`/dashboard/services/view/${id}`);
-    await me;
-    // the roles reach the page with the next render
-    await page.evaluate(
-        () => new Promise((resolve) => requestAnimationFrame(resolve)),
-    );
+    // all requests for the user (`/me`) answered, and rendered since
+    await page.waitForLoadState("networkidle");
 }
 
 test.describe("services", () => {
@@ -80,7 +74,11 @@ test.describe("services", () => {
         await expect(page.getByRole("link", { name: "Edit" })).toHaveCount(0);
     });
 
-    test("owners give other users roles", async ({ page, browser }) => {
+    test("owners give other users roles", async ({
+        page,
+        browser,
+        baseURL,
+    }) => {
         const service = await registerService(browser, "owner", "Shared");
         await login(page, "owner");
         await page.goto(`/dashboard/services/view/${service.id}`);
@@ -98,6 +96,7 @@ test.describe("services", () => {
         const other = await browser.newContext();
         try {
             const otherPage = await other.newPage();
+            const problems = watchPage(otherPage, baseURL as string);
             await login(otherPage, "other");
             await openAsUser(otherPage, service.id);
             await expect(
@@ -107,6 +106,7 @@ test.describe("services", () => {
                 await expect(
                     otherPage.getByRole("button", { name }),
                 ).toHaveCount(0);
+            expect(problems).toEqual([]);
         } finally {
             await other.close();
         }
