@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { failure } from "@/test/errors";
 import {
     accessError,
     defaultGrant,
@@ -8,8 +9,6 @@ import {
     roleOptions,
 } from "./access-helper";
 
-const failure = (status: number, detail?: string) =>
-    Object.assign(new Error("x"), { status, detail });
 const issues = (data: object) =>
     grantSchema
         .safeParse({ ...defaultGrant, ...data })
@@ -64,7 +63,9 @@ describe("access helpers", () => {
         expect(listError(failure(500))).toBe(
             "Cannot fetch the access list. Please try again later.",
         );
-        expect(listError(failure(404, "Not found"))).toBe("Not found");
+        expect(listError(failure(404, { detail: "Not found" }))).toBe(
+            "Not found",
+        );
         expect(accessError(failure(409))).toBe(
             "Add another owner first, or delete the service.",
         );

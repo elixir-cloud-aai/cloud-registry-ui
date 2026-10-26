@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { failure } from "@/test/errors";
 import {
     getApprovalsOrNull,
     getServiceWithApproval,
@@ -12,7 +13,6 @@ import type {
     ServiceType,
 } from "./cloud-registry.types";
 
-const failure = (status: number) => Object.assign(new Error("x"), { status });
 const type = (artifact: string): ServiceType => ({
     group: "org.ga4gh",
     artifact,
