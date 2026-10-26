@@ -7,6 +7,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { safeHref } from "@/lib/links";
 
 type Props = {
     serviceInfo: Service;
@@ -14,6 +15,7 @@ type Props = {
 
 function ServiceInfoCardContent({ serviceInfo }: Props) {
     if (serviceInfo === undefined) return null;
+    const organizationUrl = safeHref(serviceInfo.organization.url);
 
     return (
         <CardContent className="space-y-6">
@@ -27,19 +29,23 @@ function ServiceInfoCardContent({ serviceInfo }: Props) {
                         <Building2 className="w-4 h-4" />
                         <span className="font-medium">Organization</span>
                     </div>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <a
-                                href={serviceInfo.organization.url}
-                                className="text-blue-600 hover:underline block pl-6 max-w-max"
-                            >
-                                {serviceInfo.organization.name}
-                            </a>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            {serviceInfo.organization.url}
-                        </TooltipContent>
-                    </Tooltip>
+                    {organizationUrl ? (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <a
+                                    href={organizationUrl}
+                                    className="text-blue-600 hover:underline block pl-6 max-w-max"
+                                >
+                                    {serviceInfo.organization.name}
+                                </a>
+                            </TooltipTrigger>
+                            <TooltipContent>{organizationUrl}</TooltipContent>
+                        </Tooltip>
+                    ) : (
+                        <span className="block pl-6 max-w-max">
+                            {serviceInfo.organization.name}
+                        </span>
+                    )}
                 </div>
 
                 <div className="space-y-2">

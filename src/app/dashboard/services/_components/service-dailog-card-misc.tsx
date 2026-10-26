@@ -1,3 +1,5 @@
+import { safeHref } from "@/lib/links";
+
 function Field({
     label,
     value,
@@ -10,14 +12,15 @@ function Field({
     isLink?: boolean;
 }) {
     if (!value) return null;
+    const href = isLink ? safeHref(value) : undefined;
     return (
         <div className="flex flex-col gap-1">
             <span className="text-[10px] font-medium tracking-widest uppercase text-muted-foreground">
                 {label}
             </span>
-            {isLink ? (
+            {href ? (
                 <a
-                    href={value}
+                    href={href}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-blue-500 hover:underline break-all"

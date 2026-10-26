@@ -8,6 +8,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { safeHref } from "@/lib/links";
 
 type Props = {
     serviceInfo: Service;
@@ -15,6 +16,8 @@ type Props = {
 
 function ServiceInfoCardHeader({ serviceInfo }: Props) {
     if (serviceInfo === undefined) return null;
+    const documentationUrl = safeHref(serviceInfo.documentationUrl);
+    const contactUrl = safeHref(serviceInfo.contactUrl, true);
     return (
         <CardHeader className="pb-3">
             <div className="flex justify-between items-start">
@@ -39,11 +42,11 @@ function ServiceInfoCardHeader({ serviceInfo }: Props) {
                     </CardDescription>
                 </div>
                 <div className="flex gap-2">
-                    {serviceInfo.documentationUrl && (
+                    {documentationUrl && (
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <a
-                                    href={serviceInfo.documentationUrl}
+                                    href={documentationUrl}
                                     target="_blank"
                                     className="p-2 hover:bg-slate-100 rounded-full transition-colors"
                                     rel="noopener"
@@ -54,11 +57,11 @@ function ServiceInfoCardHeader({ serviceInfo }: Props) {
                             <TooltipContent>Documentation Url</TooltipContent>
                         </Tooltip>
                     )}
-                    {serviceInfo.contactUrl && (
+                    {contactUrl && (
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <a
-                                    href={serviceInfo.contactUrl}
+                                    href={contactUrl}
                                     target="_blank"
                                     className="p-2 hover:bg-slate-100 rounded-full transition-colors"
                                     rel="noopener"
