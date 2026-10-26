@@ -29,12 +29,18 @@ function lastRequest() {
 }
 
 describe("requests", () => {
-    it("strips trailing slashes and takes options", () => {
+    it("strips trailing slashes and takes options", async () => {
         const provider = new AuthenticatedCloudRegistryProvider({
             baseUrl: `${base}//`,
             token: "t",
         });
         expect(provider.isAuthenticated).toBe(true);
+        fetchMock.mockResolvedValue(json({ admin: false }));
+        await provider.getCurrentUser();
+        expect(lastRequest()).toMatchObject({
+            url: `${base}/me`,
+            auth: "Bearer t",
+        });
         expect(
             new AuthenticatedCloudRegistryProvider(base).isAuthenticated,
         ).toBe(false);

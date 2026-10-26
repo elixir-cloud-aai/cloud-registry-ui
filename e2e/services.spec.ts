@@ -143,8 +143,9 @@ test.describe("services", () => {
         await expect(
             page.getByText(service.name, { exact: true }),
         ).toBeVisible();
-        await expect(page.getByRole("button", { name: "Delete" })).toHaveCount(
-            0,
-        );
+        // guests have no roles to wait for
+        for (const name of ["Delete", "Manage access", "Verify"])
+            await expect(page.getByRole("button", { name })).toHaveCount(0);
+        await expect(page.getByRole("link", { name: "Edit" })).toHaveCount(0);
     });
 });
