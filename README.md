@@ -75,7 +75,7 @@ docker run -p 3000:3000 --env-file ~/cloud-registry-ui/settings.env cloud-regist
 
 Without the required settings, or with invalid ones, the container refuses to start.
 
-Images were built with the `NEXT_PUBLIC_*` settings as build arguments before: pass them with `docker run` now. The Dockerfile no longer declares them, so `docker build` ignores them (and warns), and images built that way no longer keep them in their history.
+Before, the `NEXT_PUBLIC_*` settings were build arguments. Existing deployments must pass them with `docker run` now: `docker build --build-arg NEXT_PUBLIC_*` only prints a warning, and new images no longer hold them in their history. One image can now be used for all environments of a deployment (e.g. staging and production).
 
 The image holds only the built app: Next's standalone server (`bun server.js`), its static files and `public/`, without sources or development dependencies. It runs as the unprivileged user `bun`, which can write only to `.next/cache`, listens on all IPv4 interfaces (set `LISTEN_HOSTNAME`, e.g. to `::` for IPv6, to change this) and on `PORT` (default: 3000), and reports its health (`docker ps`) by requesting the start page every 30 seconds. Serve it over HTTPS, e.g. behind a reverse proxy: the login cookies are marked `Secure`, and browsers accept them over plain HTTP only on `localhost`.
 
@@ -83,7 +83,7 @@ The image holds only the built app: Next's standalone server (`bun server.js`), 
 
 The app is configured through environment variables. For `bun run dev`, `bun run build` and `bun run start`, copy `.env.example` to `.env` and adjust as needed; for the Docker image, pass them with `docker run` (see [Docker](#docker)).
 
-The settings are read when the app starts (`bun run start`, `docker run`, `bun run dev`): change them, then restart the app, without building it again. The `NEXT_PUBLIC_*` settings reach the browser, so they are public: put no secrets in them. Values of `NEXT_PUBLIC_*` settings that are set when the app is built (e.g. in `.env` for `bun run build`, or on Vercel) apply where the environment of the started app doesn't set them.
+The settings are read when the app starts (`bun run start`, `docker run`, `bun run dev`): change them, then restart the app, without building it again. The `NEXT_PUBLIC_*` settings reach the browser, so they are public: put no secrets in them. Values of `NEXT_PUBLIC_*` settings that are set when the app is built (e.g. in `.env` for `bun run build`, or on Vercel) apply where the environment of the started app doesn't set them; the Docker image is built without settings, so this doesn't apply there.
 
 | Variable                           | Read at | Default                              | Section               |
 | ---------------------------------- | ------- | ------------------------------------ | --------------------- |

@@ -4,11 +4,9 @@ import {
     PHASE_PRODUCTION_BUILD,
     PHASE_PRODUCTION_SERVER,
 } from "next/constants";
-import { brandingSettings } from "./src/lib/branding";
 import { loginSettings, loginSettingsAtBuild } from "./src/lib/login-providers";
-import { registrySettings } from "./src/lib/registry-settings";
 import { securityHeaders } from "./src/lib/security-headers";
-import { environmentSettings } from "./src/lib/service-environments";
+import { publicSettingsChecks } from "./src/lib/settings-checks";
 
 function nextConfig(phase: string): NextConfig {
     // all settings are read at runtime: check them when `next start` or
@@ -20,17 +18,13 @@ function nextConfig(phase: string): NextConfig {
         phase === PHASE_PRODUCTION_SERVER
     ) {
         loginSettings();
-        registrySettings();
-        brandingSettings();
-        environmentSettings();
+        publicSettingsChecks();
     }
     // Vercel builds (`VERCEL=1`) have the runtime settings too, and deploy
     // what they build: check them when building there
     if (phase === PHASE_PRODUCTION_BUILD && process.env.VERCEL === "1") {
         loginSettingsAtBuild();
-        registrySettings();
-        brandingSettings();
-        environmentSettings();
+        publicSettingsChecks();
     }
 
     return {

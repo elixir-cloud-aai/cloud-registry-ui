@@ -20,22 +20,40 @@ const footerStartYear =
 // `_DARK` = the logo shown in the dark colour scheme, i.e. a light-coloured
 // logo for a dark background; a custom logo without one is used in both
 // colour schemes, on a white backing in the dark one
-const appLogo = {
-    light: publicSetting("NEXT_PUBLIC_APP_LOGO") || "/elixir-on-cloud-mark.svg",
-    dark: publicSetting("NEXT_PUBLIC_APP_LOGO")
-        ? publicSetting("NEXT_PUBLIC_APP_LOGO_DARK") || undefined
-        : publicSetting("NEXT_PUBLIC_APP_LOGO_DARK") ||
-          "/elixir-on-cloud-mark-night.svg",
-};
-const footerLogo = {
-    light:
-        publicSetting("NEXT_PUBLIC_FOOTER_LOGO") ||
-        "/elixir-on-cloud-lockup.svg",
-    dark: publicSetting("NEXT_PUBLIC_FOOTER_LOGO")
-        ? publicSetting("NEXT_PUBLIC_FOOTER_LOGO_DARK") || undefined
-        : publicSetting("NEXT_PUBLIC_FOOTER_LOGO_DARK") ||
-          "/elixir-on-cloud-lockup-night.svg",
-};
+/**
+ * Get a logo for both colour schemes
+ * @param light Logo setting, if any
+ * @param dark `_DARK` logo setting, if any
+ * @param defaults Logos without settings
+ * @returns The logos; no dark one for a custom logo without one
+ */
+function logoPair(
+    light: string | undefined,
+    dark: string | undefined,
+    defaults: { light: string; dark: string },
+) {
+    return {
+        light: light || defaults.light,
+        dark: light ? dark || undefined : dark || defaults.dark,
+    };
+}
+
+const appLogo = logoPair(
+    publicSetting("NEXT_PUBLIC_APP_LOGO"),
+    publicSetting("NEXT_PUBLIC_APP_LOGO_DARK"),
+    {
+        light: "/elixir-on-cloud-mark.svg",
+        dark: "/elixir-on-cloud-mark-night.svg",
+    },
+);
+const footerLogo = logoPair(
+    publicSetting("NEXT_PUBLIC_FOOTER_LOGO"),
+    publicSetting("NEXT_PUBLIC_FOOTER_LOGO_DARK"),
+    {
+        light: "/elixir-on-cloud-lockup.svg",
+        dark: "/elixir-on-cloud-lockup-night.svg",
+    },
+);
 
 /**
  * Count the characters of a text, not its UTF-16 code units

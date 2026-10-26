@@ -17,7 +17,7 @@ const openSans = Open_Sans({
     variable: "--font-title",
 });
 
-// per request, as the title is read when the server runs
+// not at build time, as the title is read when the server runs
 export function generateMetadata(): Metadata {
     return {
         title: appTitle,
