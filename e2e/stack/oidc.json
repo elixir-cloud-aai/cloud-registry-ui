@@ -1,0 +1,20 @@
+{
+    "interactiveLogin": true,
+    "tokenCallbacks": [
+        {
+            "issuerId": "oidc",
+            "tokenExpiry": 3600,
+            "requestMappings": [
+                {
+                    "requestParam": "grant_type",
+                    "match": "*",
+                    "claims": {
+                        "aud": ["${clientId}"],
+                        "client_id": "${clientId}",
+                        "scope": "openid profile email"
+                    }
+                }
+            ]
+        }
+    ]
+}

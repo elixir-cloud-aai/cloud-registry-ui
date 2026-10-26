@@ -1,0 +1,59 @@
+# Services for the end-to-end tests: cloud-registry with MongoDB and a mock
+# OpenID Connect provider. The app runs outside, started by Playwright
+# (`playwright.config.ts`). Ports differ from the defaults so that the stack
+# can run next to a local development setup.
+#
+# - Registry: http://localhost:8180/ga4gh/registry/v1
+# - Login:    http://oidc.localhost:8190/oidc
+name: cloud-registry-ui-e2e
+
+services:
+    # reachable as `oidc.localhost:8190` from the browser and the app on the
+    # host (`*.localhost` is the loopback interface) and, through the network
+    # alias, from the registry, so that tokens get the same issuer
+    oidc:
+        image: ghcr.io/navikt/mock-oauth2-server:6.0.7
+        environment:
+            SERVER_PORT: "8190"
+            JSON_CONFIG_PATH: /config/oidc.json
+        ports:
+            - "127.0.0.1:8190:8190"
+        volumes:
+            - ./oidc.json:/config/oidc.json:ro
+        networks:
+            default:
+                aliases:
+                    - oidc.localhost
+
+    registry:
+        # cloud-registry's `dev` branch, with the features of 0.5.0 that the
+        # app uses (e.g. GET /approvals); pinned for repeatable runs
+        image: ${E2E_REGISTRY_IMAGE:-docker.io/elixircloud/cloud-registry:sha-9ce0ef1778587520fd9228decb2f5f4c33f17aa8}
+        depends_on:
+            mongodb:
+                condition: service_healthy
+            oidc:
+                condition: service_started
+        ports:
+            - "127.0.0.1:8180:8080"
+        environment:
+            FOCA_CONFIG_OVERLAY: /etc/cloud-registry/config.e2e.yaml
+        volumes:
+            - ./registry.yaml:/etc/cloud-registry/config.e2e.yaml:ro
+
+    mongodb:
+        image: mongo:7.0
+        tmpfs:
+            - /data/db
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "mongosh",
+                    "--quiet",
+                    "--eval",
+                    "db.adminCommand('ping').ok",
+                ]
+            interval: 2s
+            timeout: 5s
+            retries: 30
