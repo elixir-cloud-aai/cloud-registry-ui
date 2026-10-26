@@ -30,14 +30,20 @@ function pkceChallenge(verifier: string) {
 }
 
 /**
- * Read the nonce of an ID token. The token isn't verified: the app gets it
- * straight from the provider's token endpoint, over TLS (OpenID Connect
- * Core, section 3.1.3.7)
+ * Check that an ID token is of this login: of the provider (`iss`), for
+ * the app (`aud`), with the login's nonce. The signature isn't checked:
+ * the app gets the token straight from the provider's token endpoint, over
+ * TLS (OpenID Connect Core, section 3.1.3.7), and reads no other claims
  * @param idToken ID token, a JWT
- * @returns The `nonce` claim, or undefined if there is no string nonce
- * @throws Error if the token isn't a JWT with a JSON payload
+ * @param expected The provider's issuer, as discovered, the app's client
+ * ID, and the login's nonce
+ * @throws Error naming the claim that doesn't match, or if the token isn't
+ * a JWT with a JSON object as payload
  */
-function idTokenNonce(idToken: string) {
+function checkIdToken(
+    idToken: string,
+    expected: { issuer: string; clientId: string; nonce: string },
+) {
     const parts = idToken.split(".");
     let claims: unknown;
     try {
@@ -46,11 +52,14 @@ function idTokenNonce(idToken: string) {
     } catch {
         throw new Error("Invalid ID token");
     }
-    const nonce =
-        claims !== null && typeof claims === "object" && !Array.isArray(claims)
-            ? (claims as { nonce?: unknown }).nonce
-            : undefined;
-    return typeof nonce === "string" ? nonce : undefined;
+    if (claims === null || typeof claims !== "object" || Array.isArray(claims))
+        throw new Error("Invalid ID token");
+    const { iss, aud, nonce } = claims as Record<string, unknown>;
+    if (iss !== expected.issuer) throw new Error("ID token with another iss");
+    if (!(Array.isArray(aud) ? aud : [aud]).includes(expected.clientId))
+        throw new Error("ID token with another aud");
+    if (nonce !== expected.nonce)
+        throw new Error("ID token with another nonce");
 }
 
-export { idTokenNonce, loginCookies, pkceChallenge, randomSecret };
+export { checkIdToken, loginCookies, pkceChallenge, randomSecret };

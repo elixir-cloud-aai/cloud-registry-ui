@@ -26,7 +26,13 @@ const pending = {
     authVerifier: "verifier-1",
     authNonce: "nonce-1",
 };
-const idToken = jwt({ sub: "a", nonce: "nonce-1" });
+const claims = {
+    iss: discovery.issuer,
+    aud: "client",
+    sub: "a",
+    nonce: "nonce-1",
+};
+const idToken = jwt(claims);
 const tokens = {
     access_token: "access",
     id_token: idToken,
@@ -159,8 +165,10 @@ describe("GET /auth/api/callback", () => {
     });
 
     it.each([
-        ["another nonce", jwt({ sub: "a", nonce: "nonce-2" }), "nonce"],
-        ["no nonce", jwt({ sub: "a" }), "nonce"],
+        ["another nonce", jwt({ ...claims, nonce: "nonce-2" }), "nonce"],
+        ["no nonce", jwt({ ...claims, nonce: undefined }), "nonce"],
+        ["another issuer", jwt({ ...claims, iss: "https://evil" }), "iss"],
+        ["another audience", jwt({ ...claims, aud: "other" }), "aud"],
         ["no JWT", "id", "Invalid ID token"],
     ])("fails on an ID token with %s", async (_, id_token, message) => {
         setUp(pending);
@@ -189,6 +197,19 @@ describe("GET /auth/api/callback", () => {
         );
     });
 
+    it("compares the issuer with the discovered one, as LS Login's", async () => {
+        setUp(pending);
+        const issuer = `${discovery.issuer}/`;
+        vi.spyOn(axios, "get").mockResolvedValue({
+            data: { ...discovery, issuer },
+        });
+        const { url } = await callback(
+            `?code=c1&state=state-1&iss=${encodeURIComponent(issuer)}`,
+            { ...tokens, id_token: jwt({ ...claims, iss: issuer }) },
+        );
+        expect(url).toBe("/dashboard");
+    });
+
     it.each([
         ["another issuer", "&iss=https%3A%2F%2Fevil.example.org", false],
         [
@@ -199,6 +220,7 @@ describe("GET /auth/api/callback", () => {
         ["no issuer from a provider that sends one", "", true],
     ])("rejects %s", async (_, iss, supported) => {
         setUp(pending);
+        const log = vi.spyOn(console, "error").mockImplementation(() => {});
         vi.spyOn(axios, "get").mockResolvedValue({
             data: {
                 ...discovery,
@@ -207,6 +229,12 @@ describe("GET /auth/api/callback", () => {
         });
         const { url, post } = await callback(`?code=c1&state=state-1${iss}`);
         expect(url).toBe("/auth/error?type=issuer");
+        expect(log).toHaveBeenCalledWith(
+            "Login with mock failed:",
+            expect.stringMatching(
+                `^Unexpected iss .+, expected ${discovery.issuer}$`,
+            ),
+        );
         // the code may be another provider's
         expect(post).not.toHaveBeenCalled();
         expect(jar.has("authState")).toBe(false);
