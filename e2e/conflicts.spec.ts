@@ -5,6 +5,7 @@ import {
     login,
     newService,
     registerService,
+    registry,
     test,
     tokenOf,
     uniqueId,
@@ -12,12 +13,19 @@ import {
 } from "./fixtures";
 
 /**
- * Drop the browser's messages about the conflicts (409) that a test causes
- * on purpose, so that only other problems fail it
+ * Drop the browser's message about the conflict (409) that a test causes on
+ * purpose, so that only other problems fail it
  * @param problems Problems of the page
+ * @param path Path of the request below the registry's base URL
  */
-function dropConflicts(problems: string[]) {
-    const others = problems.filter((val) => !/status of 409/.test(val));
+function dropConflict(problems: string[], path: string) {
+    const others = problems.filter(
+        (val) =>
+            !(
+                val.includes("status of 409") &&
+                val.endsWith(`(${registry}${path})`)
+            ),
+    );
     problems.splice(0, problems.length, ...others);
 }
 
@@ -60,7 +68,7 @@ test.describe("conflicts", () => {
             "aria-invalid",
             "true",
         );
-        dropConflicts(problems);
+        dropConflict(problems, `/services/${service.id}`);
     });
 
     test("owners of pending services see why they can't change them", async ({
@@ -80,7 +88,8 @@ test.describe("conflicts", () => {
         });
         expect(created.status).toBe(201);
         await login(page, "owner");
-        await submitChanges(page, String(created.body), {
+        const id = String(created.body);
+        await submitChanges(page, id, {
             name: `Renamed ${uniqueId()}`,
         });
         await expect(
@@ -95,7 +104,7 @@ test.describe("conflicts", () => {
             "aria-invalid",
             "true",
         );
-        dropConflicts(problems);
+        dropConflict(problems, `/services/${id}`);
     });
 
     test("the last owner stays", async ({ page, browser, problems }) => {
@@ -110,7 +119,10 @@ test.describe("conflicts", () => {
         await expect(
             page.getByText("Add another owner first, or delete the service."),
         ).toBeVisible();
-        dropConflicts(problems);
+        dropConflict(
+            problems,
+            `/services/${service.id}/permissions/${encodeURIComponent(users.owner.sub)}`,
+        );
     });
 
     test("admins verify services only as they saw them", async ({
@@ -140,6 +152,6 @@ test.describe("conflicts", () => {
                 "The service changed after it was checked. Please check it again.",
             ),
         ).toBeVisible();
-        dropConflicts(problems);
+        dropConflict(problems, `/services/${id}/verification`);
     });
 });
