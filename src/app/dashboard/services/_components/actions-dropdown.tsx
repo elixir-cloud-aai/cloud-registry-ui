@@ -55,7 +55,7 @@ function ActionDropdown(props: Props) {
                     View
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                    <Link href={`/dashboard/update-service/${rowData.id}`}>
+                    <Link href={`/dashboard/services/update/${rowData.id}`}>
                         Edit
                     </Link>
                 </DropdownMenuItem>
