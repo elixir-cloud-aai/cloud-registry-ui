@@ -278,14 +278,19 @@ class AuthenticatedCloudRegistryProvider
    * from older ones. With a token, browsers reject the preflight's 404,
    * and the request fails without a status.
    *
-   * @returns false if the route is missing (404), true otherwise (e.g. 401;
-   * the request with the token then reports other errors)
-   * @throws TypeError if the registry can't be reached
+   * @returns false if the route is missing (404), true for any other status
+   * (e.g. 401 or 5xx; the request with the token then reports errors)
+   * @throws TypeError if the registry can't be reached, or an error if it
+   * doesn't answer within 10 seconds; failed probes aren't kept
    */
   async hasApprovals(): Promise<boolean> {
     let support = approvalsSupport.get(this.baseUrl);
     if (!support) {
-      support = fetch(this.url("/approvals"), { cache: "no-store" }).then(
+      support = fetch(this.url("/approvals"), {
+        cache: "no-store",
+        // a stalled probe must not hold up the pages until a reload
+        signal: AbortSignal.timeout(10_000),
+      }).then(
         (response) => response.status !== 404,
         (err: unknown) => {
           // ask again next time, e.g. once the registry is up
