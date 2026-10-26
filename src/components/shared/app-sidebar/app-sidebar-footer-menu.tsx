@@ -1,6 +1,5 @@
 import { getCookie } from "cookies-next/client";
 import { Copy, LogOut } from "lucide-react";
-import Link from "next/link";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -29,6 +28,17 @@ function AppSidebarFooterMenu({ user, userId }: Props) {
                     toast.error("Please try again to copy the token."),
                 );
         }
+    };
+
+    // a form submission, so that leaving pages with unsaved changes still
+    // asks first (beforeunload), and the browser sends the Origin header;
+    // built here, as the menu unmounts when an item is selected
+    const logOut = () => {
+        const form = document.createElement("form");
+        form.method = "post";
+        form.action = "/auth/api/logout";
+        document.body.append(form);
+        form.submit();
     };
 
     const copyUserId = () => {
@@ -80,11 +90,9 @@ function AppSidebarFooterMenu({ user, userId }: Props) {
                 Copy token to Dashboard
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-                <Link href={"/auth/api/logout"} className="text-red-500">
-                    <LogOut />
-                    Log out
-                </Link>
+            <DropdownMenuItem onSelect={logOut} className="text-red-500">
+                <LogOut />
+                Log out
             </DropdownMenuItem>
         </DropdownMenuContent>
     );

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import {
+    loginErrorSummary,
     loginProvider,
     loginSettings,
     oidcEndpoints,
@@ -19,7 +20,10 @@ export async function GET(request: NextRequest) {
         authorizationEndpoint = (await oidcEndpoints(provider))
             .authorization_endpoint;
     } catch (err) {
-        console.log(err);
+        console.error(
+            `Login with ${provider.id} failed:`,
+            loginErrorSummary(err),
+        );
         redirect("/auth/error?type=internal");
     }
 

@@ -151,8 +151,28 @@ function oidcEndpoints(provider: LoginProvider) {
     return promise;
 }
 
+/**
+ * Describe a failed request to a login provider without secrets: the
+ * request's body (e.g. the client secret) and headers stay out
+ * @param err Error of a request, or any other error
+ * @returns Method, URL without query, status, OAuth error code and message
+ */
+function loginErrorSummary(err: unknown) {
+    if (!axios.isAxiosError(err))
+        return err instanceof Error ? err.message : String(err);
+    const { config, response } = err;
+    const url = config?.url ? config.url.split("?")[0] : "unknown URL";
+    const data = response?.data as { error?: unknown } | undefined;
+    const oauthError =
+        typeof data?.error === "string" ? `, error ${data.error}` : "";
+    return `${config?.method?.toUpperCase() ?? "Request"} ${url} failed: ${
+        response ? `status ${response.status}${oauthError}` : err.message
+    }`;
+}
+
 export type { LoginProvider, LoginProviderInfo };
 export {
+    loginErrorSummary,
     loginProvider,
     loginProviderInfos,
     loginRequestTimeout,
