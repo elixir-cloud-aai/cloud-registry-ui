@@ -103,9 +103,9 @@ jobs:
               run: |
                   docker run -d --name app -p 127.0.0.1:3000:3000 \
                     -e LOGIN_PROVIDERS -e LOGIN_REDIRECT_URI cloud-registry-ui:ci
+                  trap 'docker rm -f app >/dev/null' EXIT
                   for _ in $(seq 30); do
                     if curl -fs http://localhost:3000/auth/login | grep -q "login-redirect?provider=ci"; then
-                      docker rm -f app
                       exit 0
                     fi
                     sleep 2
