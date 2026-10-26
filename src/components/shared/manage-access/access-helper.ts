@@ -47,7 +47,7 @@ export const grantSchema = z
                 path: ["principal"],
                 message: "Group can't start with '/'.",
             });
-        // `.` and `..` would be dot segments of the path
+        // dots only: `.` and `..` would be dot segments of the API path
         else if (/^\.+$/.test(val.principal))
             ctx.addIssue({
                 code: "custom",
