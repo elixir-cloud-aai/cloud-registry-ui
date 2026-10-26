@@ -11,8 +11,7 @@
 # findings are listed in `.trivyignore.yaml` (of the checked-out commit) and
 # left out of all results. The job needs the `security-events: write`
 # permission to upload to code scanning. The copies of this action in FOCA,
-# cloud-registry, cloud-registry-ui and proTES are identical: change them
-# together.
+# cloud-registry and proTES are identical: change them together.
 
 name: Scan image
 description: Scan a Docker image with Trivy and fail on fixable critical and high findings

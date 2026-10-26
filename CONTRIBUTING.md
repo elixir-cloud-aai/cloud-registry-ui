@@ -95,6 +95,17 @@ git push origin your-branch-name
 
 
 
+## Releasing
+
+Releases are cut from `main` by the maintainers (see [Compatibility](README.md#compatibility) for the versions):
+
+1. Merge the release's changes into `main`, and let CI pass for that commit.
+2. On a branch, set the version in `package.json` and in `CITATION.cff` (`version`, and `date-released`), and update the authors in `CITATION.cff`: everyone who committed to the repository, listed by the number of lines they committed, then by the number of their commits. Merge it into `main`.
+3. Tag the merge commit with a signed, annotated tag, `vX.Y.Z` (or `vX.Y.Z-rcN` for a release candidate), and push it: `git tag -s vX.Y.Z -m vX.Y.Z`, then `git push origin vX.Y.Z`.
+4. Approve the jobs of the release workflow (`.github/workflows/release.yml`) in the `release` environment. It checks the tag and the versions, pushes, scans, signs and tags the image `elixircloud/cloud-registry-ui:X.Y.Z`, and publishes the GitHub release with the generated notes; add the curated sections to the notes afterwards.
+
+The repository needs, once: an environment `release` with a required reviewer and the Docker Hub secrets `DOCKERHUB_LOGIN` and `DOCKERHUB_TOKEN` (allowed to push `elixircloud/cloud-registry-ui`, which must be public), optionally the variable `DOCKERHUB_ORG` for another Docker Hub organization, and a ruleset that keeps `v*` tags from being moved or deleted. Tags and published images can't be changed: if a release fails after its tag was pushed, release the next patch version.
+
 ## Reporting Issues
 
 When creating an issue, please include:

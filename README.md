@@ -4,9 +4,9 @@ Web frontend for the ELIXIR Cloud service registry ([cloud-registry](https://git
 
 ## Compatibility
 
-UI versions follow the registry in major and minor version: UI 0.5.x works with cloud-registry 0.5.x, and UI 1.0.0-rc1 with cloud-registry 1.0.0-rc1; patch releases are independent. Until the first release of the UI, the `ai` branch goes with cloud-registry 0.5.0.
+UI versions follow the registry in major and minor version: UI 0.5.x works with cloud-registry 0.5.x, and UI 1.0.0-rc1 with cloud-registry 1.0.0-rc1; patch releases are independent. The first release, 0.5.0, goes with cloud-registry 0.5.x.
 
-Releases are published as GitHub releases and as images on Docker Hub, `elixircloud/cloud-registry-ui:<version>` (`latest` for the highest stable release), built by the release workflow (`.github/workflows/release.yml`) with an SBOM and the build provenance attached, and signed (see [Verifying images](#verifying-images)). Until 1.0.0, all releases are marked as pre-releases on GitHub.
+Releases are published as GitHub releases and as images on Docker Hub, `elixircloud/cloud-registry-ui:<version>` (`latest` for the highest release without a pre-release suffix such as `-rc1`, 0.x releases included), built by the release workflow (`.github/workflows/release.yml`) with an SBOM and the build provenance attached, and signed (see [Verifying images](#verifying-images)). Until 1.0.0, all releases are marked as pre-releases on GitHub.
 
 ## Installation
 
@@ -96,6 +96,8 @@ cosign verify docker.io/elixircloud/cloud-registry-ui:0.5.0 \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   --certificate-identity https://github.com/elixir-cloud-aai/cloud-registry-ui/.github/workflows/release.yml@refs/tags/v0.5.0
 ```
+
+Replace 0.5.0 with the version to verify. `--source-ref` and the ref in `--certificate-identity` check that the workflow ran for the release tag, not for another branch or tag; other images, e.g. ones you build yourself, aren't releases.
 
 To show an image's SBOM or provenance, run `docker buildx imagetools inspect docker.io/elixircloud/cloud-registry-ui:0.5.0 --format '{{ json .SBOM }}'` (or `.Provenance`).
 

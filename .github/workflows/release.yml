@@ -10,12 +10,15 @@
 # README). `push` and `publish` each need approval in the `release`
 # environment (required reviewer, Docker Hub secrets `DOCKERHUB_LOGIN` and
 # `DOCKERHUB_TOKEN`). Re-running all jobs builds, scans, signs and tags a new
-# digest; re-running failed jobs reuses the digest already pushed. The image
-# has no settings: they are passed when it starts, so one image serves any
-# deployment. UI versions follow the registry in major and minor version
-# (see "Compatibility" in the README). Until 1.0.0, all releases are GitHub
-# pre-releases (but stable ones still update the `latest` image). Adapted
-# from cloud-registry's release workflow.
+# digest, but never moves a version tag that exists to another digest (the
+# run fails instead); re-running failed jobs reuses the digest already
+# pushed. The image has no settings: they are passed when it starts, so one
+# image serves any deployment. UI versions follow the registry in major and
+# minor version (see "Compatibility" in the README). Until 1.0.0, all
+# releases are GitHub pre-releases (but stable ones still update the
+# `latest` image). See "Releasing" in `CONTRIBUTING.md` for the steps and
+# the repository settings it needs. Adapted from cloud-registry's release
+# workflow.
 
 name: Release
 
@@ -229,6 +232,14 @@ jobs:
             VERSION: ${{ needs.prepare.outputs.version }}
             DIGEST: ${{ needs.push.outputs.digest }}
         steps:
+            # The commit checked by `prepare`, with all tags, to find the
+            # previous release
+            - name: Check out repository
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+                  ref: ${{ needs.prepare.outputs.sha }}
+                  fetch-depth: 0
             - name: Check image digest
               run: |
                   if [[ ! "${DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]]; then
@@ -289,6 +300,14 @@ jobs:
               env:
                   LATEST: ${{ steps.latest.outputs.latest }}
               run: |
+                  # Released images don't change: a version tag of another
+                  # digest (e.g. after re-running all jobs) stops the run
+                  current="$(docker buildx imagetools inspect "${IMAGE_NAME}:${VERSION}" \
+                      --format '{{ json .Manifest }}' 2>/dev/null | jq -r .digest || true)"
+                  if [[ -n "${current}" && "${current}" != "${DIGEST}" ]]; then
+                      echo "::error::${IMAGE_NAME}:${VERSION} already points to ${current}; release a new version instead"
+                      exit 1
+                  fi
                   tags=("${IMAGE_NAME}:${VERSION}")
                   if [[ "${LATEST}" == "true" ]]; then
                       tags+=("${IMAGE_NAME}:latest")
@@ -305,10 +324,13 @@ jobs:
             # A draft first, published last, so that immutable releases (a
             # repository setting) can still get their notes; re-runs finish
             # the draft of an earlier attempt and leave a published release as
-            # it is. GitHub's generated notes list the merged pull requests;
-            # the maintainers add the curated sections afterwards (the notes
-            # of published releases stay editable). GitHub never marks
-            # pre-releases as the latest release
+            # it is. GitHub's generated notes list the merged pull requests
+            # since the previous published release in the history of the
+            # release commit (tags without a release, e.g. of a failed run,
+            # don't count; without one, all of them); the maintainers add the
+            # curated sections afterwards (the notes of published releases
+            # stay editable). GitHub never marks pre-releases as the latest
+            # release
             - name: Create release
               env:
                   GH_TOKEN: ${{ github.token }}
@@ -326,11 +348,27 @@ jobs:
                       exit 0
                   fi
                   if [[ "${state}" == "none" ]]; then
+                      published="$(gh release list --limit 1000 --exclude-drafts \
+                          --json tagName --jq '.[].tagName')"
+                      previous=""
+                      while read -r tag; do
+                          if [[ "${tag}" != "${TAG}" ]] && grep -qxF -- "${tag}" <<< "${published}"; then
+                              previous="${tag}"
+                              break
+                          fi
+                      done < <(git tag -l 'v*' --merged HEAD --sort=-creatordate)
+                      args=(-f "tag_name=${TAG}")
+                      if [[ -n "${previous}" ]]; then
+                          args+=(-f "previous_tag_name=${previous}")
+                      fi
+                      notes="$(mktemp)"
+                      gh api "repos/${GH_REPO}/releases/generate-notes" "${args[@]}" \
+                          --jq .body > "${notes}"
                       gh release create "${TAG}" \
                           --draft \
                           --verify-tag \
                           --title "${TAG}" \
-                          --generate-notes \
+                          --notes-file "${notes}" \
                           --prerelease="${PRERELEASE}"
                   fi
                   gh release edit "${TAG}" --title "${TAG}" \

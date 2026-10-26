@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: >-
   If you use this software, please cite it using the metadata from this file.
   Authors are listed by the number of lines they committed, then by the
-  number of their commits.
+  number of their commits (see "Releasing" in the contributing guide).
 title: Cloud Registry UI
 abstract: >-
   Cloud Registry UI is the web front end of Cloud Registry, a registry of web
