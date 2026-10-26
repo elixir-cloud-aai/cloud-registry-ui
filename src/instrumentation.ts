@@ -9,8 +9,7 @@
  * @description check the settings, which are read at runtime; invalid
  * settings stop the server, as the standalone server would otherwise keep
  * running and fail, e.g. every login or every call of the registry. Next
- * doesn't call this hook during
- * `next build`.
+ * doesn't call this hook during `next build`.
  * @returns Promise resolving when the settings are valid; with invalid
  * settings, the server stops instead
  */

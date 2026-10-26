@@ -5,7 +5,8 @@
  * page (`publicSettingsScript()`, in the root layout); values set when
  * building (e.g. on Vercel, or in `.env` for `next build`) apply where the
  * server's environment doesn't set them. They are public: they reach the
- * browser, so they must not hold secrets.
+ * browser, so they must not hold secrets. Pages that replace the root
+ * layout (e.g. a `global-error.tsx`) must render the script too.
  */
 
 // the list of the public settings, with the values set when building;

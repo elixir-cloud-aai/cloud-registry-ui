@@ -85,21 +85,21 @@ The app is configured through environment variables. For `bun run dev`, `bun run
 
 The settings are read when the app starts (`bun run start`, `docker run`, `bun run dev`): change them, then restart the app, without building it again. The `NEXT_PUBLIC_*` settings reach the browser, so they are public: put no secrets in them. Values of `NEXT_PUBLIC_*` settings that are set when the app is built (e.g. in `.env` for `bun run build`, or on Vercel) apply where the environment of the started app doesn't set them; the Docker image is built without settings, so this doesn't apply there.
 
-| Variable                           | Read at | Default                              | Section               |
-| ---------------------------------- | ------- | ------------------------------------ | --------------------- |
-| `NEXT_PUBLIC_CLOUD_REGISTRY_URL`   | start   | (none, required)                     | [Registry](#registry) |
-| `NEXT_PUBLIC_SERVICE_URL_SCHEMES`  | start   | `https`                              | [Registry](#registry) |
-| `NEXT_PUBLIC_SERVICE_ENVIRONMENTS` | start   | `prod,test,dev,staging`              | [Registry](#registry) |
-| `NEXT_PUBLIC_APP_TITLE`            | start   | `Cloud Registry`                     | [Branding](#branding) |
-| `NEXT_PUBLIC_APP_TITLE_SIZE`       | start   | 24 (one line), what fits (two lines) | [Branding](#branding) |
-| `NEXT_PUBLIC_APP_TITLE_FONT`       | start   | Open Sans                            | [Branding](#branding) |
-| `NEXT_PUBLIC_APP_LOGO`             | start   | `/elixir-on-cloud-mark.svg`          | [Branding](#branding) |
-| `NEXT_PUBLIC_APP_LOGO_DARK`        | start   | `/elixir-on-cloud-mark-night.svg`    | [Branding](#branding) |
-| `NEXT_PUBLIC_FOOTER_LOGO`          | start   | `/elixir-on-cloud-lockup.svg`        | [Branding](#branding) |
-| `NEXT_PUBLIC_FOOTER_LOGO_DARK`     | start   | `/elixir-on-cloud-lockup-night.svg`  | [Branding](#branding) |
-| `NEXT_PUBLIC_FOOTER_START_YEAR`    | start   | (none)                               | [Branding](#branding) |
-| `LOGIN_PROVIDERS`                  | start   | (none, required)                     | [Login](#login)       |
-| `LOGIN_REDIRECT_URI`               | start   | (none, required)                     | [Login](#login)       |
+| Variable                           | Default                              | Section               |
+| ---------------------------------- | ------------------------------------ | --------------------- |
+| `NEXT_PUBLIC_CLOUD_REGISTRY_URL`   | (none, required)                     | [Registry](#registry) |
+| `NEXT_PUBLIC_SERVICE_URL_SCHEMES`  | `https`                              | [Registry](#registry) |
+| `NEXT_PUBLIC_SERVICE_ENVIRONMENTS` | `prod,test,dev,staging`              | [Registry](#registry) |
+| `NEXT_PUBLIC_APP_TITLE`            | `Cloud Registry`                     | [Branding](#branding) |
+| `NEXT_PUBLIC_APP_TITLE_SIZE`       | 24 (one line), what fits (two lines) | [Branding](#branding) |
+| `NEXT_PUBLIC_APP_TITLE_FONT`       | Open Sans                            | [Branding](#branding) |
+| `NEXT_PUBLIC_APP_LOGO`             | `/elixir-on-cloud-mark.svg`          | [Branding](#branding) |
+| `NEXT_PUBLIC_APP_LOGO_DARK`        | `/elixir-on-cloud-mark-night.svg`    | [Branding](#branding) |
+| `NEXT_PUBLIC_FOOTER_LOGO`          | `/elixir-on-cloud-lockup.svg`        | [Branding](#branding) |
+| `NEXT_PUBLIC_FOOTER_LOGO_DARK`     | `/elixir-on-cloud-lockup-night.svg`  | [Branding](#branding) |
+| `NEXT_PUBLIC_FOOTER_START_YEAR`    | (none)                               | [Branding](#branding) |
+| `LOGIN_PROVIDERS`                  | (none, required)                     | [Login](#login)       |
+| `LOGIN_REDIRECT_URI`               | (none, required)                     | [Login](#login)       |
 
 Missing or invalid settings stop the app with a message that names the setting:
 
