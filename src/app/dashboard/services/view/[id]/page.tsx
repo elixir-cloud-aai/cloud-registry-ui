@@ -21,7 +21,8 @@ function Page() {
     const [service, setService] = useState<ExternalService>();
     // undefined if unknown, see getServiceWithApproval
     const [pending, setPending] = useState<boolean>();
-    const verification = useServiceVerification(service);
+    const { verification, loaded: verificationLoaded } =
+        useServiceVerification(service);
     const { me, refetch } = useMe();
     const [loginRequired, setLoginRequired] = useState(false);
     const [notFound, setNotFound] = useState(false);
@@ -29,10 +30,20 @@ function Page() {
     // warn once per service that its approval couldn't be checked, not
     // after every change
     const warnedPending = useRef(false);
+    // the ID shown now, undefined once the page is left: callbacks of
+    // earlier IDs, e.g. after a verification that finished after the
+    // ID changed, must neither fetch nor navigate
+    const currentId = useRef<typeof id>(id);
+    useEffect(() => {
+        currentId.current = id;
+        return () => {
+            currentId.current = undefined;
+        };
+    }, [id]);
 
     // pending services are only listed in GET /approvals
     const fetchService = useCallback(() => {
-        if (!id || !cloudRegistryProvider) return;
+        if (!id || !cloudRegistryProvider || id !== currentId.current) return;
         // responses of earlier requests, e.g. for a previous ID, must not
         // replace the service
         const request = ++latestRequest.current;
@@ -132,6 +143,7 @@ function Page() {
             <ServiceDetails
                 service={service}
                 verification={verification}
+                verificationLoaded={verificationLoaded}
                 pending={pending}
                 cloudRegistryProvider={cloudRegistryProvider}
                 me={me}
@@ -142,7 +154,10 @@ function Page() {
                     fetchService();
                     refetch();
                 }}
-                onDeleted={() => router.push("/dashboard/services")}
+                onDeleted={() => {
+                    if (id === currentId.current)
+                        router.push("/dashboard/services");
+                }}
             />
         </Card>
     );

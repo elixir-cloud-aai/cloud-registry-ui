@@ -2,7 +2,13 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { KeyRound, Share2 } from "lucide-react";
 import Link from "next/link";
-import { type ComponentType, type ReactNode, useState } from "react";
+import {
+    type ComponentType,
+    type ReactNode,
+    useEffect,
+    useRef,
+    useState,
+} from "react";
 import { toast } from "sonner";
 import { ApproveTypeButton } from "@/components/shared/approve-type";
 import { ManageAccessDialog } from "@/components/shared/manage-access";
@@ -28,6 +34,8 @@ type SlotProps = { className?: string; children?: ReactNode };
 type Props = {
     service: ExternalService;
     verification?: Verification;
+    // false while the verification loads, as it is undefined until then
+    verificationLoaded?: boolean;
     // undefined if unknown, see getServiceWithApproval
     pending?: boolean;
     cloudRegistryProvider: AuthenticatedCloudRegistryProvider | null;
@@ -35,7 +43,7 @@ type Props = {
     // e.g. DialogTitle in a dialog, CardTitle on a page
     Title: ComponentType<SlotProps>;
     Description: ComponentType<SlotProps>;
-    // after a verification or approval
+    // after a verification or approval, or a delete after unmounting
     onChange: () => void;
     // after a change of access, which may change the user's own roles
     onAccessChange: () => void;
@@ -52,6 +60,7 @@ function servicePageUrl(serviceId: string) {
 function ServiceDetails({
     service,
     verification,
+    verificationLoaded = true,
     pending,
     cloudRegistryProvider,
     me,
@@ -66,13 +75,23 @@ function ServiceDetails({
     const [manageOpen, setManageOpen] = useState(false);
     // the link to copy by hand, if the browser can't copy it
     const [shareUrl, setShareUrl] = useState<string>();
+    // false once the dialog is closed or the page is left, e.g. while a
+    // delete is still running
+    const mounted = useRef(true);
+    useEffect(() => {
+        mounted.current = true;
+        return () => {
+            mounted.current = false;
+        };
+    }, []);
 
     const canEdit = canEditService(me, service.id);
     const canDelete = canDeleteService(me, service.id);
     const manageAccess = canManageAccess(me, service.id);
     // the registry hides the verifications of pending services from the
     // public reads, so their state is unknown until the approval
-    const canVerify = canVerifyService(me) && pending === false;
+    const canVerify =
+        canVerifyService(me) && pending === false && verificationLoaded;
     const canApprove = !!pending && canApproveServiceType(me);
 
     const handleShare = () => {
@@ -109,8 +128,11 @@ function ServiceDetails({
 
         try {
             await promise;
-            // stays disabled until the dialog closes or the page is left
-            onDeleted();
+            // stays disabled until the dialog closes or the page is left;
+            // if that happened already, e.g. another service's dialog may
+            // be open now, so only refresh the data
+            if (mounted.current) onDeleted();
+            else onChange();
         } catch {
             // toast.promise shows the error
             setIsDeleting(false);

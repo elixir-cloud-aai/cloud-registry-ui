@@ -18,7 +18,7 @@ function Page() {
     const [service, setService] = useState<ExternalService>();
     // undefined if unknown, see getServiceWithApproval
     const [pending, setPending] = useState<boolean>();
-    const verification = useServiceVerification(service);
+    const { verification } = useServiceVerification(service);
     const { me, loading: meLoading, error: meError, expired } = useMe();
     const [loginRequired, setLoginRequired] = useState(false);
     const [refreshing, setRefreshing] = useState(false);

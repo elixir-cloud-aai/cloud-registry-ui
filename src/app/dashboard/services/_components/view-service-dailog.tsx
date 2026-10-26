@@ -38,7 +38,8 @@ function ServiceDetailsDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden">
+            {/* scrolls if the details are taller than the viewport */}
+            <DialogContent className="max-w-lg p-0 gap-0 max-h-[90vh] overflow-y-auto">
                 <ServiceDetails
                     service={service}
                     verification={verification}
