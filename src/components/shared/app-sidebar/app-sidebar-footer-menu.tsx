@@ -10,6 +10,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSidebar } from "@/components/ui/sidebar";
 
+// copying the access token puts a bearer token on the clipboard, so only
+// development servers offer it (see "Copying the access token" in the
+// README); Next inlines NODE_ENV at build time, so keep the literal
+// comparison, which drops the item from production bundles
+const canCopyToken = process.env.NODE_ENV === "development";
+
 type Props = {
     user: User;
     userId?: string;
@@ -85,10 +91,12 @@ function AppSidebarFooterMenu({ user, userId }: Props) {
                     </div>
                 </DropdownMenuItem>
             )}
-            <DropdownMenuItem onClick={copyToken}>
-                <Copy />
-                Copy token to Dashboard
-            </DropdownMenuItem>
+            {canCopyToken && (
+                <DropdownMenuItem onClick={copyToken}>
+                    <Copy />
+                    Copy token to Dashboard
+                </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={logOut} className="text-red-500">
                 <LogOut />
