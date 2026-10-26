@@ -37,28 +37,30 @@ function isLocalHost(hostname: string) {
  */
 function registrySettings() {
     const url = process.env.NEXT_PUBLIC_CLOUD_REGISTRY_URL ?? "";
+    // for messages: without a user or password, which belong in no log
+    const shown = url.replace(/\/\/[^/?#]*@/, "//***@");
     if (!url.trim())
         throw new Error(
             "Missing setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: set it to the registry's API, e.g. https://registry.example.org/ga4gh/registry/v1",
         );
     if (url !== url.trim())
         throw new Error(
-            `Invalid setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: "${url}" has spaces at the start or end`,
+            `Invalid setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: "${shown}" has spaces at the start or end`,
         );
     if (!URL.canParse(url))
         throw new Error(
-            `Invalid setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: "${url}" is not an absolute URL`,
+            `Invalid setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: "${shown}" is not an absolute URL`,
         );
     const parsed = new URL(url);
     const local = parsed.protocol === "http:" && isLocalHost(parsed.hostname);
     // the browser takes `https:host/path` as a path of the app's own site
     if (!url.toLowerCase().startsWith(`${parsed.protocol}//`))
         throw new Error(
-            `Invalid setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: "${url}" needs "//" after the scheme`,
+            `Invalid setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: "${shown}" needs "//" after the scheme`,
         );
     if (parsed.protocol !== "https:" && !local)
         throw new Error(
-            `Invalid setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: "${url}" must be an https URL (http only for localhost)`,
+            `Invalid setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: "${shown}" must be an https URL (http only for localhost)`,
         );
     if (
         parsed.username ||
@@ -67,7 +69,7 @@ function registrySettings() {
         url.includes("#")
     )
         throw new Error(
-            `Invalid setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: "${url}" must not have a user, password, query or fragment`,
+            `Invalid setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: "${shown}" must not have a user, password, query or fragment`,
         );
 
     const invalid = configuredSchemes.find(
