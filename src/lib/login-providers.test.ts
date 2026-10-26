@@ -172,17 +172,28 @@ describe("oidcEndpoints", () => {
         );
     });
 
-    it("knows whether the provider sends its issuer", async () => {
-        const { oidcEndpoints, loginSettings } = await load();
-        vi.spyOn(axios, "get").mockResolvedValue({
-            data: {
-                ...discovery,
-                authorization_response_iss_parameter_supported: true,
-            },
-        });
-        const ls = loginSettings().providers[0];
-        expect((await oidcEndpoints(ls)).issParameterSupported).toBe(true);
-    });
+    it.each([
+        [true, true],
+        ["true", true],
+        [false, false],
+        ["false", false],
+        ["yes", false],
+    ])(
+        "takes %j for whether the provider sends its issuer as %s",
+        async (value, supported) => {
+            const { oidcEndpoints, loginSettings } = await load();
+            vi.spyOn(axios, "get").mockResolvedValue({
+                data: {
+                    ...discovery,
+                    authorization_response_iss_parameter_supported: value,
+                },
+            });
+            const ls = loginSettings().providers[0];
+            expect((await oidcEndpoints(ls)).issParameterSupported).toBe(
+                supported,
+            );
+        },
+    );
 
     it.each([
         [

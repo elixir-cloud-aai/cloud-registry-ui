@@ -31,6 +31,7 @@ const claims = {
     aud: "client",
     sub: "a",
     nonce: "nonce-1",
+    exp: Math.floor(Date.now() / 1000) + 300,
 };
 const idToken = jwt(claims);
 const tokens = {

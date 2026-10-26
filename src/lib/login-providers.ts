@@ -44,7 +44,7 @@ type OidcDiscovery = {
     authorization_endpoint: string;
     token_endpoint: string;
     userinfo_endpoint: string;
-    authorization_response_iss_parameter_supported?: boolean;
+    authorization_response_iss_parameter_supported?: boolean | string;
 };
 
 type OidcEndpoints = {
@@ -225,8 +225,10 @@ function oidcEndpoints(provider: LoginProvider): Promise<OidcEndpoints> {
                 authorization_endpoint,
                 token_endpoint,
                 userinfo_endpoint,
-                issParameterSupported:
-                    authorization_response_iss_parameter_supported === true,
+                // a string "true" too: the check is safer than none
+                issParameterSupported: [true, "true"].includes(
+                    authorization_response_iss_parameter_supported ?? false,
+                ),
             };
         });
     // fetch again on the next login after a failure
