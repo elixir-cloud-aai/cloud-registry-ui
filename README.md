@@ -138,7 +138,7 @@ All optional; read at build time. Logos given as paths must be in `public/` when
 
 ### Login
 
-Users log in with one of the login providers that you configure (OpenID Connect, authorization code flow with PKCE and a nonce). Providers must support PKCE with `S256`, as LS Login does; if a provider names itself in its responses (RFC 9207), the app checks the name. The app reads these settings when the server starts and refuses to start without at least one valid provider. They are read at runtime, so `docker run -e` and `--env-file` work, and they stay on the server: client secrets never reach the browser or the image (pass them with `docker run`, see [Docker](#docker)).
+Users log in with one of the login providers that you configure (OpenID Connect, authorization code flow with PKCE and a nonce). Providers must support PKCE with `S256`, as LS Login does; if a provider names itself in its responses (RFC 9207), the app checks the name. Logins that were started before an update to this version fail once, and users log in again. The app reads these settings when the server starts and refuses to start without at least one valid provider. They are read at runtime, so `docker run -e` and `--env-file` work, and they stay on the server: client secrets never reach the browser or the image (pass them with `docker run`, see [Docker](#docker)).
 
 | Variable             | Required | Description                                                                                  |
 | -------------------- | -------- | -------------------------------------------------------------------------------------------- |

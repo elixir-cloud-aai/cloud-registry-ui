@@ -4,6 +4,14 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 
+/** @description cookies of a pending login, deleted when it ends */
+const loginCookies = [
+    "authState",
+    "authProvider",
+    "authVerifier",
+    "authNonce",
+] as const;
+
 /**
  * Make a new secret for a login, e.g. a state, PKCE code verifier or nonce
  * @returns 256 random bits, base64url-encoded (43 characters)
@@ -45,4 +53,4 @@ function idTokenNonce(idToken: string) {
     return typeof nonce === "string" ? nonce : undefined;
 }
 
-export { idTokenNonce, pkceChallenge, randomSecret };
+export { idTokenNonce, loginCookies, pkceChallenge, randomSecret };

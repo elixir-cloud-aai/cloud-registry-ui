@@ -174,7 +174,9 @@ describe("GET /auth/api/callback", () => {
             "Login with mock failed:",
             expect.stringContaining(message),
         );
-        expect(JSON.stringify(log.mock.calls)).not.toMatch(/access|nonce-1/);
+        const logged = JSON.stringify(log.mock.calls);
+        for (const secret of [tokens.access_token, "nonce-1"])
+            expect(logged).not.toContain(secret);
         expect(jar.has("access_token")).toBe(false);
         expect(jar.has("id_token")).toBe(false);
     });
