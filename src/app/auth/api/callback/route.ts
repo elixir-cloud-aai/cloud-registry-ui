@@ -30,12 +30,14 @@ export async function GET(request: NextRequest) {
 
     if (code === null || state === null) redirect("/auth/error?type=params");
 
+    // a wrong state, e.g. from another site, leaves a pending login intact
     const authState = await getCookie("authState", { cookies });
+    if (!authState || authState !== state) redirect("/auth/error?type=state");
+
     const providerId = await getCookie("authProvider", { cookies });
     // a state can be used once, also if this callback fails
     await deleteCookie("authState", { cookies, path: "/" });
     await deleteCookie("authProvider", { cookies, path: "/" });
-    if (!authState || authState !== state) redirect("/auth/error?type=state");
 
     const provider = providerId ? loginProvider(providerId) : undefined;
     if (!provider) redirect("/auth/error?type=provider");
