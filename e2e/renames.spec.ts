@@ -79,7 +79,10 @@ test.describe("renames", () => {
         await login(page, "admin");
         await openForm(page, service.id);
 
-        const newId = `renamed-${uniqueId()}`;
+        // with a space and a literal %25, which must stay as they are in
+        // the URL's round trip
+        const newId = `renamed %25 ${uniqueId()}`;
+        const path = encodeURIComponent(newId);
         const name = `Renamed ${uniqueId()}`;
         await page.locator("input[name=id]").fill(newId);
         await page.locator("input[name=name]").fill(name);
@@ -89,7 +92,7 @@ test.describe("renames", () => {
         await expect(dialog).toContainText(newId);
         await dialog.getByRole("button", { name: "Change ID" }).click();
 
-        await expect(page).toHaveURL(`/dashboard/services/update/${newId}`);
+        await expect(page).toHaveURL(`/dashboard/services/update/${path}`);
         await expect(page.locator("input[name=id]")).toHaveValue(newId);
         await expect(page.locator("input[name=name]")).toHaveValue(name);
         expect(
@@ -99,11 +102,11 @@ test.describe("renames", () => {
         const permissions = await api(
             admin,
             "GET",
-            `/services/${newId}/permissions`,
+            `/services/${path}/permissions`,
         );
         expect(JSON.stringify(permissions.body)).toContain(users.owner.sub);
         expect(
-            (await api(undefined, "GET", `/services/${newId}/verification`))
+            (await api(undefined, "GET", `/services/${path}/verification`))
                 .status,
         ).toBe(200);
     });
