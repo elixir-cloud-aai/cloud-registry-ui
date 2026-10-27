@@ -43,6 +43,7 @@ class AuthenticatedCloudRegistryProvider
 {
   private readonly baseUrl: string;
   private readonly token?: string;
+  private readonly roles: string[];
 
   constructor(options: CloudRegistryProviderOptions);
   constructor(baseUrl: string, token?: string);
@@ -50,13 +51,14 @@ class AuthenticatedCloudRegistryProvider
     optionsOrUrl: CloudRegistryProviderOptions | string,
     token?: string,
   ) {
-    const options =
+    const options: CloudRegistryProviderOptions =
       typeof optionsOrUrl === "string"
         ? { baseUrl: optionsOrUrl, token }
         : optionsOrUrl;
 
     this.baseUrl = options.baseUrl.replace(/\/+$/, "");
     this.token = options.token;
+    this.roles = options.roles ?? [];
   }
 
   /** Whether requests can be authenticated, i.e. the user is logged in. */
@@ -125,6 +127,10 @@ class AuthenticatedCloudRegistryProvider
       }
 
       headers.set("Authorization", `Bearer ${this.token}`);
+      // with the user's token only: the roles are the user's
+      if (this.roles.length) {
+        headers.set("X-Request-Roles", this.roles.join(","));
+      }
     }
 
     const response = await fetch(this.url(path), {
