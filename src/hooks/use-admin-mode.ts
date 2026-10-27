@@ -38,13 +38,33 @@ function useAdminMode() {
     // a reload, so that every page loads its data again with or without the
     // admin role, also data that pages keep in their own state
     const setAdminMode = (on: boolean) => {
-        if (on)
-            setCookie(adminModeCookie, adminModeOn, {
-                path: "/",
-                sameSite: "lax",
-                secure: window.location.protocol === "https:",
-            });
-        else deleteCookie(adminModeCookie, { path: "/" });
+        const apply = () => {
+            if (on)
+                setCookie(adminModeCookie, adminModeOn, {
+                    path: "/",
+                    sameSite: "lax",
+                    secure: window.location.protocol === "https:",
+                });
+            else deleteCookie(adminModeCookie, { path: "/" });
+        };
+        // pages with unsaved changes ask before the reload (their listeners
+        // come first); then the mode changes only once the page is left, so
+        // that it stays as it is if users stay, and their next input on the
+        // page drops the switch
+        const onBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (!e.defaultPrevented) return apply();
+            const drop = () => {
+                window.removeEventListener("pagehide", apply);
+                window.removeEventListener("pointerdown", drop, true);
+                window.removeEventListener("keydown", drop, true);
+            };
+            window.addEventListener("pagehide", apply, { once: true });
+            window.addEventListener("pointerdown", drop, true);
+            window.addEventListener("keydown", drop, true);
+        };
+        window.addEventListener("beforeunload", onBeforeUnload, {
+            once: true,
+        });
         window.location.reload();
     };
 

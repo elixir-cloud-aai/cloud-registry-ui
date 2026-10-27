@@ -82,6 +82,49 @@ test.describe("admin mode", () => {
         ).toBeVisible();
     });
 
+    test("the mode stays if users keep unsaved changes", async ({
+        page,
+        browser,
+    }) => {
+        const service = await registerService(browser, "admin", "Unsaved");
+        await login(page, "admin");
+        await page.goto(`/dashboard/services/update/${service.id}`);
+        const name = page.locator("input[name=name]");
+        await expect(name).not.toHaveValue("");
+        await name.fill(`${service.name} changed`);
+        const userMode = page.getByRole("button", { name: "User mode" });
+        const modes = async () =>
+            (await page.context().cookies())
+                .filter((val) => val.name === "admin_mode")
+                .map((val) => val.value);
+
+        // what users answer when the page asks before it's left
+        let leave = false;
+        page.on("dialog", (dialog) =>
+            leave ? dialog.accept() : dialog.dismiss(),
+        );
+
+        // stay on the page
+        await userMode.click();
+        await expect(userMode).toBeVisible();
+        await expect(name).toHaveValue(`${service.name} changed`);
+        expect(await modes()).toEqual([]);
+        // a later input drops the switch, also when leaving afterwards
+        await name.press("End");
+        leave = true;
+        await page.reload();
+        await expect(userMode).toBeVisible();
+        expect(await modes()).toEqual([]);
+
+        // leave the page
+        await name.fill(`${service.name} changed`);
+        await userMode.click();
+        await expect(
+            page.getByRole("button", { name: "Admin mode" }),
+        ).toBeVisible();
+        expect(await modes()).toEqual(["1"]);
+    });
+
     test("a new login starts in user mode", async ({ page }) => {
         await login(page, "admin", { adminMode: true });
         await page.getByRole("button", { name: users.admin.sub }).click();
