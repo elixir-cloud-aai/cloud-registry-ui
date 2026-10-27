@@ -146,7 +146,7 @@ class AuthenticatedCloudRegistryProvider
    *
    * Returns the current user and their service roles.
    */
-  async getCurrentUser(): Promise<Me> {
+  async getMe(): Promise<Me> {
     return this.request("/me", {
       authenticated: true,
     });

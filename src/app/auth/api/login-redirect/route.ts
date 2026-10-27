@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 export async function GET() {
     const baseUrl = `${process.env.LS_LOGIN_URL}/oidc/authorize`;
     const authState = crypto.randomUUID();
-    const scope = "openid profile email";
+    const scope = "openid profile email eduperson_entitlement";
 
     await setCookie("authState", authState, {
         cookies: cookies,
