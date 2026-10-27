@@ -5,7 +5,7 @@ import type {
 import { z } from "zod";
 
 const httpUrl = z.url({ protocol: z.regexes.httpProtocol });
-const configuredSchemes = (process.env.NEXT_PUBLIC_SERVICE_URL_SCHEMES ?? "")
+const configuredSchemes = ("http,https")
     .split(",")
     .map((scheme) => scheme.trim().toLowerCase())
     .filter(Boolean);
@@ -19,10 +19,12 @@ const hasNoUserInfoOrSpaces = (value: string) =>
 export const formDataSchema = z.object({
     name: z
         .string()
+        .trim()
         .min(1, "Service name is required.")
         .max(1024, "Service name must be at most 1024 characters."),
     url: z
         .string()
+        .trim()
         .max(2048, "Service URL must be at most 2048 characters.")
         .refine(
             (value) =>
@@ -44,10 +46,12 @@ export const formDataSchema = z.object({
     organization: z.object({
         name: z
             .string()
+            .trim()
             .min(1, "Organization name is required.")
             .max(1024, "Organization name must be at most 1024 characters."),
         url: z
             .string()
+            .trim()
             .max(2048, "Organization URL must be at most 2048 characters.")
             .refine(
                 (value) =>
@@ -59,19 +63,23 @@ export const formDataSchema = z.object({
     type: z.object({
         group: z
             .string()
+            .trim()
             .min(1, "Type group is required.")
             .max(256, "Type group must be at most 256 characters."),
         artifact: z
             .string()
+            .trim()
             .min(1, "Type artifact is required.")
             .max(256, "Type artifact must be at most 256 characters."),
         version: z
             .string()
+            .trim()
             .min(1, "Type version is required.")
             .max(256, "Type version must be at most 256 characters."),
     }),
     version: z
         .string()
+        .trim()
         .min(1, "Service version is required.")
         .max(256, "Service version must be at most 256 characters."),
     description: z
@@ -79,6 +87,7 @@ export const formDataSchema = z.object({
         .max(4096, "Description must be at most 4096 characters."),
     contactUrl: z
         .string()
+        .trim()
         .max(2048, "Contact URL must be at most 2048 characters.")
         .refine((value) => !z.email().safeParse(value).success, {
             message:
@@ -94,6 +103,7 @@ export const formDataSchema = z.object({
         ),
     documentationUrl: z
         .string()
+        .trim()
         .max(2048, "Documentation URL must be at most 2048 characters.")
         .refine(
             (value) =>
