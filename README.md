@@ -121,6 +121,8 @@ Set `NEXT_PUBLIC_SERVICE_ENVIRONMENTS` to the environments that the registry all
 
 The app follows the registry's other settings, such as who may add service types (`custom.access_control.service_types`) and who is an admin, through `GET /me`: there is nothing to set for them in the app.
 
+**Admin mode** (cloud-registry 0.6.0 and later): admins act as admins only in admin mode, so that admin rights are a deliberate choice. Users who may be admins (`admin_available` of `GET /me`) see a toggle in the top bar, "User mode" or "Admin mode"; they start in user mode, with the rights of other users. In admin mode, every request with the user's token asks for the admin role (header `X-Request-Roles: admin`), so the registry must allow that header from the app's origin (FOCA's `security.cors`; its default allows all headers). The mode is kept in the cookie `admin_mode` for the browser session, and logins and logouts end it. Registries without admin mode (before 0.6.0, or with `security.access_control.opt_in_roles: []`) show no toggle: their admins are always admins.
+
 ### Branding
 
 All optional; read at build time. Logos given as paths must be in `public/` when the app is built.

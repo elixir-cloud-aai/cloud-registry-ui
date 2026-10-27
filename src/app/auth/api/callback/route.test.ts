@@ -96,6 +96,14 @@ describe("GET /auth/api/callback", () => {
             expect(jar.has(name)).toBe(false);
     });
 
+    it("starts in user mode", async () => {
+        setUp({ ...pending, admin_mode: "1" });
+        expect((await callback("?code=c1&state=state-1")).url).toBe(
+            "/dashboard",
+        );
+        expect(jar.has("admin_mode")).toBe(false);
+    });
+
     it.each([
         ["no state", "?code=c1", pending],
         ["another state", "?code=c1&state=forged", pending],

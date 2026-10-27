@@ -8,6 +8,7 @@ const session = {
     access_token: "a",
     id_token: "i",
     login_provider: "mock",
+    admin_mode: "1",
     authState: "s",
     authProvider: "mock",
     authVerifier: "v",
