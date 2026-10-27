@@ -1,8 +1,14 @@
 import type { ExternalToast } from "sonner";
-import { isConflict, isForbidden, isUnauthorized } from "./permissions";
+import {
+    hasStatus,
+    isConflict,
+    isForbidden,
+    isUnauthorized,
+} from "./permissions";
 
 // labels of the create and edit forms, by field path
 const fieldLabels: Record<string, string> = {
+    id: "Service ID",
     name: "Service Name",
     url: "Service URL",
     "organization.name": "Organization Name",
@@ -46,12 +52,14 @@ const duplicateMessage =
     "A service with this URL and API type is already registered.";
 
 // the registry's codes for the conflicts (409) that the UI tells apart, as of
-// cloud-registry 0.5.0; others (e.g. `pending-service`, `conflict` or codes
-// added later) show the registry's detail
+// cloud-registry 0.5.0 (renames: 0.6.0); others (e.g. `pending-service`,
+// `conflict` or codes added later) show the registry's detail
 type ConflictCode =
     | "duplicate-service"
     | "verification-mismatch"
-    | "last-owner";
+    | "last-owner"
+    | "service-id-taken"
+    | "service-busy";
 
 // for registries that send no code (cloud-registry#247): the detail of the
 // 409 for changes of pending services (see `@/lib/approvals`) to types that
@@ -89,7 +97,7 @@ function errorMessage(err: unknown, fallback: string) {
     return detail === undefined ? fallback : withFieldLabels(detail);
 }
 
-/** Get the message for a failed change: login, role, detail or fallback */
+/** Get the message for a failed change: login, role, busy, detail or fallback */
 function mutationError(
     err: unknown,
     fallback: string,
@@ -98,6 +106,8 @@ function mutationError(
     if (isUnauthorized(err))
         return "Your session expired. Please log in again.";
     if (isForbidden(err)) return forbidden;
+    if (isServiceBusy(err))
+        return "The service is being changed by another request. Please try again in a moment.";
     return errorMessage(err, fallback);
 }
 
@@ -143,6 +153,32 @@ function isLastOwner(err: unknown) {
     return isConflictOf(err, "last-owner");
 }
 
+/** Check if a rename failed as a service with the new ID is registered */
+function isServiceIdTaken(err: unknown) {
+    // registries that rename services send codes
+    return isConflictOf(err, "service-id-taken", () => false);
+}
+
+/** Check if a change failed as the service is being renamed or changed */
+function isServiceBusy(err: unknown) {
+    return isConflictOf(err, "service-busy", () => false);
+}
+
+/** Get the message for a failed change of a service's ID */
+function renameError(err: unknown) {
+    if (isServiceIdTaken(err))
+        return "A service with this ID is already registered. Please choose another ID.";
+    // registries before cloud-registry 0.6.0 have no renames
+    if (hasStatus(err, 405)) return "This registry can't change service IDs.";
+    if (hasStatus(err, 404))
+        return "The service was deleted, or this registry can't change service IDs.";
+    return mutationError(
+        err,
+        "Cannot change the service ID currently.",
+        "Only admins can change service IDs.",
+    );
+}
+
 /** Get the toast for a change that duplicates a registered service */
 function duplicateToast(
     err: unknown,
@@ -184,7 +220,10 @@ export {
     errorMessage,
     isDuplicate,
     isLastOwner,
+    isServiceBusy,
+    isServiceIdTaken,
     isVerificationMismatch,
     mutationError,
+    renameError,
     withFieldLabels,
 };
