@@ -131,7 +131,7 @@ test.describe("conflicts", () => {
         problems,
     }) => {
         const service = await registerService(browser, "owner", "Changing");
-        await login(page, "admin");
+        await login(page, "admin", { adminMode: true });
         await page.goto(`/dashboard/services/view/${service.id}`);
         const verify = page.getByRole("button", {
             name: "Verify",

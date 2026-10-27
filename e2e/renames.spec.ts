@@ -76,7 +76,7 @@ test.describe("renames", () => {
             { url: service.url, type: service.type },
         );
         expect(verified.status).toBeLessThan(300);
-        await login(page, "admin");
+        await login(page, "admin", { adminMode: true });
         await openForm(page, service.id);
 
         // with a space and a literal %25, which must stay as they are in
@@ -113,7 +113,7 @@ test.describe("renames", () => {
 
     test("admins can cancel a change of the ID", async ({ page, browser }) => {
         const service = await registerService(browser, "owner", "Kept");
-        await login(page, "admin");
+        await login(page, "admin", { adminMode: true });
         await openForm(page, service.id);
         await page.locator("input[name=id]").fill(`kept-${uniqueId()}`);
         await page.getByRole("button", { name: "Submit" }).click();
@@ -138,7 +138,7 @@ test.describe("renames", () => {
     }) => {
         const taken = await registerService(browser, "owner", "Taken");
         const service = await registerService(browser, "owner", "Renaming");
-        await login(page, "admin");
+        await login(page, "admin", { adminMode: true });
         await openForm(page, service.id);
         const idField = page.locator("input[name=id]");
 
@@ -174,7 +174,7 @@ test.describe("renames", () => {
     }) => {
         const taken = await registerService(browser, "owner", "Taken");
         const service = await registerService(browser, "owner", "Renaming");
-        await login(page, "admin");
+        await login(page, "admin", { adminMode: true });
         await openForm(page, service.id);
 
         const name = `Saved ${uniqueId()}`;
@@ -199,7 +199,7 @@ test.describe("renames", () => {
     test("failed updates change no ID", async ({ page, browser, problems }) => {
         const registered = await registerService(browser, "owner", "First");
         const service = await registerService(browser, "owner", "Second");
-        await login(page, "admin");
+        await login(page, "admin", { adminMode: true });
         await openForm(page, service.id);
 
         const newId = `renamed-${uniqueId()}`;

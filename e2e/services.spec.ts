@@ -117,7 +117,7 @@ test.describe("services", () => {
 
     test("admins verify services", async ({ page, browser }) => {
         const service = await registerService(browser, "owner", "To verify");
-        await login(page, "admin");
+        await login(page, "admin", { adminMode: true });
         await page.goto(`/dashboard/services/view/${service.id}`);
         await page.getByRole("button", { name: "Verify", exact: true }).click();
         await expect(
