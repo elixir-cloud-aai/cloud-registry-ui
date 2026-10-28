@@ -5,12 +5,12 @@ import { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-re
 import { publicSetting } from "@/lib/public-settings";
 
 function useCloudRegistry() {
+    const token = getCookie("access_token");
     const [cloudRegistryProvider, setCloudRegistryProvider] =
         useState<AuthenticatedCloudRegistryProvider | null>(null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     useEffect(() => {
-        const token = getCookie("access_token");
         let provider;
         if (!token)
             provider = new AuthenticatedCloudRegistryProvider(
@@ -24,7 +24,7 @@ function useCloudRegistry() {
             });
         setIsLoggedIn(!!token);
         setCloudRegistryProvider(provider);
-    }, []);
+    }, [token]);
 
     return {
         cloudRegistryProvider,
