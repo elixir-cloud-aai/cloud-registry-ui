@@ -1,6 +1,6 @@
 # Allow list: the build gets only what it needs, so that local settings and
 # secrets (env files, keys, credentials) can't reach the build stage, its
-# cache or the image (see README)
+# cache or the image (see `docs/operator-guide/deployment.md`)
 *
 !src/
 !public/

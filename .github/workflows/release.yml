@@ -6,19 +6,19 @@
 # vulnerabilities in a job of its own, without the release credentials and
 # signing identity (`scan`); and only then attest its build provenance, sign
 # it (Sigstore keyless signing), tag it, and create the GitHub release with
-# GitHub's generated notes (`publish`; see "Verifying images" in the
-# README). `push` and `publish` each need approval in the `release`
-# environment (required reviewer, Docker Hub secrets `DOCKERHUB_LOGIN` and
-# `DOCKERHUB_TOKEN`). Re-running all jobs builds, scans, signs and tags a new
-# digest, but stops before building if the version tag exists (released
+# GitHub's generated notes (`publish`; see "Verifying images" in
+# `docs/operator-guide/deployment.md`). `push` and `publish` each need
+# approval in the `release` environment (required reviewer, Docker Hub
+# secrets `DOCKERHUB_LOGIN` and `DOCKERHUB_TOKEN`). Re-running all jobs
+# builds, scans, signs and tags a new digest, but stops before building if the version tag exists (released
 # images don't change); re-running failed jobs reuses the digest already
 # pushed. Once `publish` has tagged the image, re-run only the failed jobs:
 # a new attempt of all jobs stops at the existing tag and supersedes the
 # attempt whose failed jobs could finish the release. The image has no
 # settings: they are passed when it starts, so one image serves any
-# deployment. UI versions follow the registry in major and
-# minor version (see "Compatibility" in the README). Until 1.0.0, all
-# releases are GitHub pre-releases (but stable ones still update the
+# deployment. UI versions follow the registry in major and minor version
+# (see "Compatibility" in `docs/operator-guide/index.md`). Until 1.0.0,
+# all releases are GitHub pre-releases (but stable ones still update the
 # `latest` image). See "Releasing" in `CONTRIBUTING.md` for the steps and
 # the repository settings it needs. Adapted from cloud-registry's release
 # workflow.
