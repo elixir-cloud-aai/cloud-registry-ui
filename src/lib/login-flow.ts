@@ -15,6 +15,9 @@ const loginCookies = [
 /** @description cookie of the app's path to return to after a login */
 const returnCookie = "authReturnTo";
 
+/** @description cookies to delete when a login ends, or on logout */
+const endedLoginCookies = [...loginCookies, returnCookie] as const;
+
 /** @description allowed difference of clocks, in milliseconds */
 const clockSkew = 60_000;
 
@@ -114,6 +117,7 @@ function returnPath(value: string | null | undefined) {
 
 export {
     checkIdToken,
+    endedLoginCookies,
     loginCookies,
     pkceChallenge,
     randomSecret,

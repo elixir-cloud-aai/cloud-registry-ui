@@ -85,11 +85,9 @@ function Invitations({ provider, serviceId, disabled = false }: Props) {
         } catch (err) {
             toast.error(failureMessage(err));
         }
-        try {
-            await fetchInvitations();
-        } finally {
-            setChanging(false);
-        }
+        // `fetchInvitations` reports its own failures
+        await fetchInvitations();
+        setChanging(false);
     };
 
     const create = () =>

@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server";
 import { adminModeCookie } from "@/lib/admin-mode";
 import {
     checkIdToken,
-    loginCookies,
+    endedLoginCookies,
     returnCookie,
     returnPath,
 } from "@/lib/login-flow";
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     const next = returnPath(await getCookie(returnCookie, { cookies }));
     // a state can be used once, also if this callback fails or the provider
     // sends an error (e.g. a denied login) instead of a code
-    for (const name of [...loginCookies, returnCookie])
+    for (const name of endedLoginCookies)
         await deleteCookie(name, { cookies, path: "/" });
     if (code === null) redirect("/auth/error?type=params");
 
