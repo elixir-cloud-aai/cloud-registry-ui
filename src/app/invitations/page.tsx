@@ -58,6 +58,8 @@ function Page() {
                 );
             current.current = next;
             setToken(next);
+            // a request for an earlier token mustn't block this one
+            setAccepting(false);
             setAccepted(undefined);
             setFailure(undefined);
             setExpired(false);
