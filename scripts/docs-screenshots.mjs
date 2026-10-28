@@ -224,7 +224,7 @@ async function shoot(target, name, tall) {
  * @param tokens Access tokens of the users
  */
 async function seed(tokens) {
-    const listed = await api(undefined, "GET", "/services");
+    const listed = await api(tokens.admin, "GET", "/services");
     if (listed.body.length) return;
     const adminId = (await api(tokens.admin, "GET", "/me")).body.user_id;
     const ownerId = (await api(tokens.owner, "GET", "/me")).body.user_id;

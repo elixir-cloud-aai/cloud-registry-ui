@@ -20,6 +20,8 @@ docker build -t cloud-registry-ui .
 Pass the settings when the container starts, e.g. from a file outside the repository, such as `~/cloud-registry-ui/settings.env`, with at least `NEXT_PUBLIC_CLOUD_REGISTRY_URL` and the login settings (`LOGIN_PROVIDERS` and `LOGIN_REDIRECT_URI`, see [Login](login.md)), which hold the client secret. `--env-file` takes each line as `NAME=value`, literally: don't quote the values.
 
 ```
+docker run -p 3000:3000 --env-file ~/cloud-registry-ui/settings.env elixircloud/cloud-registry-ui:<version>
+# or, for an image built as above
 docker run -p 3000:3000 --env-file ~/cloud-registry-ui/settings.env cloud-registry-ui
 ```
 
