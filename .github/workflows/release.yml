@@ -12,11 +12,11 @@
 # `DOCKERHUB_TOKEN`). Re-running all jobs builds, scans, signs and tags a new
 # digest, but stops before building if the version tag exists (released
 # images don't change); re-running failed jobs reuses the digest already
-# pushed. Once `publish` has tagged the image, only re-running failed jobs
-# can finish the release: re-running all jobs stops at the existing tag, and
-# its attempt replaces the one whose failed jobs could still be re-run. The
-# image has no settings: they are passed when it starts, so one
-# image serves any deployment. UI versions follow the registry in major and
+# pushed. Once `publish` has tagged the image, re-run only the failed jobs:
+# a new attempt of all jobs stops at the existing tag and supersedes the
+# attempt whose failed jobs could finish the release. The image has no
+# settings: they are passed when it starts, so one image serves any
+# deployment. UI versions follow the registry in major and
 # minor version (see "Compatibility" in the README). Until 1.0.0, all
 # releases are GitHub pre-releases (but stable ones still update the
 # `latest` image). See "Releasing" in `CONTRIBUTING.md` for the steps and
@@ -392,6 +392,10 @@ jobs:
                           exit 1
                       fi
                       state=none
+                  fi
+                  if [[ ! "${state}" =~ ^(draft|published|none)$ ]]; then
+                      echo "::error::Unexpected state of release ${TAG}: ${state}"
+                      exit 1
                   fi
                   if [[ "${state}" == "published" ]]; then
                       echo "Release ${TAG} is already published: left as it is"
