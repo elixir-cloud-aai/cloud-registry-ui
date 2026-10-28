@@ -12,7 +12,10 @@
 # `DOCKERHUB_TOKEN`). Re-running all jobs builds, scans, signs and tags a new
 # digest, but stops before building if the version tag exists (released
 # images don't change); re-running failed jobs reuses the digest already
-# pushed. The image has no settings: they are passed when it starts, so one
+# pushed. Once `publish` has tagged the image, only re-running failed jobs
+# can finish the release: re-running all jobs stops at the existing tag, and
+# its attempt replaces the one whose failed jobs could still be re-run. The
+# image has no settings: they are passed when it starts, so one
 # image serves any deployment. UI versions follow the registry in major and
 # minor version (see "Compatibility" in the README). Until 1.0.0, all
 # releases are GitHub pre-releases (but stable ones still update the
@@ -31,7 +34,7 @@ permissions:
 
 # Fully qualified (`docker.io/`), as the attestation needs it. The Docker Hub
 # organization is the repository variable `DOCKERHUB_ORG` (by default
-# `elixircloud`), so that forks can publish to their own
+# `elixircloud`), so that forks can publish to their own organization
 env:
     IMAGE_NAME: docker.io/${{ vars.DOCKERHUB_ORG || 'elixircloud' }}/cloud-registry-ui
 
@@ -379,7 +382,17 @@ jobs:
                   if [[ "${PRERELEASE}" == "true" ]]; then
                       LATEST=false
                   fi
-                  state="$(gh release view "${TAG}" --json isDraft --jq 'if .isDraft then "draft" else "published" end' 2>/dev/null || echo none)"
+                  # only "not found" means no release: other errors stop the
+                  # run, so that a re-run never creates a second draft
+                  status=0
+                  state="$(gh release view "${TAG}" --json isDraft --jq 'if .isDraft then "draft" else "published" end' 2>&1)" || status=$?
+                  if [[ "${status}" != 0 ]]; then
+                      if [[ "${state}" != *"release not found"* ]]; then
+                          echo "::error::Cannot check whether release ${TAG} exists: ${state}"
+                          exit 1
+                      fi
+                      state=none
+                  fi
                   if [[ "${state}" == "published" ]]; then
                       echo "Release ${TAG} is already published: left as it is"
                       exit 0
