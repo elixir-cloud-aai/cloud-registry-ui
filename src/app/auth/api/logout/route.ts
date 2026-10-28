@@ -1,6 +1,8 @@
 import { deleteCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
+import { adminModeCookie } from "@/lib/admin-mode";
+import { loginCookies } from "@/lib/login-flow";
 import { loginErrorSummary, loginSettings } from "@/lib/login-providers";
 
 /**
@@ -40,9 +42,9 @@ export async function POST(request: NextRequest) {
         await deleteCookie("access_token", options);
         await deleteCookie("id_token", options);
         await deleteCookie("login_provider", options);
+        await deleteCookie(adminModeCookie, options);
         // a pending login must not log the user in again
-        await deleteCookie("authState", options);
-        await deleteCookie("authProvider", options);
+        for (const name of loginCookies) await deleteCookie(name, options);
     } catch (err) {
         console.error("Logout failed:", loginErrorSummary(err));
         return NextResponse.redirect(

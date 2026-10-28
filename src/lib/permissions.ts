@@ -95,7 +95,7 @@ function isForbidden(err: unknown) {
 
 /**
  * Check if a change conflicts with the current state
- * e.g. removing the last owner of a service
+ * (`@/lib/errors` tells conflicts apart by the registry's code)
  * @param err Error thrown by the provider
  * @returns True for 409 responses
  */

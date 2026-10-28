@@ -118,6 +118,8 @@ Set `NEXT_PUBLIC_SERVICE_ENVIRONMENTS` to the environments that the registry all
 
 The app follows the registry's other settings, such as who may add service types (`custom.access_control.service_types`) and who is an admin, through `GET /me`: there is nothing to set for them in the app.
 
+**Admin mode** (cloud-registry 0.6.0 and later): admins act as admins only in admin mode, so that admin rights are a deliberate choice. Users who may be admins (`admin_available` of `GET /me`) see a toggle in the top bar, "User mode" or "Admin mode"; they start in user mode, with the rights of other users. In admin mode, every request with the user's token asks for the admin role (header `X-Request-Roles: admin`), so the registry must allow that header from the app's origin (FOCA's `security.cors`; its default allows all headers). The mode is kept in the cookie `admin_mode` for the browser session, and logins and logouts end it. Registries without admin mode (before 0.6.0, or with `security.access_control.opt_in_roles: []`) show no toggle: their admins are always admins.
+
 ### Branding
 
 All optional; read when the app starts. Logos given as paths must be in `public/` when the app is built (in the Docker image: the default logos; use URLs for others).
@@ -135,7 +137,7 @@ All optional; read when the app starts. Logos given as paths must be in `public/
 
 ### Login
 
-Users log in with one of the login providers that you configure (OpenID Connect, authorization code flow). The app reads these settings when the server starts and refuses to start without at least one valid provider. They are read at runtime, so `docker run -e` and `--env-file` work, and they stay on the server: client secrets never reach the browser or the image (pass them with `docker run`, see [Docker](#docker)).
+Users log in with one of the login providers that you configure (OpenID Connect, authorization code flow with PKCE and a nonce). Providers must support PKCE with `S256`, as LS Login does; if a provider names itself in its responses (RFC 9207), the app checks the name. ID tokens must name the provider's issuer, the client ID and the login's nonce. Logins that were started before an update to this version fail once, and users log in again. The app reads these settings when the server starts and refuses to start without at least one valid provider. They are read at runtime, so `docker run -e` and `--env-file` work, and they stay on the server: client secrets never reach the browser or the image (pass them with `docker run`, see [Docker](#docker)).
 
 | Variable             | Required | Description                                                                                  |
 | -------------------- | -------- | -------------------------------------------------------------------------------------------- |

@@ -3,6 +3,8 @@ import { deleteCookie, getCookie, setCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
+import { adminModeCookie } from "@/lib/admin-mode";
+import { checkIdToken, loginCookies } from "@/lib/login-flow";
 import {
     loginErrorSummary,
     loginProvider,
@@ -39,32 +41,68 @@ export async function GET(request: NextRequest) {
     const code = searchParams.get("code");
     const state = searchParams.get("state");
 
-    // a wrong state, e.g. from another site, leaves a pending login intact
+    // a wrong state, e.g. from another site, leaves a pending login intact;
+    // so does a login without PKCE or nonce, e.g. of an earlier version
     const authState = await getCookie("authState", { cookies });
+    const verifier = await getCookie("authVerifier", { cookies });
+    const nonce = await getCookie("authNonce", { cookies });
     if (state === null || !authState || authState !== state)
         redirect("/auth/error?type=state");
+    if (!verifier || !nonce) redirect("/auth/error?type=state");
 
     const providerId = await getCookie("authProvider", { cookies });
     // a state can be used once, also if this callback fails or the provider
     // sends an error (e.g. a denied login) instead of a code
-    await deleteCookie("authState", { cookies, path: "/" });
-    await deleteCookie("authProvider", { cookies, path: "/" });
+    for (const name of loginCookies)
+        await deleteCookie(name, { cookies, path: "/" });
     if (code === null) redirect("/auth/error?type=params");
 
     const provider = providerId ? loginProvider(providerId) : undefined;
     if (!provider) redirect("/auth/error?type=provider");
 
+    let endpoints: Awaited<ReturnType<typeof oidcEndpoints>>;
+    try {
+        endpoints = await oidcEndpoints(provider);
+    } catch (err) {
+        console.error(
+            `Login with ${provider.id} failed:`,
+            loginErrorSummary(err),
+        );
+        redirect("/auth/error?type=internal");
+    }
+
+    // the response must come from the provider of this login, if it names
+    // its issuer, and must name it if the provider says it does (RFC 9207):
+    // otherwise, the code may be another provider's (a mix-up attack)
+    const iss = searchParams.get("iss");
+    if (
+        iss === null
+            ? endpoints.issParameterSupported
+            : iss !== endpoints.issuer
+    ) {
+        // issuers aren't secret; `loginErrorSummary` makes the text safe
+        console.error(
+            `Login with ${provider.id} failed:`,
+            loginErrorSummary(
+                new Error(
+                    `Unexpected iss ${iss ?? "(none)"}, expected ${endpoints.issuer}`,
+                ),
+            ),
+        );
+        redirect("/auth/error?type=issuer");
+    }
+
     let tokens: z.infer<typeof tokenResponseSchema>;
     try {
-        const { token_endpoint } = await oidcEndpoints(provider);
         const response = await axios.post(
-            token_endpoint,
+            endpoints.token_endpoint,
             new URLSearchParams({
                 grant_type: "authorization_code",
                 code: code,
                 redirect_uri: loginSettings().redirectUri,
                 client_id: provider.clientId,
                 client_secret: provider.clientSecret,
+                code_verifier: verifier,
             }),
             {
                 headers: {
@@ -82,6 +120,12 @@ export async function GET(request: NextRequest) {
             );
             throw new Error(`Invalid token response: ${fields.join(", ")}`);
         }
+        // the ID token must be of this login, not a replayed one
+        checkIdToken(result.data.id_token, {
+            issuer: endpoints.issuer,
+            clientId: provider.clientId,
+            nonce,
+        });
         tokens = result.data;
     } catch (err) {
         console.error(
@@ -111,6 +155,8 @@ export async function GET(request: NextRequest) {
         ...cookieOptions,
         httpOnly: true,
     });
+    // admins start in user mode
+    await deleteCookie(adminModeCookie, { cookies, path: "/" });
 
     redirect("/dashboard");
 }

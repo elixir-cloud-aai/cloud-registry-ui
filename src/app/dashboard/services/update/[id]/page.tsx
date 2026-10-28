@@ -1,6 +1,6 @@
 "use client";
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
@@ -13,6 +13,7 @@ import { ServiceUpdationForm } from "../_components";
 
 function Page() {
     const { id } = useParams();
+    const router = useRouter();
     const [loading, setLoading] = useState(true);
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const [service, setService] = useState<ExternalService>();
@@ -55,9 +56,17 @@ function Page() {
             .finally(() => setLoading(false));
     }, [cloudRegistryProvider, id]);
 
+    // the form stays disabled until the service is loaded again
+    const refetchService = useCallback(
+        () =>
+            Promise.resolve(fetchService()).finally(() => setRefreshing(false)),
+        [fetchService],
+    );
+
+    // also after a rename, which changes the ID
     useEffect(() => {
-        fetchService();
-    }, [fetchService]);
+        refetchService();
+    }, [refetchService]);
 
     useEffect(() => {
         if (!cloudRegistryProvider || !me?.service_types_pending) return;
@@ -81,7 +90,15 @@ function Page() {
     const onServiceUpdated = (saved: ExternalService) => {
         setService(saved);
         setRefreshing(true);
-        Promise.resolve(fetchService()).finally(() => setRefreshing(false));
+        refetchService();
+    };
+
+    // the old ID is gone: the page of the new one replaces it in the history
+    const onServiceRenamed = (newId: string) => {
+        setRefreshing(true);
+        router.replace(
+            `/dashboard/services/update/${encodeURIComponent(newId)}`,
+        );
     };
 
     useEffect(() => {
@@ -134,6 +151,7 @@ function Page() {
                     approvedTypes={approvedTypes}
                     disabled={refreshing}
                     onServiceUpdated={onServiceUpdated}
+                    onServiceRenamed={onServiceRenamed}
                 />
             )}{" "}
         </div>

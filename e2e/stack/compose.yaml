@@ -40,9 +40,10 @@ services:
                     - oidc.localhost
 
     registry:
-        # cloud-registry's `dev` branch, with the features of 0.5.0 that the
-        # app uses (e.g. GET /approvals); pinned for repeatable runs
-        image: ${E2E_REGISTRY_IMAGE:-docker.io/elixircloud/cloud-registry:sha-9ce0ef1778587520fd9228decb2f5f4c33f17aa8}
+        # cloud-registry's `dev` branch, with the features that the app uses
+        # (e.g. GET /approvals and conflict codes of 0.5.0, renames and admin
+        # mode of 0.6.0); pinned for repeatable runs
+        image: ${E2E_REGISTRY_IMAGE:-docker.io/elixircloud/cloud-registry:sha-6b907fa7613c0ffbefc0b41eea6fe7168fbb983a}
         depends_on:
             mongodb:
                 condition: service_healthy

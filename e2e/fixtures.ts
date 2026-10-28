@@ -32,9 +32,10 @@ type User = keyof typeof users;
  * Log in through the login page and the mock provider's form
  * @param page Page
  * @param user Test user
+ * @param options `adminMode`: switch to admin mode afterwards (admins only)
  * @returns The access token of the session
  */
-async function login(page: Page, user: User) {
+async function login(page: Page, user: User, { adminMode = false } = {}) {
     const { sub, name, groups } = users[user];
     await page.goto("/auth/login");
     await page.getByRole("link", { name: "Mock Login" }).click();
@@ -47,6 +48,13 @@ async function login(page: Page, user: User) {
     // Firefox fails the dashboard's requests that are still running when the
     // test moves on to another page, and the app logs them as errors
     await page.waitForLoadState("networkidle");
+    if (adminMode) {
+        await page.getByRole("button", { name: "User mode" }).click();
+        await expect(
+            page.getByRole("button", { name: "Admin mode" }),
+        ).toBeVisible();
+        await page.waitForLoadState("networkidle");
+    }
     const cookies = await page.context().cookies();
     const token = cookies.find((val) => val.name === "access_token")?.value;
     expect(token).toBeTruthy();
@@ -180,7 +188,11 @@ async function api(
     const response = await fetch(`${registry}${path}`, {
         method,
         headers: {
-            ...(token && { Authorization: `Bearer ${token}` }),
+            // admin mode, which grants nothing to users other than admins
+            ...(token && {
+                Authorization: `Bearer ${token}`,
+                "X-Request-Roles": "admin",
+            }),
             ...(body !== undefined && { "Content-Type": "application/json" }),
         },
         body: body === undefined ? undefined : JSON.stringify(body),

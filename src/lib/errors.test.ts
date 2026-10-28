@@ -6,7 +6,12 @@ import {
     errorField,
     errorMessage,
     isDuplicate,
+    isLastOwner,
+    isServiceBusy,
+    isServiceIdTaken,
+    isVerificationMismatch,
     mutationError,
+    renameError,
     withFieldLabels,
 } from "./errors";
 
@@ -23,6 +28,10 @@ describe("withFieldLabels", () => {
         [
             "'x' is too long - 'type.version'",
             "'x' is too long - 'Type Version'",
+        ],
+        [
+            "'id' must not contain unpaired surrogates.",
+            "'Service ID' must not contain unpaired surrogates.",
         ],
     ])("labels %s", (message, labelled) => {
         expect(withFieldLabels(message)).toBe(labelled);
@@ -73,12 +82,110 @@ describe("mutationError", () => {
         expect(mutationError(failure(400, { detail: "d" }), "f")).toBe("d");
         expect(mutationError(failure(500), "f")).toBe("f");
     });
+
+    it("asks to try again while the service is busy", () => {
+        expect(
+            mutationError(
+                failure(409, { detail: "d", code: "service-busy" }),
+                "f",
+            ),
+        ).toBe(
+            "The service is being changed by another request. Please try again in a moment.",
+        );
+    });
+});
+
+describe("renameError", () => {
+    it("asks for another ID if the new one is taken", () => {
+        expect(renameError(failure(409, { code: "service-id-taken" }))).toBe(
+            "A service with this ID is already registered. Please choose another ID.",
+        );
+    });
+
+    it("explains roles, busy services and other failures", () => {
+        expect(renameError(failure(403))).toBe(
+            "Only admins can change service IDs.",
+        );
+        expect(renameError(failure(409, { code: "service-busy" }))).toBe(
+            "The service is being changed by another request. Please try again in a moment.",
+        );
+        expect(
+            renameError(failure(400, { detail: "'id' must be short" })),
+        ).toBe("'Service ID' must be short");
+        expect(renameError(failure(405))).toBe(
+            "This registry can't change service IDs.",
+        );
+        expect(renameError(failure(404, { detail: "Not found" }))).toBe(
+            "The service was deleted, or this registry can't change service IDs.",
+        );
+        expect(renameError(failure(500))).toBe(
+            "Cannot change the service ID currently.",
+        );
+    });
+});
+
+describe("conflicts", () => {
+    const checks = {
+        isDuplicate,
+        isVerificationMismatch,
+        isLastOwner,
+        isServiceIdTaken,
+        isServiceBusy,
+    };
+
+    it.each([
+        ["duplicate-service", "isDuplicate"],
+        ["verification-mismatch", "isVerificationMismatch"],
+        ["last-owner", "isLastOwner"],
+        ["service-id-taken", "isServiceIdTaken"],
+        ["service-busy", "isServiceBusy"],
+        ["pending-service", undefined],
+        ["conflict", undefined],
+        ["added-later", undefined],
+    ])("tells %s apart by its code", (code, match) => {
+        // the detail of a duplicate, so that only the code decides
+        const err = failure(409, { detail: "Registered: 'x'.", code });
+        for (const [name, check] of Object.entries(checks))
+            expect(check(err), name).toBe(name === match);
+    });
+
+    it("tells conflicts apart without codes, as older registries send them", () => {
+        for (const err of [failure(409), failure(409, { code: null })]) {
+            expect(isDuplicate(err)).toBe(true);
+            expect(isVerificationMismatch(err)).toBe(true);
+            expect(isLastOwner(err)).toBe(true);
+            // registries that rename services send codes
+            expect(isServiceIdTaken(err)).toBe(false);
+            expect(isServiceBusy(err)).toBe(false);
+        }
+    });
+
+    it("ignores codes of other failures", () => {
+        const err = failure(400, { code: "duplicate-service" });
+        expect(isDuplicate(err)).toBe(false);
+        expect(isVerificationMismatch(err)).toBe(false);
+        expect(isLastOwner(err)).toBe(false);
+        expect(isServiceBusy(failure(400, { code: "service-busy" }))).toBe(
+            false,
+        );
+    });
 });
 
 describe("duplicates", () => {
     it("tells duplicates from pending conflicts", () => {
         expect(isDuplicate(failure(409))).toBe(true);
         expect(isDuplicate(failure(409, { detail: pendingDetail }))).toBe(
+            false,
+        );
+        expect(
+            isDuplicate(
+                failure(409, {
+                    detail: pendingDetail,
+                    code: "duplicate-service",
+                }),
+            ),
+        ).toBe(true);
+        expect(isDuplicate(failure(409, { code: "pending-service" }))).toBe(
             false,
         );
         expect(isDuplicate(failure(400))).toBe(false);
