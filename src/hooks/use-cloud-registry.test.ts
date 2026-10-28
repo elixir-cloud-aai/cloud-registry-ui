@@ -61,18 +61,32 @@ vi.mock("react", () => ({
 vi.mock("cookies-next/client", () => ({
     getCookie: (name: string) => cookies.get(name),
 }));
+// takes options or a URL and a token, as the real provider does
 vi.mock("@/lib/authenticated-cloud-registry", () => ({
     AuthenticatedCloudRegistryProvider: class {
+        readonly baseUrl: string;
+        readonly token?: string;
+        readonly roles: string[];
         constructor(
-            readonly baseUrl: string,
-            readonly token?: string,
-        ) {}
+            options:
+                | { baseUrl: string; token?: string; roles?: string[] }
+                | string,
+            token?: string,
+        ) {
+            const o =
+                typeof options === "string"
+                    ? { baseUrl: options, token }
+                    : options;
+            this.baseUrl = o.baseUrl;
+            this.token = o.token;
+            this.roles = o.roles ?? [];
+        }
     },
 }));
 
 const { useCloudRegistry } = await import("./use-cloud-registry");
 
-type Provider = { baseUrl: string; token?: string };
+type Provider = { baseUrl: string; token?: string; roles: string[] };
 const provider = (hook: ReturnType<typeof useCloudRegistry>) =>
     hook.cloudRegistryProvider as unknown as Provider;
 
@@ -89,6 +103,7 @@ describe("useCloudRegistry", () => {
         expect(provider(hook)).toEqual({
             baseUrl: "https://registry.test",
             token: undefined,
+            roles: [],
         });
     });
 
@@ -114,6 +129,21 @@ describe("useCloudRegistry", () => {
         react.render(useCloudRegistry);
         cookies.set("access_token", "b");
         expect(provider(react.render(useCloudRegistry)).token).toBe("b");
+    });
+
+    it("keeps the admin role with the new token", () => {
+        cookies.set("admin_mode", "1");
+        cookies.set("access_token", "a");
+        react.render(useCloudRegistry);
+        cookies.set("access_token", "b");
+        const hook = provider(react.render(useCloudRegistry));
+        expect(hook.token).toBe("b");
+        expect(hook.roles).toEqual(["admin"]);
+    });
+
+    it("asks for no roles in user mode", () => {
+        cookies.set("access_token", "a");
+        expect(provider(react.render(useCloudRegistry)).roles).toEqual([]);
     });
 
     it("drops the token after logout", () => {
