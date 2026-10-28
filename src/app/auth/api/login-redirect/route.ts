@@ -1,8 +1,13 @@
-import { setCookie } from "cookies-next/server";
+import { deleteCookie, setCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
-import { pkceChallenge, randomSecret } from "@/lib/login-flow";
+import {
+    pkceChallenge,
+    randomSecret,
+    returnCookie,
+    returnPath,
+} from "@/lib/login-flow";
 import {
     loginErrorSummary,
     loginProvider,
@@ -46,6 +51,11 @@ export async function GET(request: NextRequest) {
     await setCookie("authProvider", provider.id, cookieOptions);
     await setCookie("authVerifier", verifier, cookieOptions);
     await setCookie("authNonce", nonce, cookieOptions);
+    // the app's page to return to, e.g. of an invitation; an earlier
+    // login's must not apply to this one
+    const next = returnPath(request.nextUrl.searchParams.get("next"));
+    if (next) await setCookie(returnCookie, next, cookieOptions);
+    else await deleteCookie(returnCookie, { cookies, path: "/" });
 
     const redirectUrl = new URL(authorizationEndpoint);
     // keeps query parameters of the endpoint

@@ -1,7 +1,13 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { jwt } from "@/test/jwt";
-import { checkIdToken, pkceChallenge, randomSecret } from "./login-flow";
+import {
+    checkIdToken,
+    pkceChallenge,
+    randomSecret,
+    returnCookie,
+    returnPath,
+} from "./login-flow";
 
 describe("randomSecret", () => {
     it("makes a new URL-safe secret of 256 bits each time", () => {
@@ -81,5 +87,40 @@ describe("checkIdToken", () => {
         ["null claims", jwt(null)],
     ])("rejects %s", (_, token) => {
         expect(() => checkIdToken(token, expected)).toThrow("Invalid ID token");
+    });
+});
+
+describe("returnPath", () => {
+    it("has a cookie of its own", () => {
+        expect(returnCookie).toBe("authReturnTo");
+    });
+
+    it.each([
+        ["/invitations", "/invitations"],
+        ["/dashboard/services?page=2", "/dashboard/services?page=2"],
+        // the fragment stays in the browser
+        ["/invitations#token", "/invitations"],
+        ["/a/../dashboard", "/dashboard"],
+    ])("keeps the app's path %j", (value, path) => {
+        expect(returnPath(value)).toBe(path);
+    });
+
+    it.each([
+        null,
+        undefined,
+        "",
+        "dashboard",
+        "https://evil.example.org/",
+        "//evil.example.org/",
+        "/\\evil.example.org/",
+        "/\\/evil.example.org/",
+        "/a\nb",
+        "/a\u0000",
+        "/auth/login",
+        "/auth/api/login-redirect?provider=x",
+        "/auth",
+        `/${"a".repeat(1024)}`,
+    ])("rejects %j", (value) => {
+        expect(returnPath(value)).toBeUndefined();
     });
 });
