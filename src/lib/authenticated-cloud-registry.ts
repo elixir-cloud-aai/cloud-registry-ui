@@ -64,6 +64,22 @@ class AuthenticatedCloudRegistryProvider
     return !!this.token;
   }
 
+  /**
+   * Path of the services on the registry's server, under which the
+   * registry grants roles, e.g. `/ga4gh/registry/v1/services`.
+   */
+  get servicesPath(): string {
+    const path = URL.canParse(this.baseUrl)
+      ? new URL(this.baseUrl).pathname.replace(/\/+$/, "")
+      : "";
+    // as the registry's routes have it, not percent-encoded
+    try {
+      return `${decodeURIComponent(path)}/services`;
+    } catch {
+      return `${path}/services`;
+    }
+  }
+
   // --------------------------------------------------
   // HTTP helpers
   // --------------------------------------------------
@@ -368,6 +384,30 @@ class AuthenticatedCloudRegistryProvider
       `/services/${this.idPath(id)}`,
       {
         method: "DELETE",
+        authenticated: true,
+      },
+    );
+  }
+
+  /**
+   * POST /services/{serviceId}/rename
+   * Authenticated (admins).
+   *
+   * Change the ID of a service; its roles and verification move with it.
+   *
+   * @param id Current ID of the service
+   * @param newId New ID of the service
+   * @returns Promise resolving to the new ID
+   */
+  async renameService(
+    id: ServiceId,
+    newId: ServiceId,
+  ): Promise<ServiceId> {
+    return this.request(
+      `/services/${this.idPath(id)}/rename`,
+      {
+        method: "POST",
+        body: { id: newId },
         authenticated: true,
       },
     );

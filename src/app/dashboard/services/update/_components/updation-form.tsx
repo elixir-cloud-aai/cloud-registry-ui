@@ -1,8 +1,11 @@
 "use client";
-import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
+import type {
+    ExternalService,
+    ExternalServiceRegister,
+} from "@elixir-cloud/cloud-registry/providers";
 import { useForm } from "@tanstack/react-form";
 import { ClockIcon, TriangleAlertIcon } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { UnsavedChangesGuard } from "@/components/shared/unsaved-changes-guard";
 import { useCloudRegistry } from "@/hooks";
@@ -14,10 +17,11 @@ import {
     errorMessage,
     isDuplicate,
     mutationError,
+    renameError,
 } from "@/lib/errors";
 import { typeKey } from "@/lib/service-types";
 import { matchesVerification } from "@/lib/verifications";
-import { ReadOnlyField } from "./_fields";
+import { ReadOnlyField, TextField } from "./_fields";
 import { TextareaField } from "./_fields/textarea-field";
 import {
     ServiceActionButton,
@@ -28,11 +32,14 @@ import {
     ServiceTypeSection,
 } from "./_sections";
 import {
-    formDataSchema,
+    type FormData,
     formFields,
+    hasServiceChanges,
     normalizeFormData,
     normalizeServiceData,
+    serviceFormSchema,
 } from "./form-helper";
+import ServiceRenameDialog from "./rename-dialog";
 
 type Props = {
     service: ExternalService;
@@ -43,6 +50,7 @@ type Props = {
     approvedTypes?: Set<string>;
     disabled?: boolean;
     onServiceUpdated?: (service: ExternalService) => void;
+    onServiceRenamed?: (id: string) => void;
 };
 
 function ServiceUpdationForm({
@@ -54,69 +62,132 @@ function ServiceUpdationForm({
     approvedTypes,
     disabled,
     onServiceUpdated,
+    onServiceRenamed,
 }: Props) {
     const { cloudRegistryProvider } = useCloudRegistry();
     const [updating, setUpdating] = useState(false);
+    // the values to save once the new ID is confirmed
+    const [renaming, setRenaming] = useState<FormData>();
     const initial = normalizeFormData(service, admin);
+    const schema = useMemo(
+        () =>
+            serviceFormSchema(service.id, cloudRegistryProvider?.servicesPath),
+        [service.id, cloudRegistryProvider],
+    );
+
+    // shown on the field until a field changes or loses focus
+    const showFieldError = (
+        field: (typeof formFields)[number],
+        message: string,
+    ) =>
+        form.setFieldMeta(field, (prev) => ({
+            ...prev,
+            isTouched: true,
+            errorMap: {
+                ...prev.errorMap,
+                onServer: { message },
+            },
+            errorSourceMap: {
+                ...prev.errorSourceMap,
+                onServer: "form",
+            },
+        }));
+
+    // the saved data, or undefined if the update failed
+    const updateService = async (value: FormData) => {
+        if (!cloudRegistryProvider) return undefined;
+
+        const data = normalizeServiceData(value, initial);
+        const promise = cloudRegistryProvider.updateService(service.id, data);
+        toast.promise(promise, {
+            loading: `Updating service with ID - ${service.id}`,
+            success: (response) =>
+                `Successfully updated service with id - ${response}`,
+            error: (err) =>
+                duplicateToast(err) ?? {
+                    message: mutationError(
+                        err,
+                        "Cannot update service currently.",
+                    ),
+                },
+        });
+
+        try {
+            await promise;
+            return data;
+        } catch (err) {
+            // toast.promise shows the error; a duplicate or a field the
+            // registry rejected is also shown on the field
+            const duplicate = isDuplicate(err);
+            const field = duplicate ? "url" : errorField(err, formFields);
+            if (field)
+                showFieldError(
+                    field,
+                    duplicate ? duplicateMessage : errorMessage(err, ""),
+                );
+            return undefined;
+        }
+    };
+
+    // the saved data of other changes, if any: then the page shows them
+    // also if the rename fails
+    const renameService = async (
+        newId: string,
+        saved?: ExternalServiceRegister,
+    ) => {
+        if (!cloudRegistryProvider) return;
+
+        const promise = cloudRegistryProvider.renameService(service.id, newId);
+        toast.promise(promise, {
+            loading: `Changing the ID of service ${service.id} to ${newId}`,
+            success: `Changed the ID of service ${service.id} to ${newId}`,
+            error: (err) =>
+                saved
+                    ? `Saved the other changes, but cannot change the ID: ${renameError(err)}`
+                    : renameError(err),
+        });
+
+        try {
+            await promise;
+            onServiceRenamed?.(newId);
+        } catch (err) {
+            if (saved) onServiceUpdated?.({ ...service, ...saved });
+            else showFieldError("id", renameError(err));
+        }
+    };
+
+    const saveService = async (value: FormData) => {
+        setUpdating(true);
+        try {
+            const renamed = value.id !== service.id;
+            if (renamed && !hasServiceChanges(value, initial))
+                return await renameService(value.id);
+            const saved = await updateService(value);
+            // nothing is renamed if the update fails
+            if (!saved) return;
+            if (renamed) await renameService(value.id, saved);
+            else onServiceUpdated?.({ ...service, ...saved });
+        } finally {
+            setUpdating(false);
+        }
+    };
+
     const form = useForm({
         defaultValues: initial,
         validators: {
-            onChange: formDataSchema,
+            onChange: schema,
         },
         onSubmit: async ({ value }) => {
-            if (!cloudRegistryProvider) return;
-
-            setUpdating(true);
-
-            const data = normalizeServiceData(value, initial);
-            const promise = cloudRegistryProvider.updateService(
-                service.id,
-                data,
-            );
-            toast.promise(promise, {
-                loading: `Updating service with ID - ${service.id}`,
-                success: (response) =>
-                    `Successfully updated service with id - ${response}`,
-                error: (err) =>
-                    duplicateToast(err) ?? {
-                        message: mutationError(
-                            err,
-                            "Cannot update service currently.",
-                        ),
-                    },
-            });
-
-            try {
-                await promise;
-                onServiceUpdated?.({ ...service, ...data });
-            } catch (err) {
-                // toast.promise shows the error; a duplicate or a field the
-                // registry rejected is also shown on the field, until a
-                // field changes or loses focus
-                const duplicate = isDuplicate(err);
-                const field = duplicate ? "url" : errorField(err, formFields);
-                if (field)
-                    form.setFieldMeta(field, (prev) => ({
-                        ...prev,
-                        isTouched: true,
-                        errorMap: {
-                            ...prev.errorMap,
-                            onServer: {
-                                message: duplicate
-                                    ? duplicateMessage
-                                    : errorMessage(err, ""),
-                            },
-                        },
-                        errorSourceMap: {
-                            ...prev.errorSourceMap,
-                            onServer: "form",
-                        },
-                    }));
-            } finally {
-                setUpdating(false);
-            }
+            if (value.id !== service.id) setRenaming(value);
+            else await saveService(value);
         },
     });
+
+    const handleRenameConfirm = () => {
+        const value = renaming;
+        setRenaming(undefined);
+        if (value) saveService(value);
+    };
 
     return (
         <form
@@ -134,12 +205,21 @@ function ServiceUpdationForm({
                 disabled={updating || disabled}
                 className="min-w-0 space-y-4"
             >
-                <ReadOnlyField
-                    id="serviceId"
-                    label="Service ID"
-                    value={service.id}
-                    description="The ID can't be changed."
-                />
+                {admin ? (
+                    <TextField
+                        form={form}
+                        name="id"
+                        label="Service ID"
+                        description="Changing the ID moves the service, with its roles and verification, to the new ID; links to the old ID stop working."
+                    />
+                ) : (
+                    <ReadOnlyField
+                        id="serviceId"
+                        label="Service ID"
+                        value={service.id}
+                        description="Only admins can change the ID."
+                    />
+                )}
                 <ServiceBasicInfoSection form={form} />
                 <ServiceTypeSection form={form} />
                 {pending && !admin && (
@@ -206,6 +286,12 @@ function ServiceUpdationForm({
                 )}
                 <ServiceActionButton form={form} updating={updating} />
             </fieldset>
+            <ServiceRenameDialog
+                oldId={service.id}
+                newId={renaming?.id}
+                onConfirm={handleRenameConfirm}
+                onCancel={() => setRenaming(undefined)}
+            />
         </form>
     );
 }

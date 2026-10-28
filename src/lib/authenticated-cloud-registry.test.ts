@@ -236,6 +236,14 @@ describe("operations", () => {
             undefined,
         ],
         [
+            "renameService",
+            (p) => p.renameService("a", "b c"),
+            "POST",
+            "/services/a/rename",
+            true,
+            { id: "b c" },
+        ],
+        [
             "getServicePermissions",
             (p) => p.getServicePermissions("a"),
             "GET",
@@ -325,6 +333,21 @@ describe("operations", () => {
             auth: authenticated ? "Bearer t" : null,
             body,
         });
+    });
+});
+
+describe("servicesPath", () => {
+    it.each([
+        [base, "/ga4gh/registry/v1/services"],
+        [`${base}/`, "/ga4gh/registry/v1/services"],
+        ["https://registry.example.org", "/services"],
+        ["", "/services"],
+        ["https://registry.example.org/r%C3%A9g", "/rég/services"],
+        ["https://registry.example.org/%E0%A4%A", "/%E0%A4%A/services"],
+    ])("of %j is %j", (url, path) => {
+        expect(new AuthenticatedCloudRegistryProvider(url).servicesPath).toBe(
+            path,
+        );
     });
 });
 

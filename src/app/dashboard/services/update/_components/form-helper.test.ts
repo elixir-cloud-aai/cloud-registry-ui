@@ -9,6 +9,7 @@ async function load(env: Record<string, string | undefined> = {}) {
 }
 
 const valid: FormData = {
+    id: "tes-1",
     name: "TES",
     url: "https://tes.example.org/ga4gh/tes/v1",
     organization: { name: "Org", url: "https://example.org" },
@@ -117,6 +118,7 @@ describe("normalizeFormData", () => {
         const { normalizeFormData } = await load();
         expect(normalizeFormData()).toEqual({
             ...valid,
+            id: "",
             name: "",
             url: "",
             version: "",
@@ -168,5 +170,65 @@ describe("normalizeServiceData", () => {
             ).createdAt,
         ).toBe("2023-01-01T00:00:00Z");
         expect(normalizeServiceData(initial)).not.toHaveProperty("createdAt");
+    });
+});
+
+describe("serviceFormSchema", () => {
+    async function idMessages(id: string, servicesPath?: string) {
+        const { serviceFormSchema } = await load();
+        return serviceFormSchema("tes-1", servicesPath)
+            .safeParse({ ...valid, id })
+            .error?.issues.map((val) => val.message);
+    }
+
+    it("keeps the current ID, also if new IDs couldn't have it", async () => {
+        const { serviceFormSchema } = await load();
+        expect(
+            serviceFormSchema("a,b").safeParse({ ...valid, id: "a,b" }).success,
+        ).toBe(true);
+        expect(await idMessages("tes-1")).toBeUndefined();
+    });
+
+    it("checks new IDs as the registry does", async () => {
+        expect(await idMessages("tes-2")).toBeUndefined();
+        expect(await idMessages("")).toEqual(["Service ID is required."]);
+        expect(await idMessages("a/b")).toEqual([
+            "Service ID must not contain slashes.",
+        ]);
+        expect(await idMessages("a".repeat(1020), "/services")).toEqual([
+            "Service ID must be at most 1014 characters.",
+        ]);
+    });
+
+    it("checks the other fields too", async () => {
+        const { serviceFormSchema } = await load();
+        expect(
+            serviceFormSchema("tes-1").safeParse({ ...valid, name: "" })
+                .success,
+        ).toBe(false);
+    });
+});
+
+describe("hasServiceChanges", () => {
+    it("ignores the ID and what isn't sent", async () => {
+        const { hasServiceChanges } = await load();
+        expect(hasServiceChanges(valid, valid)).toBe(false);
+        expect(hasServiceChanges({ ...valid, id: "tes-2" }, valid)).toBe(false);
+        expect(
+            hasServiceChanges({ ...valid, url: ` ${valid.url}` }, valid),
+        ).toBe(false);
+    });
+
+    it("finds changes of other fields", async () => {
+        const { hasServiceChanges } = await load();
+        expect(hasServiceChanges({ ...valid, name: "TES 2" }, valid)).toBe(
+            true,
+        );
+        expect(
+            hasServiceChanges(
+                { ...valid, createdAt: "2024-01-01T00:00:00Z" },
+                valid,
+            ),
+        ).toBe(true);
     });
 });
