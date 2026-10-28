@@ -60,8 +60,8 @@ type OidcEndpoints = {
 /** @description timeout of requests to login providers, in milliseconds */
 const loginRequestTimeout = 10000;
 
-// settings of earlier versions, which the app no longer reads (the README's
-// "Migrating from `LS_LOGIN_URL` and `OIDC_*`")
+// settings of earlier versions, which the app no longer reads (see
+// `docs/operator-guide/upgrading.md`)
 const legacySettings = [
     "LS_LOGIN_URL",
     "OIDC_CLIENT_ID",
@@ -117,7 +117,7 @@ function legacyLoginSettings() {
     const legacy = legacySettings.filter((name) => process.env[name]);
     if (!process.env.LOGIN_PROVIDERS && legacy.length)
         throw new Error(
-            `Missing setting LOGIN_PROVIDERS: the app no longer reads ${legacy.join(", ")}; replace them with LOGIN_PROVIDERS and LOGIN_REDIRECT_URI (see "Migrating from LS_LOGIN_URL and OIDC_*" in the README, section Login)`,
+            `Missing setting LOGIN_PROVIDERS: the app no longer reads ${legacy.join(", ")}; replace them with LOGIN_PROVIDERS and LOGIN_REDIRECT_URI (see "Upgrading" in the operator guide: https://cloud-registry-ui.readthedocs.io/en/latest/operator-guide/upgrading/)`,
         );
 }
 
