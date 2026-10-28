@@ -95,7 +95,11 @@ The screenshots of the user guide (`docs/images/`) show the default
 branding. `scripts/docs-screenshots.mjs` takes them again, e.g. after
 changes to the pages: with the stack of the end-to-end tests running (see
 [Tests](#tests)), build the app and start it with the settings of the
-end-to-end tests (`playwright.config.ts`), then run the script:
+end-to-end tests (`playwright.config.ts`), then run the script.
+
+First move your `.env*` files (except `.env.example`) aside, or use a
+clean clone: values set in them when building apply where the commands
+don't set them, e.g. a title or logos other than the default branding:
 
 ```
 docker compose -f e2e/stack/compose.yaml up -d --wait
@@ -110,10 +114,6 @@ node scripts/docs-screenshots.mjs
 kill %1
 docker compose -f e2e/stack/compose.yaml down
 ```
-
-Move your `.env` aside first (or use a clean clone): values set in it when
-building apply where the command doesn't set them, e.g. a title or logos
-other than the default branding.
 
 The script adds example service types and services to the registry if it
 lists no services yet, so start with an empty registry (the stack keeps no

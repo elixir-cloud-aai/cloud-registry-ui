@@ -5,7 +5,7 @@ Users log in with one of the login providers that you configure (OpenID Connect,
 | Variable             | Required | Description                                                                                  |
 | -------------------- | -------- | -------------------------------------------------------------------------------------------- |
 | `LOGIN_PROVIDERS`    | yes      | Login providers as a JSON list (see below)                                                   |
-| `LOGIN_REDIRECT_URI` | yes      | URL of the app's `/auth/api/callback`, e.g. `https://registry.example.org/auth/api/callback` |
+| `LOGIN_REDIRECT_URI` | yes      | URL of the app's `/auth/api/callback`, e.g. `https://app.example.org/auth/api/callback` |
 
 Each provider has these fields:
 
@@ -23,7 +23,7 @@ Example for [LS Login](https://lifescience-ri.eu/ls-login/), whose logo is in `p
 
 ```
 LOGIN_PROVIDERS=[{"id": "ls-login", "name": "LS Login", "logo": "/ls-login-grey-wide.jpg", "issuer": "https://login.aai.lifescience-ri.eu/oidc/", "clientId": "<client ID>", "clientSecret": "<client secret>", "scopes": ["openid", "profile", "email", "eduperson_entitlement"]}]
-LOGIN_REDIRECT_URI=https://registry.example.org/auth/api/callback
+LOGIN_REDIRECT_URI=https://app.example.org/auth/api/callback
 ```
 
 The login page lists the providers, also when there is only one, so that logging out doesn't log users straight back in. Restart the app after changing the providers.
@@ -35,7 +35,7 @@ The login page lists the providers, also when there is only one, so that logging
 Register the app with [LS Login](https://lifescience-ri.eu/ls-login/) as a service (an OpenID Connect client):
 
 - **Flow:** authorization code, with a client secret.
-- **Redirect URI:** the value of `LOGIN_REDIRECT_URI`, e.g. `https://registry.example.org/auth/api/callback`. Use a separate client for local development, with `http://localhost:3000/auth/api/callback`.
+- **Redirect URI:** the value of `LOGIN_REDIRECT_URI`, e.g. `https://app.example.org/auth/api/callback`. Use a separate client for local development, with `http://localhost:3000/auth/api/callback`.
 - **Scopes:** `openid`, `profile`, `email` and `eduperson_entitlement`. LS Login releases the groups (`eduperson_entitlement`), which the registry needs to recognise admins, only with this scope, and only via user info.
 
 Put the client ID and secret in `LOGIN_PROVIDERS` (see the example above), and keep its `scopes`: without them, the app requests only the default scopes, and the registry doesn't recognise admins. The app sends the user's access token to the registry, never the ID token.
