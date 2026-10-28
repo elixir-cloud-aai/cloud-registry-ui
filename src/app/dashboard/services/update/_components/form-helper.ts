@@ -1,6 +1,7 @@
 import type { ExternalServiceRegister } from "@elixir-cloud/cloud-registry/providers";
 import type { DeepKeys } from "@tanstack/react-form";
 import { serviceUrlSchemes } from "@/lib/registry-settings";
+import { serviceIdError } from "@/lib/service-ids";
 import {
     environmentMessage,
     isAllowedEnvironment,
@@ -64,6 +65,8 @@ export const serviceTypeSchema = z.object({
 });
 
 export const formDataSchema = z.object({
+    // stored IDs as they are; see `serviceFormSchema` for new ones
+    id: z.string(),
     name: z
         .string()
         .min(1, "Service name is required.")
@@ -150,7 +153,25 @@ export const formDataSchema = z.object({
 
 export type FormData = z.infer<typeof formDataSchema>;
 
+/**
+ * Get the schema of the edit form of a service
+ * @param initialId Current ID of the service, which stays valid
+ * @param servicesPath Path of the services on the registry's server, for
+ * the length of new IDs
+ * @returns The schema, which checks new IDs as the registry does
+ */
+export function serviceFormSchema(initialId: string, servicesPath?: string) {
+    return formDataSchema.extend({
+        id: z.string().superRefine((value, ctx) => {
+            if (value === initialId) return;
+            const message = serviceIdError(value, servicesPath);
+            if (message) ctx.addIssue({ code: "custom", message });
+        }),
+    });
+}
+
 export const formFields = [
+    "id",
     "name",
     "url",
     "organization.name",
@@ -172,6 +193,7 @@ export function normalizeFormData(
     admin = false,
 ): FormData {
     return {
+        id: data?.id ?? "",
         name: data?.name ?? "",
         url: data?.url ?? "",
         version: data?.version ?? "",
@@ -194,9 +216,10 @@ export function normalizeFormData(
 }
 
 // the registry keeps the creation time that admins send, so it is sent
-// only if changed; it always sets the update time of existing services
+// only if changed; it always sets the update time of existing services; the
+// ID is in the path, and changed by a rename
 export function normalizeServiceData(
-    { createdAt, ...data }: FormData,
+    { id: _id, createdAt, ...data }: FormData,
     initial?: FormData,
 ): ExternalServiceRegister {
     return {
@@ -216,4 +239,12 @@ export function normalizeServiceData(
             createdAt &&
             createdAt !== initial.createdAt && { createdAt }),
     };
+}
+
+// whether the form changes more than the ID, and so needs an update
+export function hasServiceChanges(value: FormData, initial: FormData) {
+    return (
+        JSON.stringify(normalizeServiceData(value, initial)) !==
+        JSON.stringify(normalizeServiceData(initial, initial))
+    );
 }

@@ -43,6 +43,7 @@ class AuthenticatedCloudRegistryProvider
 {
   private readonly baseUrl: string;
   private readonly token?: string;
+  private readonly roles: string[];
 
   constructor(options: CloudRegistryProviderOptions);
   constructor(baseUrl: string, token?: string);
@@ -50,18 +51,35 @@ class AuthenticatedCloudRegistryProvider
     optionsOrUrl: CloudRegistryProviderOptions | string,
     token?: string,
   ) {
-    const options =
+    const options: CloudRegistryProviderOptions =
       typeof optionsOrUrl === "string"
         ? { baseUrl: optionsOrUrl, token }
         : optionsOrUrl;
 
     this.baseUrl = options.baseUrl.replace(/\/+$/, "");
     this.token = options.token;
+    this.roles = options.roles ?? [];
   }
 
   /** Whether requests can be authenticated, i.e. the user is logged in. */
   get isAuthenticated(): boolean {
     return !!this.token;
+  }
+
+  /**
+   * Path of the services on the registry's server, under which the
+   * registry grants roles, e.g. `/ga4gh/registry/v1/services`.
+   */
+  get servicesPath(): string {
+    const path = URL.canParse(this.baseUrl)
+      ? new URL(this.baseUrl).pathname.replace(/\/+$/, "")
+      : "";
+    // as the registry's routes have it, not percent-encoded
+    try {
+      return `${decodeURIComponent(path)}/services`;
+    } catch {
+      return `${path}/services`;
+    }
   }
 
   // --------------------------------------------------
@@ -109,6 +127,10 @@ class AuthenticatedCloudRegistryProvider
       }
 
       headers.set("Authorization", `Bearer ${this.token}`);
+      // with the user's token only: the roles are the user's
+      if (this.roles.length) {
+        headers.set("X-Request-Roles", this.roles.join(","));
+      }
     }
 
     const response = await fetch(this.url(path), {
@@ -146,6 +168,7 @@ class AuthenticatedCloudRegistryProvider
         status: response.status,
         title: body.title,
         detail: body.detail,
+        code: body.code,
         serviceId: body.serviceId,
       });
     }
@@ -367,6 +390,30 @@ class AuthenticatedCloudRegistryProvider
       `/services/${this.idPath(id)}`,
       {
         method: "DELETE",
+        authenticated: true,
+      },
+    );
+  }
+
+  /**
+   * POST /services/{serviceId}/rename
+   * Authenticated (admins).
+   *
+   * Change the ID of a service; its roles and verification move with it.
+   *
+   * @param id Current ID of the service
+   * @param newId New ID of the service
+   * @returns Promise resolving to the new ID
+   */
+  async renameService(
+    id: ServiceId,
+    newId: ServiceId,
+  ): Promise<ServiceId> {
+    return this.request(
+      `/services/${this.idPath(id)}/rename`,
+      {
+        method: "POST",
+        body: { id: newId },
         authenticated: true,
       },
     );

@@ -30,7 +30,7 @@ test.describe("service types", () => {
             (await api(undefined, "GET", `/services/${created.body}`)).status,
         ).toBe(404);
 
-        await login(page, "admin");
+        await login(page, "admin", { adminMode: true });
         await page.goto(`/dashboard/services/view/${created.body}`);
         await expect(page.getByText("Pending", { exact: true })).toBeVisible();
         await expect(

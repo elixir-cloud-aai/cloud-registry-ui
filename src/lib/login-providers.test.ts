@@ -159,8 +159,11 @@ describe("oidcEndpoints", () => {
             .spyOn(axios, "get")
             .mockResolvedValue({ data: discovery });
         const ls = loginSettings().providers[0];
-        const { issuer: _, ...expected } = discovery;
-        expect(await oidcEndpoints(ls)).toEqual(expected);
+        // the issuer as discovered, for the check of responses (RFC 9207)
+        expect(await oidcEndpoints(ls)).toEqual({
+            ...discovery,
+            issParameterSupported: false,
+        });
         await oidcEndpoints(ls);
         expect(get).toHaveBeenCalledOnce();
         expect(get).toHaveBeenCalledWith(
@@ -170,11 +173,35 @@ describe("oidcEndpoints", () => {
     });
 
     it.each([
+        [true, true],
+        ["true", true],
+        [false, false],
+        ["false", false],
+        ["yes", false],
+    ])(
+        "takes %j for whether the provider sends its issuer as %s",
+        async (value, supported) => {
+            const { oidcEndpoints, loginSettings } = await load();
+            vi.spyOn(axios, "get").mockResolvedValue({
+                data: {
+                    ...discovery,
+                    authorization_response_iss_parameter_supported: value,
+                },
+            });
+            const ls = loginSettings().providers[0];
+            expect((await oidcEndpoints(ls)).issParameterSupported).toBe(
+                supported,
+            );
+        },
+    );
+
+    it.each([
         [
             "another issuer",
             { issuer: "https://evil.example.org" },
             /Unexpected issuer/,
         ],
+        ["no issuer", { issuer: undefined }, /Unexpected issuer/],
         ["a missing endpoint", { token_endpoint: "" }, /Incomplete/],
         [
             "a malformed endpoint",

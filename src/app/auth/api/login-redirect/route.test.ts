@@ -1,6 +1,7 @@
 import axios from "axios";
 import { NextRequest } from "next/server";
 import { describe, expect, it, vi } from "vitest";
+import { loginCookies, pkceChallenge } from "@/lib/login-flow";
 import {
     cookieStore,
     jar,
@@ -27,7 +28,7 @@ async function login(query = "") {
 }
 
 describe("GET /auth/api/login-redirect", () => {
-    it("sends the user to the provider with a new state", async () => {
+    it("sends the user to the provider with a new state, PKCE and a nonce", async () => {
         setUp();
         const response = await login("?provider=mock");
         const location = new URL(response.headers.get("location") ?? "");
@@ -35,6 +36,8 @@ describe("GET /auth/api/login-redirect", () => {
             `${provider.issuer}/authorize`,
         );
         const state = jar.get("authState");
+        const verifier = jar.get("authVerifier")?.value ?? "";
+        const nonce = jar.get("authNonce")?.value;
         expect(Object.fromEntries(location.searchParams)).toEqual({
             prompt: "login",
             response_type: "code",
@@ -42,13 +45,35 @@ describe("GET /auth/api/login-redirect", () => {
             redirect_uri: "https://app.example.org/auth/api/callback",
             scope: "openid profile email",
             state: state?.value,
+            code_challenge: pkceChallenge(verifier),
+            code_challenge_method: "S256",
+            nonce,
         });
-        expect(state).toMatchObject({
-            httpOnly: true,
-            sameSite: "lax",
-            path: "/",
-        });
+        expect(verifier).toMatch(/^[A-Za-z0-9_-]{43}$/);
+        expect(nonce).toMatch(/^[A-Za-z0-9_-]{43}$/);
+        for (const name of loginCookies)
+            expect(jar.get(name)).toMatchObject({
+                httpOnly: true,
+                sameSite: "lax",
+                path: "/",
+                maxAge: 1800,
+            });
         expect(jar.get("authProvider")?.value).toBe("mock");
+    });
+
+    it("makes new secrets for each login", async () => {
+        setUp();
+        await login("?provider=mock");
+        const first = ["authState", "authVerifier", "authNonce"].map(
+            (name) => jar.get(name)?.value,
+        );
+        await login("?provider=mock");
+        for (const [i, name] of [
+            "authState",
+            "authVerifier",
+            "authNonce",
+        ].entries())
+            expect(jar.get(name)?.value).not.toBe(first[i]);
     });
 
     it("uses the only provider without an ID", async () => {

@@ -1,8 +1,10 @@
 import axios from "axios";
 import { NextRequest } from "next/server";
 import { describe, expect, it, vi } from "vitest";
+import { jwt } from "@/test/jwt";
 import {
     cookieStore,
+    discovery,
     jar,
     provider,
     Redirect,
@@ -18,10 +20,23 @@ vi.mock("next/navigation", () => ({
     },
 }));
 
-const pending = { authState: "state-1", authProvider: "mock" };
+const pending = {
+    authState: "state-1",
+    authProvider: "mock",
+    authVerifier: "verifier-1",
+    authNonce: "nonce-1",
+};
+const claims = {
+    iss: discovery.issuer,
+    aud: "client",
+    sub: "a",
+    nonce: "nonce-1",
+    exp: Math.floor(Date.now() / 1000) + 300,
+};
+const idToken = jwt(claims);
 const tokens = {
     access_token: "access",
-    id_token: "id",
+    id_token: idToken,
     token_type: "Bearer",
     expires_in: 3600,
 };
@@ -55,6 +70,7 @@ describe("GET /auth/api/callback", () => {
             redirect_uri: "https://app.example.org/auth/api/callback",
             client_id: "client",
             client_secret: "client-secret",
+            code_verifier: "verifier-1",
         });
         expect(options?.timeout).toBe(10000);
         // other statuses are failures, e.g. errors with a JSON body
@@ -68,7 +84,7 @@ describe("GET /auth/api/callback", () => {
         });
         expect(jar.get("access_token")?.httpOnly).toBeUndefined();
         expect(jar.get("id_token")).toMatchObject({
-            value: "id",
+            value: idToken,
             httpOnly: true,
         });
         expect(jar.get("login_provider")).toMatchObject({
@@ -76,14 +92,33 @@ describe("GET /auth/api/callback", () => {
             httpOnly: true,
         });
         // the state is used up
-        expect(jar.has("authState")).toBe(false);
-        expect(jar.has("authProvider")).toBe(false);
+        for (const name of Object.keys(pending))
+            expect(jar.has(name)).toBe(false);
+    });
+
+    it("starts in user mode", async () => {
+        setUp({ ...pending, admin_mode: "1" });
+        expect((await callback("?code=c1&state=state-1")).url).toBe(
+            "/dashboard",
+        );
+        expect(jar.has("admin_mode")).toBe(false);
     });
 
     it.each([
         ["no state", "?code=c1", pending],
         ["another state", "?code=c1&state=forged", pending],
         ["no pending login", "?code=c1&state=state-1", {}],
+        // e.g. a login started by an earlier version of the app
+        [
+            "a login without PKCE",
+            "?code=c1&state=state-1",
+            { ...pending, authVerifier: undefined },
+        ],
+        [
+            "a login without a nonce",
+            "?code=c1&state=state-1",
+            { ...pending, authNonce: undefined },
+        ],
     ])("rejects %s and keeps a pending login", async (_, query, cookies) => {
         setUp(cookies);
         const { url, post } = await callback(query);
@@ -107,7 +142,7 @@ describe("GET /auth/api/callback", () => {
 
     it.each([
         ["an unknown provider", { ...pending, authProvider: "other" }],
-        ["no provider", { authState: "state-1" }],
+        ["no provider", { ...pending, authProvider: undefined }],
     ])("rejects %s", async (_, cookies) => {
         setUp(cookies);
         expect((await callback("?code=c1&state=state-1")).url).toBe(
@@ -136,6 +171,92 @@ describe("GET /auth/api/callback", () => {
         );
         expect(JSON.stringify(log.mock.calls)).not.toMatch(/access|secret/);
         expect(jar.has("access_token")).toBe(false);
+    });
+
+    it.each([
+        ["another nonce", jwt({ ...claims, nonce: "nonce-2" }), "nonce"],
+        ["no nonce", jwt({ ...claims, nonce: undefined }), "nonce"],
+        ["another issuer", jwt({ ...claims, iss: "https://evil" }), "iss"],
+        ["another audience", jwt({ ...claims, aud: "other" }), "aud"],
+        ["no JWT", "id", "Invalid ID token"],
+    ])("fails on an ID token with %s", async (_, id_token, message) => {
+        setUp(pending);
+        const log = vi.spyOn(console, "error").mockImplementation(() => {});
+        const { url } = await callback("?code=c1&state=state-1", {
+            ...tokens,
+            id_token,
+        });
+        expect(url).toBe("/auth/error?type=internal");
+        expect(log).toHaveBeenCalledWith(
+            "Login with mock failed:",
+            expect.stringContaining(message),
+        );
+        const logged = JSON.stringify(log.mock.calls);
+        for (const secret of [tokens.access_token, "nonce-1"])
+            expect(logged).not.toContain(secret);
+        expect(jar.has("access_token")).toBe(false);
+        expect(jar.has("id_token")).toBe(false);
+    });
+
+    it("accepts the provider's issuer in the response", async () => {
+        setUp(pending);
+        const iss = encodeURIComponent(discovery.issuer);
+        expect((await callback(`?code=c1&state=state-1&iss=${iss}`)).url).toBe(
+            "/dashboard",
+        );
+    });
+
+    it("compares the issuer with the discovered one, as LS Login's", async () => {
+        setUp(pending);
+        const issuer = `${discovery.issuer}/`;
+        vi.spyOn(axios, "get").mockResolvedValue({
+            data: { ...discovery, issuer },
+        });
+        const { url } = await callback(
+            `?code=c1&state=state-1&iss=${encodeURIComponent(issuer)}`,
+            { ...tokens, id_token: jwt({ ...claims, iss: issuer }) },
+        );
+        expect(url).toBe("/dashboard");
+    });
+
+    it.each([
+        ["another issuer", "&iss=https%3A%2F%2Fevil.example.org", false],
+        [
+            "an issuer with another trailing slash",
+            `&iss=${encodeURIComponent(`${discovery.issuer}/`)}`,
+            false,
+        ],
+        ["no issuer from a provider that sends one", "", true],
+    ])("rejects %s", async (_, iss, supported) => {
+        setUp(pending);
+        const log = vi.spyOn(console, "error").mockImplementation(() => {});
+        vi.spyOn(axios, "get").mockResolvedValue({
+            data: {
+                ...discovery,
+                authorization_response_iss_parameter_supported: supported,
+            },
+        });
+        const { url, post } = await callback(`?code=c1&state=state-1${iss}`);
+        expect(url).toBe("/auth/error?type=issuer");
+        expect(log).toHaveBeenCalledWith(
+            "Login with mock failed:",
+            expect.stringMatching(
+                `^Unexpected iss .+, expected ${discovery.issuer}$`,
+            ),
+        );
+        // the code may be another provider's
+        expect(post).not.toHaveBeenCalled();
+        expect(jar.has("authState")).toBe(false);
+    });
+
+    it("fails when the discovery fails", async () => {
+        setUp(pending);
+        vi.spyOn(axios, "get").mockRejectedValue(new Error("down"));
+        const log = vi.spyOn(console, "error").mockImplementation(() => {});
+        const { url, post } = await callback("?code=c1&state=state-1");
+        expect(url).toBe("/auth/error?type=internal");
+        expect(log).toHaveBeenCalledWith("Login with mock failed:", "down");
+        expect(post).not.toHaveBeenCalled();
     });
 
     it("fails when the token request fails", async () => {

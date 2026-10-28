@@ -69,6 +69,14 @@ describe("access helpers", () => {
         expect(accessError(failure(409))).toBe(
             "Add another owner first, or delete the service.",
         );
+        expect(accessError(failure(409, { code: "last-owner" }))).toBe(
+            "Add another owner first, or delete the service.",
+        );
+        expect(
+            accessError(
+                failure(409, { detail: "Rule set.", code: "conflict" }),
+            ),
+        ).toBe("Rule set.");
         expect(accessError(failure(403), true)).toBe(
             "You can grant roles only to groups you are a member of.",
         );

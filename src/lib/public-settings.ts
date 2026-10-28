@@ -10,7 +10,9 @@
  */
 
 // the list of the public settings, with the values set when building;
-// Next replaces only these literal reads, so they must stay written out
+// Next replaces only these literal reads, so they must stay written out.
+// Only names listed here reach the browser: add new settings here, to the
+// README's Configurations table and to `.env.example`
 const builtIn = {
     NEXT_PUBLIC_CLOUD_REGISTRY_URL: process.env.NEXT_PUBLIC_CLOUD_REGISTRY_URL,
     NEXT_PUBLIC_SERVICE_URL_SCHEMES:

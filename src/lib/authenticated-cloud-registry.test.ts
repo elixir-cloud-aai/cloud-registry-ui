@@ -46,6 +46,44 @@ describe("requests", () => {
         ).toBe(false);
     });
 
+    it("asks for opt-in roles in authenticated requests only", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider({
+            baseUrl: base,
+            token: "t",
+            roles: ["admin"],
+        });
+        fetchMock.mockResolvedValue(json({ admin: true }));
+        await provider.getCurrentUser();
+        expect(
+            new Headers(fetchMock.mock.calls.at(-1)?.[1]?.headers).get(
+                "X-Request-Roles",
+            ),
+        ).toBe("admin");
+        // public reads go without the token, and so without roles
+        fetchMock.mockResolvedValue(json([]));
+        await provider.getServices();
+        expect(
+            new Headers(fetchMock.mock.calls.at(-1)?.[1]?.headers).has(
+                "X-Request-Roles",
+            ),
+        ).toBe(false);
+        // no roles by default
+        fetchMock.mockImplementation(async () => json({ admin: false }));
+        await new AuthenticatedCloudRegistryProvider({
+            baseUrl: base,
+            token: "t",
+            roles: undefined,
+        }).getCurrentUser();
+        await new AuthenticatedCloudRegistryProvider(
+            base,
+            "t",
+        ).getCurrentUser();
+        for (const [, init] of fetchMock.mock.calls.slice(-2))
+            expect(new Headers(init?.headers).has("X-Request-Roles")).toBe(
+                false,
+            );
+    });
+
     it("sends public reads without the token", async () => {
         fetchMock.mockResolvedValue(json([{ id: "a" }]));
         const provider = new AuthenticatedCloudRegistryProvider(
@@ -81,7 +119,12 @@ describe("requests", () => {
     it("keeps status and problem details of failures", async () => {
         fetchMock.mockResolvedValue(
             json(
-                { title: "Conflict", detail: "Duplicate", serviceId: "x" },
+                {
+                    title: "Conflict",
+                    detail: "Duplicate",
+                    code: "duplicate-service",
+                    serviceId: "x",
+                },
                 409,
             ),
         );
@@ -92,6 +135,7 @@ describe("requests", () => {
                 status: 409,
                 title: "Conflict",
                 detail: "Duplicate",
+                code: "duplicate-service",
                 serviceId: "x",
             },
         );
@@ -230,6 +274,14 @@ describe("operations", () => {
             undefined,
         ],
         [
+            "renameService",
+            (p) => p.renameService("a", "b c"),
+            "POST",
+            "/services/a/rename",
+            true,
+            { id: "b c" },
+        ],
+        [
             "getServicePermissions",
             (p) => p.getServicePermissions("a"),
             "GET",
@@ -319,6 +371,21 @@ describe("operations", () => {
             auth: authenticated ? "Bearer t" : null,
             body,
         });
+    });
+});
+
+describe("servicesPath", () => {
+    it.each([
+        [base, "/ga4gh/registry/v1/services"],
+        [`${base}/`, "/ga4gh/registry/v1/services"],
+        ["https://registry.example.org", "/services"],
+        ["", "/services"],
+        ["https://registry.example.org/r%C3%A9g", "/rég/services"],
+        ["https://registry.example.org/%E0%A4%A", "/%E0%A4%A/services"],
+    ])("of %j is %j", (url, path) => {
+        expect(new AuthenticatedCloudRegistryProvider(url).servicesPath).toBe(
+            path,
+        );
     });
 });
 

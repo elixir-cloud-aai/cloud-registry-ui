@@ -122,6 +122,12 @@ jobs:
                         echo "::error::The page doesn't allow connections to the registry passed at start"
                         exit 1
                       fi
+                      # the page passes it to the browser (the image has no
+                      # values of its own to fall back to)
+                      if ! curl -fs http://localhost:3000/auth/login | grep -qF 'window.__PUBLIC_SETTINGS__={\"NEXT_PUBLIC_CLOUD_REGISTRY_URL\":\"https://registry.example.org/ga4gh/registry/v1\"}'; then
+                        echo "::error::The page doesn't pass the registry passed at start to the browser"
+                        exit 1
+                      fi
                       exit 0
                     fi
                     sleep 2
