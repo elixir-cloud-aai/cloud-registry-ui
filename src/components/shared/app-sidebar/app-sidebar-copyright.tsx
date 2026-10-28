@@ -5,7 +5,8 @@ import { copyright, footerLogo } from "@/lib/branding";
 import AppSidebarLogo from "./app-sidebar-logo";
 
 function AppSidebarCopyright() {
-    // the page is prerendered at build time, so the year is set after mount
+    // set after mount, so that the server's and the browser's year can't
+    // differ while hydrating (e.g. on New Year's Eve)
     const [year, setYear] = useState<number>();
     useEffect(() => {
         setYear(new Date().getFullYear());

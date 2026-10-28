@@ -6,21 +6,8 @@ WORKDIR /app
 COPY package*.json bun.lock ./
 RUN bun install --frozen-lockfile
 
-# Settings built into the app, passed with `docker build --build-arg`; they
-# are public (they reach the browser and the image history). The login
-# settings, with the client secret, are passed when the container starts.
-# Keep the list in line with the `process.env.NEXT_PUBLIC_*` uses in src/.
-ARG NEXT_PUBLIC_CLOUD_REGISTRY_URL
-ARG NEXT_PUBLIC_SERVICE_URL_SCHEMES
-ARG NEXT_PUBLIC_SERVICE_ENVIRONMENTS
-ARG NEXT_PUBLIC_APP_TITLE
-ARG NEXT_PUBLIC_APP_TITLE_SIZE
-ARG NEXT_PUBLIC_APP_TITLE_FONT
-ARG NEXT_PUBLIC_APP_LOGO
-ARG NEXT_PUBLIC_APP_LOGO_DARK
-ARG NEXT_PUBLIC_FOOTER_LOGO
-ARG NEXT_PUBLIC_FOOTER_LOGO_DARK
-ARG NEXT_PUBLIC_FOOTER_START_YEAR
+# No settings: all are passed when the container starts (see
+# `src/lib/public-settings.ts`), so one image serves any deployment
 
 # Build the standalone server (`.dockerignore` lets in only the sources and
 # build files, no `.env*` files, keys or credentials)

@@ -59,55 +59,52 @@ docker compose -f e2e/stack/compose.yaml down
 
 ### Docker
 
-The image is built with the settings that are read at build time (`NEXT_PUBLIC_*`, see [Configurations](#configurations)). Pass them as build arguments, at least `NEXT_PUBLIC_CLOUD_REGISTRY_URL` (the build fails without it), e.g.:
+The image has no settings of its own, so one image serves any deployment: build it without settings, and pass them all when the container starts (see [Configurations](#configurations)).
 
 ```
-docker build -t cloud-registry-ui \
-  --build-arg NEXT_PUBLIC_CLOUD_REGISTRY_URL=https://registry.example.org/ga4gh/registry/v1 \
-  --build-arg NEXT_PUBLIC_APP_TITLE="My Cloud Registry" \
-  .
+docker build -t cloud-registry-ui .
 ```
 
-`docker build` reads only the settings passed with `--build-arg`: not `.env` files, nor variables exported in the shell (`--build-arg NAME`, without a value, passes the shell's value).
+`.dockerignore` lets only the sources and build files into the build (an allow list), without `.env*` files, keys or credentials, so local settings and secrets outside the sources can't reach the build, its cache or the image.
 
-`.dockerignore` lets only the sources and build files into the build (an allow list), without `.env*` files, keys or credentials, so local settings and secrets outside the sources can't reach the build, its cache or the image. Build arguments, however, are stored in the image's history (`docker history`): pass only the `NEXT_PUBLIC_*` settings with them, which are public anyway, never the login settings.
-
-Pass the login settings (`LOGIN_PROVIDERS` and `LOGIN_REDIRECT_URI`, see [Login](#login)), which hold the client secret, when the container starts, e.g. from a file outside the repository, such as `~/cloud-registry-ui/login.env`. `--env-file` takes each line as `NAME=value`, literally: don't quote the values.
+Pass the settings when the container starts, e.g. from a file outside the repository, such as `~/cloud-registry-ui/settings.env`, with at least `NEXT_PUBLIC_CLOUD_REGISTRY_URL` and the login settings (`LOGIN_PROVIDERS` and `LOGIN_REDIRECT_URI`, see [Login](#login)), which hold the client secret. `--env-file` takes each line as `NAME=value`, literally: don't quote the values.
 
 ```
-docker run -p 3000:3000 --env-file ~/cloud-registry-ui/login.env cloud-registry-ui
+docker run -p 3000:3000 --env-file ~/cloud-registry-ui/settings.env cloud-registry-ui
 ```
 
-Without the login settings, the container refuses to start. Settings passed with `docker run` don't change the `NEXT_PUBLIC_*` values: those need a new image.
+Without the required settings, or with invalid ones, the container refuses to start.
+
+Before, the `NEXT_PUBLIC_*` settings were build arguments. Existing deployments must pass them with `docker run` now: `docker build --build-arg NEXT_PUBLIC_*` only prints a warning, and new images no longer hold them in their history. One image can now be used for all environments of a deployment (e.g. staging and production).
 
 The image holds only the built app: Next's standalone server (`bun server.js`), its static files and `public/`, without sources or development dependencies. It runs as the unprivileged user `bun`, which can write only to `.next/cache`, listens on all IPv4 interfaces (set `LISTEN_HOSTNAME`, e.g. to `::` for IPv6, to change this) and on `PORT` (default: 3000), and reports its health (`docker ps`) by requesting the start page every 30 seconds. Serve it over HTTPS, e.g. behind a reverse proxy: the login cookies are marked `Secure`, and browsers accept them over plain HTTP only on `localhost`.
 
 ## Configurations
 
-The app is configured through environment variables. For `bun run dev`, `bun run build` and `bun run start`, copy `.env.example` to `.env` and adjust as needed; for the Docker image, pass them as build arguments and with `docker run` (see [Docker](#docker)).
+The app is configured through environment variables. For `bun run dev`, `bun run build` and `bun run start`, copy `.env.example` to `.env` and adjust as needed; for the Docker image, pass them with `docker run` (see [Docker](#docker)).
 
-Most settings are read when the app is built (`bun run build`, `docker build`) and are fixed in the build: change them, then build again. Only the login settings are read when the app starts (`bun run start`, `docker run`). `bun run dev` reads all of them.
+The settings are read when the app starts (`bun run start`, `docker run`, `bun run dev`): change them, then restart the app, without building it again. The `NEXT_PUBLIC_*` settings reach the browser, so they are public: put no secrets in them. Values of `NEXT_PUBLIC_*` settings that are set when the app is built (e.g. in `.env` for `bun run build`, or on Vercel) apply where the environment of the started app doesn't set them; the Docker image is built without settings, so this doesn't apply there.
 
-| Variable                           | Read at | Default                              | Section               |
-| ---------------------------------- | ------- | ------------------------------------ | --------------------- |
-| `NEXT_PUBLIC_CLOUD_REGISTRY_URL`   | build   | (none, required)                     | [Registry](#registry) |
-| `NEXT_PUBLIC_SERVICE_URL_SCHEMES`  | build   | `https`                              | [Registry](#registry) |
-| `NEXT_PUBLIC_SERVICE_ENVIRONMENTS` | build   | `prod,test,dev,staging`              | [Registry](#registry) |
-| `NEXT_PUBLIC_APP_TITLE`            | build   | `Cloud Registry`                     | [Branding](#branding) |
-| `NEXT_PUBLIC_APP_TITLE_SIZE`       | build   | 24 (one line), what fits (two lines) | [Branding](#branding) |
-| `NEXT_PUBLIC_APP_TITLE_FONT`       | build   | Open Sans                            | [Branding](#branding) |
-| `NEXT_PUBLIC_APP_LOGO`             | build   | `/elixir-on-cloud-mark.svg`          | [Branding](#branding) |
-| `NEXT_PUBLIC_APP_LOGO_DARK`        | build   | `/elixir-on-cloud-mark-night.svg`    | [Branding](#branding) |
-| `NEXT_PUBLIC_FOOTER_LOGO`          | build   | `/elixir-on-cloud-lockup.svg`        | [Branding](#branding) |
-| `NEXT_PUBLIC_FOOTER_LOGO_DARK`     | build   | `/elixir-on-cloud-lockup-night.svg`  | [Branding](#branding) |
-| `NEXT_PUBLIC_FOOTER_START_YEAR`    | build   | (none)                               | [Branding](#branding) |
-| `LOGIN_PROVIDERS`                  | start   | (none, required)                     | [Login](#login)       |
-| `LOGIN_REDIRECT_URI`               | start   | (none, required)                     | [Login](#login)       |
+| Variable                           | Default                              | Section               |
+| ---------------------------------- | ------------------------------------ | --------------------- |
+| `NEXT_PUBLIC_CLOUD_REGISTRY_URL`   | (none, required)                     | [Registry](#registry) |
+| `NEXT_PUBLIC_SERVICE_URL_SCHEMES`  | `https`                              | [Registry](#registry) |
+| `NEXT_PUBLIC_SERVICE_ENVIRONMENTS` | `prod,test,dev,staging`              | [Registry](#registry) |
+| `NEXT_PUBLIC_APP_TITLE`            | `Cloud Registry`                     | [Branding](#branding) |
+| `NEXT_PUBLIC_APP_TITLE_SIZE`       | 24 (one line), what fits (two lines) | [Branding](#branding) |
+| `NEXT_PUBLIC_APP_TITLE_FONT`       | Open Sans                            | [Branding](#branding) |
+| `NEXT_PUBLIC_APP_LOGO`             | `/elixir-on-cloud-mark.svg`          | [Branding](#branding) |
+| `NEXT_PUBLIC_APP_LOGO_DARK`        | `/elixir-on-cloud-mark-night.svg`    | [Branding](#branding) |
+| `NEXT_PUBLIC_FOOTER_LOGO`          | `/elixir-on-cloud-lockup.svg`        | [Branding](#branding) |
+| `NEXT_PUBLIC_FOOTER_LOGO_DARK`     | `/elixir-on-cloud-lockup-night.svg`  | [Branding](#branding) |
+| `NEXT_PUBLIC_FOOTER_START_YEAR`    | (none)                               | [Branding](#branding) |
+| `LOGIN_PROVIDERS`                  | (none, required)                     | [Login](#login)       |
+| `LOGIN_REDIRECT_URI`               | (none, required)                     | [Login](#login)       |
 
 Missing or invalid settings stop the app with a message that names the setting:
 
-- The settings read at build time stop `bun run build` (also in `docker build`) and `bun run dev`.
-- The login settings stop `bun run start`, `docker run` and `bun run dev`. On Vercel, which deploys what it builds, they also stop the build (`vercel build`, or the build on Vercel's servers), so set them for every environment that builds, Preview included. `vercel pull` can't read sensitive variables: for those, such as `LOGIN_PROVIDERS` with the client secret, `vercel build` only checks that they are set, and checks the others as usual.
+- They stop `bun run start`, `docker run` and `bun run dev`; `bun run build` and `docker build` don't need them.
+- On Vercel, which deploys what it builds, they also stop the build (`vercel build`, or the build on Vercel's servers), so set them for every environment that builds, Preview included. `vercel pull` can't read sensitive variables: for those, such as `LOGIN_PROVIDERS` with the client secret, `vercel build` only checks that they are set, and checks the others as usual.
 
 ### Registry
 
@@ -115,7 +112,7 @@ Set `NEXT_PUBLIC_CLOUD_REGISTRY_URL` (required) to the registry's API, including
 
 The app's Content Security Policy lets browsers connect only to the app and to this URL's origin, and other sites can't frame the app. Scripts run only with a nonce that changes on every request, so pages are rendered per request and not cached. The policy still allows inline styles (used by components and libraries) and images from any `https` URL (logos). Don't let a proxy in front of the app add a second Content Security Policy: browsers enforce both, and one without the nonce blocks the app's scripts. On Vercel, the toolbar of preview deployments is blocked.
 
-Set `NEXT_PUBLIC_SERVICE_URL_SCHEMES` to the schemes that the registry allows for service URLs (`custom.endpoints.services.url_schemes`), comma-separated: `https` (default, also if empty), `http` or `http,https`. Other values stop the build.
+Set `NEXT_PUBLIC_SERVICE_URL_SCHEMES` to the schemes that the registry allows for service URLs (`custom.endpoints.services.url_schemes`), comma-separated: `https` (default, also if empty), `http` or `http,https`. Other values stop the app.
 
 Set `NEXT_PUBLIC_SERVICE_ENVIRONMENTS` to the environments that the registry allows (`custom.endpoints.services.environments`), comma-separated (default, also if empty: `prod,test,dev,staging`). The edit form offers and accepts only these values, also for services that already have another one (the registry checks them on every change), and the environment filter lists those in use first, in this order. The create form offers only the four default values for now (see [Known gaps](#known-gaps)). Set it to `*` if the registry allows any environment (`[]`): the edit form then takes any text. Each value may have at most 256 characters, and `*` can't be combined with other values.
 
@@ -125,7 +122,7 @@ The app follows the registry's other settings, such as who may add service types
 
 ### Branding
 
-All optional; read at build time. Logos given as paths must be in `public/` when the app is built.
+All optional; read when the app starts. Logos given as paths must be in `public/` when the app is built (in the Docker image: the default logos; use URLs for others).
 
 | Variable                        | Default                              | Description                                                                                                                                                                                                                                                                                       |
 | ------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
