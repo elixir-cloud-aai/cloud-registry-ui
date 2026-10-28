@@ -1,0 +1,26 @@
+version: 2
+# Dependabot reads this file only from the default branch (`staging`) and
+# opens its pull requests against that branch
+updates:
+  # Actions in the workflows (pinned to commit SHAs, with a version comment)
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    # Skip releases younger than a week (time to spot compromised ones)
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns: ["*"]
+  # Dependencies in `package.json` and `bun.lock`
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: monthly
+    # Skip releases younger than a week (time to spot compromised ones)
+    cooldown:
+      default-days: 7
+    groups:
+      bun-dependencies:
+        patterns: ["*"]

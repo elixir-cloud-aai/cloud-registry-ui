@@ -3,29 +3,42 @@ name: Staging Deployment
 env:
     VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
     VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-    VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
 on:
     push:
         branches:
             - staging
 
+permissions: {}
+
 jobs:
     deploy:
         runs-on: ubuntu-latest
         environment: staging
+        permissions:
+            contents: read
         steps:
-            - uses: actions/checkout@v4
-            - uses: oven-sh/setup-bun@v2
+            - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+              with:
+                  persist-credentials: false
+            - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
 
+            # Exact version, at least a week old; bumped by hand (Dependabot
+            # does not see it)
             - name: Install Vercel CLI
-              run: bun install --global vercel@latest
+              run: bun install --global vercel@65.0.0
 
             - name: Pull Vercel Environment Information
-              run: vercel pull --yes --environment=preview
+              env:
+                  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+              run: vercel pull --yes --environment=preview --token "$VERCEL_TOKEN"
 
             - name: Build Project Artifacts
-              run: vercel build
+              env:
+                  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+              run: vercel build --token "$VERCEL_TOKEN"
 
             - name: Deploy Project Artifacts to Vercel
-              run: vercel deploy --prebuilt
+              env:
+                  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+              run: vercel deploy --prebuilt --token "$VERCEL_TOKEN"
