@@ -55,7 +55,13 @@ export interface ServiceRole {
  * GET /me
  */
 export interface Me {
+  /** Whether the user acts as an admin on this request (admin mode). */
   admin: boolean;
+  /**
+   * Whether the user may switch to admin mode (cloud-registry#240); missing
+   * in registries without admin mode.
+   */
+  admin_available?: boolean;
   /** Whether the caller may add service types (cloud-registry#235). */
   may_add_service_types?: boolean;
   /** Whether the types the caller adds are pending (cloud-registry#238). */
@@ -127,6 +133,11 @@ export interface ApiError {
 export interface CloudRegistryProviderOptions {
   baseUrl: string;
   token?: string;
+  /**
+   * Opt-in roles to ask for in authenticated requests, e.g. `["admin"]` for
+   * admin mode (cloud-registry#240; header `X-Request-Roles`).
+   */
+  roles?: string[];
 }
 
 export type {

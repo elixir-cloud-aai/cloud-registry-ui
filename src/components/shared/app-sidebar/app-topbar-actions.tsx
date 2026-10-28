@@ -6,6 +6,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { AdminModeToggle } from "../admin-mode";
 import { ThemeToggle } from "../theme";
 import { getCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
@@ -27,6 +28,8 @@ async function AppTopbarActions() {
             </Tooltip>
 
             <ThemeToggle />
+
+            {idToken && <AdminModeToggle />}
 
             {!idToken && (
                 <Button size="sm" asChild>

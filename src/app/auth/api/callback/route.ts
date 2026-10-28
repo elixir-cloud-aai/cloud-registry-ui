@@ -3,6 +3,7 @@ import { deleteCookie, getCookie, setCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
+import { adminModeCookie } from "@/lib/admin-mode";
 import { checkIdToken, loginCookies } from "@/lib/login-flow";
 import {
     loginErrorSummary,
@@ -154,6 +155,8 @@ export async function GET(request: NextRequest) {
         ...cookieOptions,
         httpOnly: true,
     });
+    // admins start in user mode
+    await deleteCookie(adminModeCookie, { cookies, path: "/" });
 
     redirect("/dashboard");
 }

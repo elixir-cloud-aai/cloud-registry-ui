@@ -46,6 +46,44 @@ describe("requests", () => {
         ).toBe(false);
     });
 
+    it("asks for opt-in roles in authenticated requests only", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider({
+            baseUrl: base,
+            token: "t",
+            roles: ["admin"],
+        });
+        fetchMock.mockResolvedValue(json({ admin: true }));
+        await provider.getCurrentUser();
+        expect(
+            new Headers(fetchMock.mock.calls.at(-1)?.[1]?.headers).get(
+                "X-Request-Roles",
+            ),
+        ).toBe("admin");
+        // public reads go without the token, and so without roles
+        fetchMock.mockResolvedValue(json([]));
+        await provider.getServices();
+        expect(
+            new Headers(fetchMock.mock.calls.at(-1)?.[1]?.headers).has(
+                "X-Request-Roles",
+            ),
+        ).toBe(false);
+        // no roles by default
+        fetchMock.mockImplementation(async () => json({ admin: false }));
+        await new AuthenticatedCloudRegistryProvider({
+            baseUrl: base,
+            token: "t",
+            roles: undefined,
+        }).getCurrentUser();
+        await new AuthenticatedCloudRegistryProvider(
+            base,
+            "t",
+        ).getCurrentUser();
+        for (const [, init] of fetchMock.mock.calls.slice(-2))
+            expect(new Headers(init?.headers).has("X-Request-Roles")).toBe(
+                false,
+            );
+    });
+
     it("sends public reads without the token", async () => {
         fetchMock.mockResolvedValue(json([{ id: "a" }]));
         const provider = new AuthenticatedCloudRegistryProvider(

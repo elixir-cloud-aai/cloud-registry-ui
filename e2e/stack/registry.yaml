@@ -14,20 +14,20 @@ security:
             - name
     access_control:
         claim_groups: eduperson_entitlement
+        # members act as admins only in admin mode, as `opt_in_roles: [admin]`
+        # of the registry's default config sets it
         group_mapping:
             "urn:geant:lifescience-ri.eu:group:elixir:ECP_CLN:ADMIN#aai.lifescience-ri.eu": admin
 db:
     host: mongodb
+server:
+    public_url: http://localhost:8180/
 custom:
     access_control:
         # new types of users other than admins are pending until an admin
         # approves them
         service_types: moderated
     endpoints:
-        service:
-            url_prefix: http
-            external_host: localhost
-            external_port: 8180
         services:
             url_schemes:
                 - http
