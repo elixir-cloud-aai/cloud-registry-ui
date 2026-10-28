@@ -26,6 +26,7 @@ import {
 } from "./access-helper";
 import AccessList from "./access-list";
 import AccessGrantForm from "./grant-form";
+import Invitations from "./invitations";
 
 type Props = {
     provider: AccessProvider | null;
@@ -170,7 +171,7 @@ function ManageAccessDialog({
                 if (!changing) onOpenChange(val);
             }}
         >
-            <DialogContent className="sm:max-w-2xl">
+            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-lg font-bold">
                         Manage access
@@ -204,6 +205,14 @@ function ManageAccessDialog({
                 <AccessGrantForm
                     onGrant={handleGrant}
                     disabled={changing || !permissions}
+                />
+
+                <Separator />
+
+                <Invitations
+                    provider={provider}
+                    serviceId={serviceId}
+                    disabled={changing}
                 />
             </DialogContent>
         </Dialog>
