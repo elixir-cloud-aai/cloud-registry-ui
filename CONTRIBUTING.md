@@ -92,6 +92,11 @@ git push origin your-branch-name
 
 3. Open a Pull Request on GitHub
 
+If your change affects what users or operators see or do (e.g. labels,
+pages, settings), update the docs in `docs/` with it, and take the
+screenshots again if they change (see "Screenshots" in
+`docs/development.md`).
+
 
 
 

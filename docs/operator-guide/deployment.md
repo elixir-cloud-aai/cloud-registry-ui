@@ -35,7 +35,9 @@ Serve the app over HTTPS, at the address of `LOGIN_REDIRECT_URI` (see
 [Login](login.md)):
 
 - Forward all paths to the container, e.g. `/dashboard`, `/auth` and
-  `/_next`.
+  `/_next`. If the app and the registry share a host, forward the
+  registry's base path (e.g. `/ga4gh/registry/v1`) to the registry
+  instead.
 - Don't add a Content Security Policy in the proxy (see
   [Registry](configuration.md#registry)): the app sets its own, with a
   nonce per request.

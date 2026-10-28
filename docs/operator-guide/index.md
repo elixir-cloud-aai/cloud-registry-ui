@@ -27,9 +27,11 @@ pages. A deployment needs:
 
     ```
     NEXT_PUBLIC_CLOUD_REGISTRY_URL=https://registry.example.org/ga4gh/registry/v1
-    LOGIN_PROVIDERS=[{"id": "ls-login", "name": "LS Login", "logo": "/ls-login-grey-wide.jpg", "issuer": "https://login.aai.lifescience-ri.eu/oidc/", "clientId": "<client ID>", "clientSecret": "<client secret>", "scopes": ["openid", "profile", "email", "eduperson_entitlement"]}]
-    LOGIN_REDIRECT_URI=https://registry.example.org/auth/api/callback
+    LOGIN_PROVIDERS=<login providers, see Login>
+    LOGIN_REDIRECT_URI=https://app.example.org/auth/api/callback
     ```
+
+    [Login](login.md) has an example of `LOGIN_PROVIDERS` for LS Login.
 
 4. Start the image of the matching version, behind a reverse proxy that
    serves it over HTTPS:

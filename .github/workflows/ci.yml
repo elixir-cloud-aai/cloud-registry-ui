@@ -1,8 +1,8 @@
 # Everything that must pass on pull requests and pushes: unit tests with
 # coverage, type checks and the build, the Docker image, the end-to-end
-# tests against a registry and a mock login provider, and the docs. The gate `passed`
-# ("CI passed") is the only required check and needs every other job to
-# succeed. No `paths:` filters, so that the gate always reports; to skip a
+# tests against a registry and a mock login provider, and the docs. The
+# gate `passed` ("CI passed") is the only required check and needs every
+# other job to succeed. No `paths:` filters, so that the gate always reports; to skip a
 # job with `if:`, allow that skip in the gate. Lint isn't checked yet: the
 # code has Biome errors to fix first
 

@@ -17,7 +17,16 @@ session (it is kept in cookies), unless the release notes say otherwise.
 Logins that are in progress during the update may fail; users then log in
 again.
 
-## Changes that need action
+## Upgrading with cloud-registry 0.6.0
+
+With cloud-registry 0.6.0 and later, admins act as admins only in admin
+mode, which they switch on in the app (see [Admins and admin
+mode](admins.md#admin-mode)). Upgrade the app together with the registry:
+earlier versions of the app (e.g. 0.5.x) don't send the admin role, so
+their admins can't act as admins with a registry that requires admin
+mode.
+
+## Changes since unreleased versions
 
 These changes apply to deployments of earlier, unreleased versions, e.g.
 built from the repository.
@@ -49,11 +58,3 @@ stops with a message if it finds the old variables without
 `LOGIN_PROVIDERS`. On Vercel, change the project's environment variables
 before deploying this version: the build fails if the old ones are set
 without `LOGIN_PROVIDERS`.
-
-### Admin mode
-
-With cloud-registry 0.6.0 and later, admins act as admins only in admin
-mode, which they switch on in the app (see [Admins and admin
-mode](admins.md#admin-mode)). Upgrade the app together with the registry:
-older versions of the app don't send the admin role, so their admins can't
-act as admins with a registry that requires admin mode.

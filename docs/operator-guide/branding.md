@@ -4,7 +4,7 @@ The title and the logos of the app can be changed, so that a deployment
 shows its own name and organization. The features of the app stay the
 same. The [User guide](../user-guide/index.md) shows the default branding.
 
-All optional; read when the app starts. Logos given as paths must be in `public/` when the app is built (in the Docker image: the default logos; use URLs for others).
+All branding settings are optional, and read when the app starts. Logos given as paths must be in `public/` when the app is built (in the Docker image: the default logos; use URLs for others).
 
 | Variable                        | Default                              | Description                                                                                                                                                                                                                                                                                       |
 | ------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

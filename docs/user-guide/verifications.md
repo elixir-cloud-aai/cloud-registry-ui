@@ -19,7 +19,7 @@ A verification applies to the URL and API that the admin checked:
   Changing them back doesn't restore it; ask an admin to verify the service
   again.
 - Other changes, e.g. of the name, the version or the type's version, keep
-  it.
+  it, unless the service becomes pending (see below).
 - Services that become pending (e.g. by changing to a new type that awaits
   approval) lose their verification.
 - Deleting a service deletes its verification.

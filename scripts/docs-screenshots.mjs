@@ -154,6 +154,7 @@ async function api(token, method, path, body) {
         body: body === undefined ? undefined : JSON.stringify(body),
     });
     const text = await response.text();
+    // 409: the type or role exists already, e.g. on a second run
     const result = {
         status: response.status,
         body: text ? JSON.parse(text) : undefined,
@@ -211,6 +212,7 @@ async function shoot(target, name, tall) {
     if (tall) await page.setViewportSize({ width, height: tall });
     // wait for the requests that the last action started
     await page.waitForLoadState("networkidle");
+    // let transitions (dialogs, menus, toasts) finish
     await page.waitForTimeout(300);
     await target.screenshot({ path: new URL(`${name}.png`, outDir).pathname });
     if (tall) await page.setViewportSize({ width, height });

@@ -18,10 +18,12 @@ permissions](access.md)).
       from **Service Types** where one fits (see [Service
       types](browsing.md#service-types)).
     - **Service Version**: the version of the service's software.
-    - **Environment**: e.g. `prod` for production services, or `test`.
+    - **Environment**: e.g. **Production** (`prod`) or **Test** (`test`).
     - **Description**: what the service offers, and to whom.
     - **Advanced Configuration**: the contact URL (e.g.
-      `mailto:support@example.org`) and the documentation URL.
+      `mailto:support@example.org`) and the documentation URL. Leave
+      **Custom Service ID** (for admins) and the dates (**Created At**,
+      **Updated At**) empty; the registry sets the dates.
 3. Select **Create Service**. A message confirms the registration, with a
    link to the new service (**View service**).
 
@@ -47,19 +49,25 @@ Components](https://github.com/elixir-cloud-aai/cloud-components). Until it
 supports the registry's newer features:
 
 - **Environments:** the form offers only `prod`, `test`, `dev` and
-  `staging`, also if the deployment allows others; the app refuses other
-  values before sending them. Use the edit form afterwards for the
-  deployment's other environments.
+  `staging` (Production, Test, Development, Staging), also if the
+  deployment allows others; the app refuses other values before sending
+  them. Use the edit form afterwards for the deployment's other
+  environments
+  ([cloud-components#461](https://github.com/elixir-cloud-aai/cloud-components/issues/461)).
 - **Service types:** the form asks for the type as free text, not as a
   choice from the registered types, and doesn't say when a new type will be
-  pending (the **Service Types** page and the edit form do).
+  pending (the **Service Types** page and the edit form do)
+  ([cloud-components#456](https://github.com/elixir-cloud-aai/cloud-components/issues/456)).
 - **Service ID:** the form shows the field to all users, but only admins
-  may fill it in.
+  may fill it in
+  ([cloud-components#447](https://github.com/elixir-cloud-aai/cloud-components/issues/447)).
 - **Validation:** the form checks only that the required fields are
   filled in; other mistakes, e.g. an invalid URL, are reported by the
-  registry after sending.
+  registry after sending
+  ([cloud-components#453](https://github.com/elixir-cloud-aai/cloud-components/issues/453)).
 - **Layout:** the contact and documentation URLs are under **Advanced
-  Configuration**.
+  Configuration**
+  ([cloud-components#457](https://github.com/elixir-cloud-aai/cloud-components/issues/457)).
 
 ## Editing a service
 

@@ -105,10 +105,15 @@ NEXT_PUBLIC_CLOUD_REGISTRY_URL=http://localhost:8180/ga4gh/registry/v1 \
   LOGIN_PROVIDERS='[{"id": "mock", "name": "Mock Login", "logo": "/elixir-on-cloud-mark.svg", "issuer": "http://oidc.localhost:8190/oidc", "clientId": "cloud-registry-ui-e2e", "clientSecret": "e2e-secret"}]' \
   LOGIN_REDIRECT_URI=http://localhost:3100/auth/api/callback \
   bun run start --port 3100 &
+until curl -sf http://localhost:3100/auth/login > /dev/null; do sleep 1; done
 node scripts/docs-screenshots.mjs
 kill %1
 docker compose -f e2e/stack/compose.yaml down
 ```
+
+Move your `.env` aside first (or use a clean clone): values set in it when
+building apply where the command doesn't set them, e.g. a title or logos
+other than the default branding.
 
 The script adds example service types and services to the registry if it
 lists no services yet, so start with an empty registry (the stack keeps no
