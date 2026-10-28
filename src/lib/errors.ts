@@ -52,8 +52,9 @@ const duplicateMessage =
     "A service with this URL and API type is already registered.";
 
 // the registry's codes for the conflicts (409) that the UI tells apart, as of
-// cloud-registry 0.5.0 (renames: 0.6.0; invitations: 1.0.0); others (e.g. `pending-service`,
-// `conflict` or codes added later) show the registry's detail
+// cloud-registry 0.5.0 (renames: 0.6.0; invitations: 1.0.0); others (e.g.
+// `pending-service`, `conflict` or codes added later) show the registry's
+// detail
 type ConflictCode =
     | "duplicate-service"
     | "verification-mismatch"
@@ -166,9 +167,10 @@ function isServiceBusy(err: unknown) {
     return isConflictOf(err, "service-busy", () => false);
 }
 
+// registries with invitations send codes: no check by detail
+
 /** Check if an invitation failed as the service has as many as allowed */
 function isInvitationsLimit(err: unknown) {
-    // registries with invitations send codes
     return isConflictOf(err, "invitations-limit", () => false);
 }
 

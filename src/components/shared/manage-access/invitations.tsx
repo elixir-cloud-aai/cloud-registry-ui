@@ -73,35 +73,40 @@ function Invitations({ provider, serviceId, disabled = false }: Props) {
         fetchInvitations();
     }, [fetchInvitations]);
 
-    const create = async () => {
+    // a change, then the list again, as it may have changed anyway
+    const run = async (
+        change: (val: AccessProvider) => Promise<void>,
+        failureMessage: (err: unknown) => string,
+    ) => {
         if (!provider) return;
         setChanging(true);
         try {
-            const val = await provider.createInvitation(serviceId, { role });
-            setCreated({
-                link: invitationLink(window.location.origin, val.token),
-                role: val.role,
-                expiresAt: val.expires_at,
-            });
+            await change(provider);
         } catch (err) {
-            toast.error(createInvitationError(err));
+            toast.error(failureMessage(err));
         }
-        await fetchInvitations();
-        setChanging(false);
+        try {
+            await fetchInvitations();
+        } finally {
+            setChanging(false);
+        }
     };
 
-    const revoke = async (invitation: Invitation) => {
-        if (!provider) return;
-        setChanging(true);
-        try {
-            await provider.revokeInvitation(serviceId, invitation.id);
+    const create = () =>
+        run(async (val) => {
+            const invitation = await val.createInvitation(serviceId, { role });
+            setCreated({
+                link: invitationLink(window.location.origin, invitation.token),
+                role: invitation.role,
+                expiresAt: invitation.expires_at,
+            });
+        }, createInvitationError);
+
+    const revoke = (invitation: Invitation) =>
+        run(async (val) => {
+            await val.revokeInvitation(serviceId, invitation.id);
             toast.success(`Revoked the ${invitation.role} invitation`);
-        } catch (err) {
-            toast.error(revokeInvitationError(err));
-        }
-        await fetchInvitations();
-        setChanging(false);
-    };
+        }, revokeInvitationError);
 
     const copy = (link: string) => {
         navigator.clipboard.writeText(link).then(

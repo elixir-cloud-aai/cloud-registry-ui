@@ -119,6 +119,11 @@ describe("returnPath", () => {
         "/auth/login",
         "/auth/api/login-redirect?provider=x",
         "/auth",
+        // dot segments that leave `//` at the start
+        "/.//evil.example.org/x",
+        "/..//evil.example.org",
+        "/a/..//evil.example.org",
+        "/%2e%2e//evil.example.org",
         `/${"a".repeat(1024)}`,
     ])("rejects %j", (value) => {
         expect(returnPath(value)).toBeUndefined();

@@ -1,7 +1,7 @@
 "use client";
 import { MailCheck } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,13 +18,10 @@ import {
     acceptInvitationError,
     dropPendingToken,
     invitationPath,
-    invitationToken,
-    keepPendingToken,
-    pendingToken,
+    readInvitation,
+    sessionStore,
 } from "@/lib/invitations";
 import { isUnauthorized } from "@/lib/permissions";
-
-const storage = () => window.sessionStorage;
 
 /**
  * Accept an invitation to a service: the link carries the token in its
@@ -40,23 +37,26 @@ function Page() {
     const [accepted, setAccepted] = useState<ServiceRole>();
     const [failure, setFailure] = useState<string>();
     const [expired, setExpired] = useState(false);
+    // the token shown now: results of an earlier one, e.g. before another
+    // link was opened on this page, are ignored
+    const current = useRef<string | null>(null);
 
     useEffect(() => {
         // also when another link is opened on this page, which changes
         // only the fragment
         const read = () => {
-            const hash = window.location.hash.replace(/^#/, "");
-            let next = pendingToken(storage) ?? null;
-            if (hash) {
-                next = invitationToken(hash) ?? null;
-                if (next) keepPendingToken(storage, next);
-                // out of the address bar, the history and shared screens
+            const { token: next, scrub } = readInvitation(
+                window.location.hash,
+                sessionStore,
+            );
+            // out of the address bar, the history and shared screens
+            if (scrub)
                 window.history.replaceState(
                     window.history.state,
                     "",
                     invitationPath,
                 );
-            }
+            current.current = next;
             setToken(next);
             setAccepted(undefined);
             setFailure(undefined);
@@ -69,18 +69,21 @@ function Page() {
 
     const accept = () => {
         if (!cloudRegistryProvider || !token) return;
+        const sent = token;
         setAccepting(true);
         setFailure(undefined);
         cloudRegistryProvider
-            .acceptInvitation(token)
+            .acceptInvitation(sent)
             .then((role) => {
-                dropPendingToken(storage);
-                setAccepted(role);
+                dropPendingToken(sessionStore, sent);
+                if (current.current === sent) setAccepted(role);
             })
             .catch((err) => {
                 const { message, final } = acceptInvitationError(err);
+                if (final) dropPendingToken(sessionStore, sent);
+                if (current.current !== sent) return;
                 if (final) {
-                    dropPendingToken(storage);
+                    current.current = null;
                     setToken(null);
                 }
                 setExpired(isUnauthorized(err));

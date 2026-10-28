@@ -42,7 +42,8 @@ services:
     registry:
         # cloud-registry's `dev` branch, with the features that the app uses
         # (e.g. GET /approvals and conflict codes of 0.5.0, renames and admin
-        # mode of 0.6.0, invitations of 1.0.0); pinned for repeatable runs
+        # mode of 0.6.0, invitations of the coming 1.0.0); pinned for
+        # repeatable runs
         image: ${E2E_REGISTRY_IMAGE:-docker.io/elixircloud/cloud-registry:sha-2619a570dc0fa9c74f2a9c9985ad69d75bddc28c}
         depends_on:
             mongodb:

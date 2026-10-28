@@ -100,9 +100,14 @@ function returnPath(value: string | null | undefined) {
         /[\\\u0000-\u001f\u007f]/.test(value)
     )
         return undefined;
-    // resolves dot segments; the origin stays the app's, as checked above
+    // resolves dot segments, which can make the path start with `//`
+    // again (e.g. `/.//host`): checked once more
     const url = new URL(value, appBase);
-    if (url.pathname === "/auth" || url.pathname.startsWith("/auth/"))
+    if (
+        url.pathname.startsWith("//") ||
+        url.pathname === "/auth" ||
+        url.pathname.startsWith("/auth/")
+    )
         return undefined;
     return `${url.pathname}${url.search}`;
 }

@@ -74,13 +74,36 @@ function pendingToken(storage: () => Storage) {
 /**
  * Forget the token of an invitation kept for after the login
  * @param storage Getter of the storage
+ * @param token Forget it only if it is this one, e.g. the one accepted,
+ * not one of a link opened meanwhile
  */
-function dropPendingToken(storage: () => Storage) {
+function dropPendingToken(storage: () => Storage, token?: string) {
     try {
+        if (token !== undefined && storage().getItem(pendingKey) !== token)
+            return;
         storage().removeItem(pendingKey);
     } catch {
         // nothing was kept
     }
+}
+
+/** The tab's session storage, for the token of a guest */
+const sessionStore = () => window.sessionStorage;
+
+/**
+ * Read the token of the invitation page: from the link's fragment, which
+ * is kept for after the login, else the one kept earlier
+ * @param hash Fragment of the page's URL, with or without `#`
+ * @param storage Getter of the storage
+ * @returns The token (null without a valid one), and whether to remove
+ * the fragment from the address bar
+ */
+function readInvitation(hash: string, storage: () => Storage) {
+    const value = hash.replace(/^#/, "");
+    if (!value) return { token: pendingToken(storage) ?? null, scrub: false };
+    const token = invitationToken(value) ?? null;
+    if (token) keepPendingToken(storage, token);
+    return { token, scrub: true };
 }
 
 /**
@@ -127,6 +150,7 @@ function revokeInvitationError(err: unknown) {
         return "This invitation was accepted already; remove the user's role instead.";
     if (hasStatus(err, 404))
         return "The invitation has expired or was revoked already.";
+    if (hasStatus(err, 405)) return "This registry has no invitations.";
     return mutationError(
         err,
         "Cannot revoke the invitation currently.",
@@ -189,5 +213,7 @@ export {
     keepPendingToken,
     listInvitationsError,
     pendingToken,
+    readInvitation,
     revokeInvitationError,
+    sessionStore,
 };

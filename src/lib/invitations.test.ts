@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { failure } from "@/test/errors";
 import {
     acceptanceLabel,
@@ -10,7 +10,9 @@ import {
     keepPendingToken,
     listInvitationsError,
     pendingToken,
+    readInvitation,
     revokeInvitationError,
+    sessionStore,
 } from "./invitations";
 
 const token = "a".repeat(43);
@@ -66,6 +68,16 @@ describe("pending tokens", () => {
         expect(pendingToken(get)).toBeUndefined();
     });
 
+    it("drops only the given token", () => {
+        const storage = memoryStorage();
+        const get = () => storage;
+        keepPendingToken(get, token);
+        dropPendingToken(get, "b".repeat(43));
+        expect(pendingToken(get)).toBe(token);
+        dropPendingToken(get, token);
+        expect(pendingToken(get)).toBeUndefined();
+    });
+
     it("ignores invalid stored values", () => {
         const storage = memoryStorage();
         storage.setItem("pendingInvitation", "bad");
@@ -79,6 +91,71 @@ describe("pending tokens", () => {
         expect(() => keepPendingToken(get, token)).not.toThrow();
         expect(pendingToken(get)).toBeUndefined();
         expect(() => dropPendingToken(get)).not.toThrow();
+    });
+});
+
+describe("readInvitation", () => {
+    function memory() {
+        const values = new Map<string, string>();
+        const storage = {
+            getItem: (key: string) => values.get(key) ?? null,
+            setItem: (key: string, value: string) => {
+                values.set(key, value);
+            },
+            removeItem: (key: string) => {
+                values.delete(key);
+            },
+        } as Storage;
+        return () => storage;
+    }
+
+    it("reads and keeps the token of the link", () => {
+        const storage = memory();
+        expect(readInvitation(`#${token}`, storage)).toEqual({
+            token,
+            scrub: true,
+        });
+        expect(pendingToken(storage)).toBe(token);
+    });
+
+    it("falls back to the kept token without a fragment", () => {
+        const storage = memory();
+        expect(readInvitation("", storage)).toEqual({
+            token: null,
+            scrub: false,
+        });
+        keepPendingToken(storage, token);
+        expect(readInvitation("#", storage)).toEqual({ token, scrub: false });
+    });
+
+    it("ignores the kept token for an invalid fragment", () => {
+        const storage = memory();
+        keepPendingToken(storage, token);
+        expect(readInvitation("#short", storage)).toEqual({
+            token: null,
+            scrub: true,
+        });
+    });
+
+    it("works without storage", () => {
+        const blocked = (): Storage => {
+            throw new Error("blocked");
+        };
+        expect(readInvitation(`#${token}`, blocked)).toEqual({
+            token,
+            scrub: true,
+        });
+        expect(readInvitation("", blocked)).toEqual({
+            token: null,
+            scrub: false,
+        });
+    });
+
+    it("uses the session storage of the tab", () => {
+        const storage = memory()();
+        vi.stubGlobal("window", { sessionStorage: storage });
+        expect(sessionStore()).toBe(storage);
+        vi.unstubAllGlobals();
     });
 });
 
@@ -137,6 +214,9 @@ describe("messages", () => {
         );
         expect(revokeInvitationError(failure(404))).toBe(
             "The invitation has expired or was revoked already.",
+        );
+        expect(revokeInvitationError(failure(405))).toBe(
+            "This registry has no invitations.",
         );
         expect(revokeInvitationError(failure(403))).toBe(
             "Only owners and admins can revoke invitations.",
