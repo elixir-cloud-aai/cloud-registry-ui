@@ -75,7 +75,9 @@ Notes:
   logs in gets the role, and the link works once. Send it in a private
   message, not in a channel or on a page that others can read.
 - **The list** below shows the open invitations (role, when created and
-  when they expire) and the accepted ones (who accepted, and when). Select
+  when they expire) and the accepted ones (who accepted, and when), each
+  only until its expiry: the registry then drops it from the list, accepted
+  or not, and the role stays. Select
   the bin icon to revoke an open invitation; its link then stops working.
   An accepted invitation can't be revoked: remove the user's role instead
   (see [Managing access](#managing-access)).
