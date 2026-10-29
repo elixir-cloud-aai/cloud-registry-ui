@@ -29,6 +29,8 @@ type Props = {
     provider: AccessProvider | null;
     serviceId: string;
     disabled?: boolean;
+    /** Called when a change starts and ends, e.g. to keep a dialog open */
+    onChanging?: (changing: boolean) => void;
 };
 
 /** Date and time in the user's locale */
@@ -38,7 +40,12 @@ const when = (value: string) => new Date(value).toLocaleString();
  * Invitations to a service: create a link for a role, list open and
  * accepted invitations, and revoke open ones
  */
-function Invitations({ provider, serviceId, disabled = false }: Props) {
+function Invitations({
+    provider,
+    serviceId,
+    disabled = false,
+    onChanging,
+}: Props) {
     const [invitations, setInvitations] = useState<Invitation[] | null>(null);
     const [listFailure, setListFailure] = useState<string>();
     const [role, setRole] = useState<Role>("maintainer");
@@ -80,6 +87,8 @@ function Invitations({ provider, serviceId, disabled = false }: Props) {
     ) => {
         if (!provider) return;
         setChanging(true);
+        // a new link is shown only once: closing would lose it
+        onChanging?.(true);
         try {
             await change(provider);
         } catch (err) {
@@ -88,6 +97,7 @@ function Invitations({ provider, serviceId, disabled = false }: Props) {
         // `fetchInvitations` reports its own failures
         await fetchInvitations();
         setChanging(false);
+        onChanging?.(false);
     };
 
     const create = () =>
@@ -107,10 +117,13 @@ function Invitations({ provider, serviceId, disabled = false }: Props) {
         }, revokeInvitationError);
 
     const copy = (link: string) => {
-        navigator.clipboard.writeText(link).then(
-            () => toast.success("Copied the invitation link"),
-            () => toast.error("Cannot copy the link; select and copy it."),
-        );
+        const failed = () =>
+            toast.error("Cannot copy the link; select and copy it.");
+        // no Clipboard API outside secure contexts
+        if (!navigator.clipboard) return failed();
+        navigator.clipboard
+            .writeText(link)
+            .then(() => toast.success("Copied the invitation link"), failed);
     };
 
     const busy = disabled || changing;

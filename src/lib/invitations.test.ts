@@ -135,6 +135,7 @@ describe("readInvitation", () => {
             token: null,
             scrub: true,
         });
+        expect(pendingToken(storage)).toBeUndefined();
     });
 
     it("works without storage", () => {
@@ -229,9 +230,10 @@ describe("messages", () => {
     it.each([
         [
             conflict("invitation-accepted"),
-            "This invitation was accepted already. Ask the owner of the service for a new one.",
+            "This invitation was accepted already. If you accepted it, the service is in your services; otherwise ask the owner of the service for a new one.",
             true,
         ],
+        [failure(405), "This registry has no invitations.", true],
         [
             conflict("last-owner"),
             "You are the last owner of this service, so this invitation can't change your role.",

@@ -74,9 +74,7 @@ test.describe("invitations", () => {
                 .getByRole("button", { name: "Accept invitation" })
                 .click();
             await expect(
-                otherPage.getByText(
-                    `You are now maintainer of ${service.id}.`,
-                ),
+                otherPage.getByText(`You are now maintainer of ${service.id}.`),
             ).toBeVisible();
             expect(urls.filter((url) => url.includes(token))).toEqual([]);
 
@@ -87,7 +85,7 @@ test.describe("invitations", () => {
                 .click();
             await expect(
                 otherPage.getByText(
-                    "This invitation was accepted already. Ask the owner of the service for a new one.",
+                    "This invitation was accepted already. If you accepted it, the service is in your services; otherwise ask the owner of the service for a new one.",
                 ),
             ).toBeVisible();
             // Chromium logs the 409 that the page shows, Firefox doesn't

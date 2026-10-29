@@ -3,6 +3,7 @@ import { LogIn } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { loginHref } from "@/lib/links";
 
 type Props = {
     message: string;
@@ -17,13 +18,7 @@ function LoginPrompt({ message, next }: Props) {
         <div className="flex flex-col items-center space-y-4 mt-20 w-full">
             <p className="font-medium text-lg text-center">{message}</p>
             <Button asChild>
-                <Link
-                    href={
-                        target
-                            ? `/auth/login?next=${encodeURIComponent(target)}`
-                            : "/auth/login"
-                    }
-                >
+                <Link href={loginHref(target)}>
                     <LogIn />
                     Log in
                 </Link>

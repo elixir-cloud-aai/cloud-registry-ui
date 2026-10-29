@@ -102,7 +102,9 @@ function readInvitation(hash: string, storage: () => Storage) {
     const value = hash.replace(/^#/, "");
     if (!value) return { token: pendingToken(storage) ?? null, scrub: false };
     const token = invitationToken(value) ?? null;
+    // an invalid link mustn't fall back to another invitation later
     if (token) keepPendingToken(storage, token);
+    else dropPendingToken(storage);
     return { token, scrub: true };
 }
 
@@ -168,9 +170,13 @@ function acceptInvitationError(err: unknown) {
     const ask = "Ask the owner of the service for a new one.";
     if (isInvitationAccepted(err))
         return {
-            message: `This invitation was accepted already. ${ask}`,
+            // e.g. by this user, if the response to an acceptance was lost
+            message:
+                "This invitation was accepted already. If you accepted it, the service is in your services; otherwise ask the owner of the service for a new one.",
             final: true,
         };
+    if (hasStatus(err, 405))
+        return { message: "This registry has no invitations.", final: true };
     if (isLastOwner(err))
         return {
             message:

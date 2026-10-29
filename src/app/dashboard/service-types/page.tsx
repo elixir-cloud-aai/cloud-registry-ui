@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useCloudRegistry, useMe, usePagination } from "@/hooks";
 import { getApprovalsOrNull, withPendingTypes } from "@/lib/approvals";
 import { errorMessage, mutationError } from "@/lib/errors";
+import { loginHref } from "@/lib/links";
 import { canApproveServiceType, isUnauthorized } from "@/lib/permissions";
 import { typeKey, typeLabel } from "@/lib/service-types";
 import { ServiceTypeAddDialog, ServiceTypeCard } from "./_components";
@@ -139,7 +140,7 @@ function Page() {
                 </div>
                 {isLoggedIn && expired && (
                     <Button variant={"outline"} asChild>
-                        <Link href={"/auth/login"}>
+                        <Link href={loginHref("/dashboard/service-types")}>
                             <LogIn />
                             Log in again
                         </Link>

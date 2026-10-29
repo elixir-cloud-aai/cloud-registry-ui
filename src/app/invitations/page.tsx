@@ -91,7 +91,11 @@ function Page() {
                 setExpired(isUnauthorized(err));
                 setFailure(message);
             })
-            .finally(() => setAccepting(false));
+            .finally(() => {
+                // a request for an earlier token mustn't re-enable the
+                // button while the current one is pending
+                if (current.current === sent) setAccepting(false);
+            });
     };
 
     let content: React.ReactNode;
