@@ -58,6 +58,14 @@ see the [registry's
 documentation](https://cloud-registry.readthedocs.io/en/latest/)), and the
 app reads it from the service info. Older registries have no limit.
 
+Invitations to services (see [Inviting by
+link](../user-guide/access.md#inviting-by-link)) need cloud-registry
+1.0.0-rc1 or later as well. Their settings, e.g. how long they are valid
+and how many a service may have open, are the registry's (see the
+[registry's documentation](https://cloud-registry.readthedocs.io/en/latest/)),
+and the app has no settings for them. With older registries, the app
+reports that the registry has no invitations.
+
 ## Contents
 
 - [Deployment](deployment.md): the Docker image, running it, HTTPS, and

@@ -17,6 +17,28 @@ session (it is kept in cookies), unless the release notes say otherwise.
 Logins that are in progress during the update may fail; users then log in
 again.
 
+## 1.0.0-rc1
+
+Upgrade the registry to cloud-registry 1.0.0-rc1 together with the app
+(see [Compatibility](index.md#compatibility)). It brings two features that
+the app uses once the registry has them, **without any setting to change in
+the app**:
+
+- **Invitations:** owners invite users to services by link (see [Inviting
+  by link](../user-guide/access.md#inviting-by-link) and [Accepting an
+  invitation](../user-guide/invitations.md)). Their expiry and limits, and
+  what the registry shows of those who accepted, are the registry's
+  settings.
+- **Limit of services per user:** the registry's setting
+  `custom.access_control.max_services_per_user` (50 by default; 0 allows
+  only admins to register services) is published in its service info, and
+  the app reports it when a registration is refused (see [Limit on
+  registered services](../user-guide/registering.md#limit-on-registered-services)).
+  Check that the default suits your users before the upgrade.
+
+With registries older than 1.0.0-rc1, the app keeps working: it reports
+that the registry has no invitations, and there is no limit.
+
 ## Changes since unreleased versions
 
 These changes apply to deployments of earlier, unreleased versions, e.g.

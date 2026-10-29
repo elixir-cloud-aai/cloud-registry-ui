@@ -315,6 +315,22 @@ try {
         .getByRole("button", { name: "Manage access" })
         .click();
     await shoot(owner.getByRole("dialog").last(), "manage-access");
+    // an invitation: the dialog with its link, and the page that the link
+    // opens (for a user who is logged in); revoked afterwards, so that
+    // runs leave no open invitations
+    const access = owner.getByRole("dialog").last();
+    await access.getByRole("button", { name: "Create link" }).click();
+    const link = await access
+        .getByRole("textbox", { name: "Invitation link" })
+        .inputValue();
+    await shoot(access, "manage-access-invite", 1300);
+    await pages.other.goto(link);
+    await pages.other
+        .getByRole("button", { name: "Accept invitation" })
+        .waitFor();
+    await shoot(pages.other, "accept-invitation");
+    await access.getByRole("button", { name: /^Revoke/ }).first().click();
+    await access.getByText("No open or accepted invitations.").waitFor();
     await owner.goto(`${appUrl}/dashboard/services/create`);
     await shoot(owner, "register-service");
     await owner.goto(`${appUrl}/dashboard/services/update/tes-north`);
