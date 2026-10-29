@@ -27,6 +27,9 @@ custom:
         # new types of users other than admins are pending until an admin
         # approves them
         service_types: moderated
+        # the test users register services in every run: no limit (the
+        # tests of the limit fake it)
+        max_services_per_user: null
     endpoints:
         services:
             url_schemes:

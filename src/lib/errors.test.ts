@@ -11,6 +11,7 @@ import {
     isLastOwner,
     isServiceBusy,
     isServiceIdTaken,
+    isServicesLimit,
     isVerificationMismatch,
     mutationError,
     renameError,
@@ -133,6 +134,7 @@ describe("conflicts", () => {
         isLastOwner,
         isServiceIdTaken,
         isServiceBusy,
+        isServicesLimit,
         isInvitationsLimit,
         isInvitationAccepted,
     };
@@ -143,6 +145,7 @@ describe("conflicts", () => {
         ["last-owner", "isLastOwner"],
         ["service-id-taken", "isServiceIdTaken"],
         ["service-busy", "isServiceBusy"],
+        ["services-limit", "isServicesLimit"],
         ["invitations-limit", "isInvitationsLimit"],
         ["invitation-accepted", "isInvitationAccepted"],
         ["pending-service", undefined],
@@ -163,6 +166,8 @@ describe("conflicts", () => {
             // registries that rename services send codes
             expect(isServiceIdTaken(err)).toBe(false);
             expect(isServiceBusy(err)).toBe(false);
+            // registries with the limit send codes
+            expect(isServicesLimit(err)).toBe(false);
             // registries with invitations send codes
             expect(isInvitationsLimit(err)).toBe(false);
             expect(isInvitationAccepted(err)).toBe(false);

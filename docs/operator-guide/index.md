@@ -51,6 +51,13 @@ mode](admins.md#admin-mode) needs cloud-registry 0.6.0 or later. The app
 works with older registries without them, e.g. without the switch to admin
 mode.
 
+The limit on the services per user (see [Limit on registered
+services](../user-guide/registering.md#limit-on-registered-services)) comes
+from cloud-registry 1.0.0-rc1: the registry sets it (`custom.access_control.max_services_per_user`,
+see the [registry's
+documentation](https://cloud-registry.readthedocs.io/en/latest/)), and the
+app reads it from the service info. Older registries have no limit.
+
 ## Contents
 
 - [Deployment](deployment.md): the Docker image, running it, HTTPS, and

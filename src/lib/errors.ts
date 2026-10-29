@@ -61,6 +61,7 @@ type ConflictCode =
     | "last-owner"
     | "service-id-taken"
     | "service-busy"
+    | "services-limit"
     | "invitations-limit"
     | "invitation-accepted";
 
@@ -167,6 +168,12 @@ function isServiceBusy(err: unknown) {
     return isConflictOf(err, "service-busy", () => false);
 }
 
+/** Check if a registration failed as the user has as many as allowed */
+function isServicesLimit(err: unknown) {
+    // registries with the limit (cloud-registry 1.0.0) send codes
+    return isConflictOf(err, "services-limit", () => false);
+}
+
 // registries with invitations send codes: no check by detail
 
 /** Check if an invitation failed as the service has as many as allowed */
@@ -240,6 +247,7 @@ export {
     isLastOwner,
     isServiceBusy,
     isServiceIdTaken,
+    isServicesLimit,
     isVerificationMismatch,
     mutationError,
     renameError,

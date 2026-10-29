@@ -69,6 +69,21 @@ supports the registry's newer features:
   Configuration**
   ([cloud-components#457](https://github.com/elixir-cloud-aai/cloud-components/issues/457)).
 
+## Limit on registered services
+
+A registry can limit how many services each user may register. At the
+limit, the app doesn't register another service and says: "You have
+registered as many services as this registry allows (N)", with the number
+of services allowed. Delete a service you no longer need, or ask the
+registry's admins.
+
+The limit is set by the registry (`custom.access_control.max_services_per_user`,
+50 by default) and published in its service info
+(`registration_rules.max_services_per_user`). If it is 0, only admins can
+register services; an admin who is not in admin mode is told to switch to
+admin mode first (see [Admin mode](admin-mode.md)). Registries older than
+cloud-registry 1.0.0-rc1 have no limit.
+
 ## Editing a service
 
 Owners and maintainers of a service, and admins, can edit it:
