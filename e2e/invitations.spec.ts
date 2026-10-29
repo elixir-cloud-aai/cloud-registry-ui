@@ -90,10 +90,10 @@ test.describe("invitations", () => {
                     "This invitation was accepted already. Ask the owner of the service for a new one.",
                 ),
             ).toBeVisible();
-            // the browser logs the 409 that the page shows
-            expect(problems).toEqual([
-                expect.stringContaining("status of 409"),
-            ]);
+            // Chromium logs the 409 that the page shows, Firefox doesn't
+            expect(
+                problems.filter((val) => !val.includes("status of 409")),
+            ).toEqual([]);
         } finally {
             await other.close();
         }
