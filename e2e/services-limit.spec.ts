@@ -61,10 +61,16 @@ test.describe("services limit", () => {
                 { exact: true },
             ),
         ).toBeVisible();
-        // Chromium logs the 409 that the page shows, Firefox doesn't; the
-        // fixture checks the list after the test
+        // Chromium logs the 409 of the registration that the page shows,
+        // Firefox doesn't; the fixture checks the list after the test
         expect(
-            problems.filter((val) => !val.includes("status of 409")),
+            problems.filter(
+                (val) =>
+                    !(
+                        val.includes("status of 409") &&
+                        val.endsWith(`(${registry}/services)`)
+                    ),
+            ),
         ).toEqual([]);
         problems.length = 0;
     });
