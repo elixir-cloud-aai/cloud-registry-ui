@@ -1,11 +1,20 @@
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { returnPath } from "@/lib/login-flow";
 import { loginProviderInfos } from "@/lib/login-providers";
 
 export const dynamic = "force-dynamic";
 
-function Page() {
+async function Page({
+    searchParams,
+}: {
+    searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
     const providers = loginProviderInfos();
+    // the app's page to return to after the login, e.g. of an invitation
+    const { next } = await searchParams;
+    const nextPath = returnPath(typeof next === "string" ? next : undefined);
+    const nextQuery = nextPath ? `&next=${encodeURIComponent(nextPath)}` : "";
 
     return (
         <div className="flex justify-center items-center h-screen">
@@ -21,7 +30,7 @@ function Page() {
                         {/* a plain link: the route redirects to the provider,
                             which client-side navigation can't fetch */}
                         <a
-                            href={`/auth/api/login-redirect?provider=${provider.id}`}
+                            href={`/auth/api/login-redirect?provider=${encodeURIComponent(provider.id)}${nextQuery}`}
                         >
                             <span className="relative h-10 w-full">
                                 <Image

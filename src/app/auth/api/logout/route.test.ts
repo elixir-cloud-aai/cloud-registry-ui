@@ -13,6 +13,7 @@ const session = {
     authProvider: "mock",
     authVerifier: "v",
     authNonce: "n",
+    authReturnTo: "/invitations",
 };
 
 async function logout(headers: Record<string, string>) {

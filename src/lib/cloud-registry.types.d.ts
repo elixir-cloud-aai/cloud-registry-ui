@@ -78,6 +78,47 @@ export interface Me {
 export type ServicePermissions = (Permission | GroupPermission)[];
 
 /**
+ * Who accepted an invitation, and when (cloud-registry#101).
+ */
+export interface InvitationAcceptance {
+  user_id: UserId;
+  /** Display name, if the identity provider released it. */
+  name?: string;
+  /** Email address, if the identity provider released it. */
+  email?: string;
+  /** RFC 3339 date-time. */
+  accepted_at: string;
+}
+
+/**
+ * GET /services/{serviceId}/invitations
+ *
+ * An invitation to a service, without its token.
+ */
+export interface Invitation {
+  id: string;
+  service_id: ServiceId;
+  role: Role;
+  /** Identifier of the user who created it. */
+  created_by: UserId;
+  /** RFC 3339 date-time. */
+  created_at: string;
+  /** RFC 3339 date-time; it is no longer listed then, accepted or not. */
+  expires_at: string;
+  /** Not set for open invitations. */
+  accepted?: InvitationAcceptance;
+}
+
+/**
+ * POST /services/{serviceId}/invitations
+ *
+ * A new invitation, with its token, which only this response has.
+ */
+export interface InvitationCreated extends Omit<Invitation, "accepted"> {
+  token: string;
+}
+
+/**
  * GET /services/{serviceId}/verification
  * GET /verifications
  */

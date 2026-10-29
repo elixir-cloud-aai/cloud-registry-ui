@@ -52,15 +52,18 @@ const duplicateMessage =
     "A service with this URL and API type is already registered.";
 
 // the registry's codes for the conflicts (409) that the UI tells apart, as of
-// cloud-registry 0.5.0 (renames: 0.6.0); others (e.g. `pending-service`,
-// `conflict` or codes added later) show the registry's detail
+// cloud-registry 0.5.0 (renames: 0.6.0; invitations: 1.0.0); others (e.g.
+// `pending-service`, `conflict` or codes added later) show the registry's
+// detail
 type ConflictCode =
     | "duplicate-service"
     | "verification-mismatch"
     | "last-owner"
     | "service-id-taken"
     | "service-busy"
-    | "services-limit";
+    | "services-limit"
+    | "invitations-limit"
+    | "invitation-accepted";
 
 // for registries that send no code (cloud-registry#247): the detail of the
 // 409 for changes of pending services (see `@/lib/approvals`) to types that
@@ -171,6 +174,18 @@ function isServicesLimit(err: unknown) {
     return isConflictOf(err, "services-limit", () => false);
 }
 
+// registries with invitations send codes: no check by detail
+
+/** Check if an invitation failed as the service has as many as allowed */
+function isInvitationsLimit(err: unknown) {
+    return isConflictOf(err, "invitations-limit", () => false);
+}
+
+/** Check if an invitation was accepted already */
+function isInvitationAccepted(err: unknown) {
+    return isConflictOf(err, "invitation-accepted", () => false);
+}
+
 /** Get the message for a failed change of a service's ID */
 function renameError(err: unknown) {
     if (isServiceIdTaken(err))
@@ -223,9 +238,12 @@ function duplicateToast(
 export {
     duplicateMessage,
     duplicateToast,
+    errorDetail,
     errorField,
     errorMessage,
     isDuplicate,
+    isInvitationAccepted,
+    isInvitationsLimit,
     isLastOwner,
     isServiceBusy,
     isServiceIdTaken,

@@ -12,6 +12,12 @@ const loginCookies = [
     "authNonce",
 ] as const;
 
+/** @description cookie of the app's path to return to after a login */
+const returnCookie = "authReturnTo";
+
+/** @description cookies to delete when a login ends, or on logout */
+const endedLoginCookies = [...loginCookies, returnCookie] as const;
+
 /** @description allowed difference of clocks, in milliseconds */
 const clockSkew = 60_000;
 
@@ -75,4 +81,46 @@ function checkIdToken(
         throw new Error("ID token with another nonce");
 }
 
-export { checkIdToken, loginCookies, pkceChallenge, randomSecret };
+// any origin of the app: paths are compared, not hosts
+const appBase = "https://app.invalid";
+
+/**
+ * Get the app's path to return to after a login, e.g. the page of an
+ * invitation; never another site's URL (an open redirect) or a page of the
+ * login itself
+ * @param value Path, from a query parameter or the cookie
+ * @returns The path and query, without the fragment, if the value is a
+ * path of the app outside `/auth`
+ */
+function returnPath(value: string | null | undefined) {
+    // a single slash first: `//host` and `/\host` are other sites' URLs;
+    // no backslashes or control characters, which browsers drop or change
+    if (
+        !value ||
+        value.length > 1024 ||
+        !/^\/(?![/\\])/.test(value) ||
+        // biome-ignore lint/suspicious/noControlCharactersInRegex: rejects them
+        /[\\\u0000-\u001f\u007f]/.test(value)
+    )
+        return undefined;
+    // resolves dot segments, which can make the path start with `//`
+    // again (e.g. `/.//host`): checked once more
+    const url = new URL(value, appBase);
+    if (
+        url.pathname.startsWith("//") ||
+        url.pathname === "/auth" ||
+        url.pathname.startsWith("/auth/")
+    )
+        return undefined;
+    return `${url.pathname}${url.search}`;
+}
+
+export {
+    checkIdToken,
+    endedLoginCookies,
+    loginCookies,
+    pkceChallenge,
+    randomSecret,
+    returnCookie,
+    returnPath,
+};
