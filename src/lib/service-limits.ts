@@ -4,6 +4,7 @@
  * (`registration_rules.max_services_per_user`)
  */
 import type { AuthenticatedCloudRegistryProvider } from "./authenticated-cloud-registry";
+import { withFieldLabels } from "./errors";
 
 /**
  * Get the limit of services per user from the registry's service info
@@ -62,4 +63,30 @@ function servicesLimitMessage(limit: number, adminAvailable = false) {
         : message;
 }
 
-export { maxServicesPerUser, servicesLimit, servicesLimitMessage };
+/**
+ * Get the message for the registry's `409` with code `services-limit`
+ * @param limit The limit, if already read
+ * @param readLimit Reads the limit now, if it isn't known yet
+ * @param detail The registry's own error message, for registries that
+ * don't publish a limit
+ * @param adminAvailable Whether the user may switch to admin mode
+ * @returns The message with the limit, else the detail with field labels
+ */
+async function servicesLimitToast(
+    limit: number | undefined,
+    readLimit: () => Promise<number | undefined>,
+    detail: string,
+    adminAvailable: boolean,
+) {
+    const max = limit ?? (await readLimit());
+    return max === undefined
+        ? withFieldLabels(detail)
+        : servicesLimitMessage(max, adminAvailable);
+}
+
+export {
+    maxServicesPerUser,
+    servicesLimit,
+    servicesLimitMessage,
+    servicesLimitToast,
+};

@@ -14,11 +14,11 @@ import { UnsavedChangesGuard } from "@/components/shared/unsaved-changes-guard";
 import { useCloudRegistry, useFormChanged, useMe } from "@/hooks";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import { duplicateToast, isServicesLimit, withFieldLabels } from "@/lib/errors";
-import { servicesLimit, servicesLimitMessage } from "@/lib/service-limits";
 import {
     environmentMessage,
     isAllowedEnvironment,
 } from "@/lib/service-environments";
+import { servicesLimit, servicesLimitToast } from "@/lib/service-limits";
 
 function Page() {
     const router = useRouter();
@@ -135,14 +135,13 @@ function Page() {
         // with the limit that the registry publishes (read now if the
         // advance read isn't done yet), else its detail
         if (own && isServicesLimit(own)) {
-            const max = limit ?? (await servicesLimit(cloudRegistryProvider));
             toast.error(
-                max === undefined
-                    ? withFieldLabels(e.detail.error)
-                    : servicesLimitMessage(
-                          max,
-                          !!me?.admin_available && !me.admin,
-                      ),
+                await servicesLimitToast(
+                    limit,
+                    () => servicesLimit(cloudRegistryProvider),
+                    e.detail.error,
+                    !!me?.admin_available && !me.admin,
+                ),
                 { duration: 10000 },
             );
             return;

@@ -1,9 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { withFieldLabels } from "@/lib/errors";
 import { failure } from "@/test/errors";
 import {
     maxServicesPerUser,
     servicesLimit,
     servicesLimitMessage,
+    servicesLimitToast,
 } from "./service-limits";
 
 describe("maxServicesPerUser", () => {
@@ -61,6 +63,48 @@ describe("servicesLimitMessage", () => {
     it("says when only admins register services", () => {
         expect(servicesLimitMessage(0)).toBe(
             "Only admins can register services in this registry. Please ask an admin.",
+        );
+    });
+});
+
+describe("servicesLimitToast", () => {
+    const detail = "Error in 'body.name': too long";
+
+    it("uses the known limit without reading it again", async () => {
+        const read = vi.fn();
+        expect(await servicesLimitToast(5, read, detail, false)).toBe(
+            servicesLimitMessage(5),
+        );
+        expect(read).not.toHaveBeenCalled();
+    });
+
+    it("reads the limit if it isn't known yet", async () => {
+        const read = vi.fn().mockResolvedValue(3);
+        expect(await servicesLimitToast(undefined, read, detail, false)).toBe(
+            servicesLimitMessage(3),
+        );
+        expect(read).toHaveBeenCalledOnce();
+    });
+
+    it("falls back to the registry's detail without a limit", async () => {
+        const read = vi.fn().mockResolvedValue(undefined);
+        expect(await servicesLimitToast(undefined, read, detail, true)).toBe(
+            withFieldLabels(detail),
+        );
+    });
+
+    it("handles a limit of 0 as known", async () => {
+        const read = vi.fn();
+        expect(await servicesLimitToast(0, read, detail, false)).toBe(
+            servicesLimitMessage(0),
+        );
+        expect(read).not.toHaveBeenCalled();
+    });
+
+    it("points admins outside admin mode to it", async () => {
+        const read = vi.fn();
+        expect(await servicesLimitToast(5, read, detail, true)).toBe(
+            servicesLimitMessage(5, true),
         );
     });
 });
