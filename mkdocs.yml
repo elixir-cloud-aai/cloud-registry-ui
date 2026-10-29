@@ -68,6 +68,7 @@ nav:
       - Browsing and searching: user-guide/browsing.md
       - Registering and editing services: user-guide/registering.md
       - Access and permissions: user-guide/access.md
+      - Accepting an invitation: user-guide/invitations.md
       - Verifications: user-guide/verifications.md
       - Pending entries: user-guide/pending.md
       - Admin mode: user-guide/admin-mode.md

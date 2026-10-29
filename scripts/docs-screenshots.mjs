@@ -15,7 +15,7 @@
  *   `Mock Login`)
  */
 import { mkdir } from "node:fs/promises";
-import { chromium } from "@playwright/test";
+import { chromium, expect } from "@playwright/test";
 
 const appUrl = process.env.APP_URL ?? "http://localhost:3100";
 const registry =
@@ -315,6 +315,37 @@ try {
         .getByRole("button", { name: "Manage access" })
         .click();
     await shoot(owner.getByRole("dialog").last(), "manage-access");
+    // an invitation: the dialog with its link, and the page that the link
+    // opens (for a user who is logged in); revoked afterwards, so that
+    // runs leave no open invitations
+    const access = owner.getByRole("dialog").last();
+    // the open invitations before this run's
+    await expect(
+        access.getByRole("button", { name: "Create link" }),
+    ).toBeEnabled();
+    const before = await access
+        .getByRole("button", { name: /^Revoke/ })
+        .evaluateAll((els) => els.map((el) => el.getAttribute("aria-label")));
+    await access.getByRole("button", { name: "Create link" }).click();
+    const link = await access
+        .getByRole("textbox", { name: "Invitation link" })
+        .inputValue();
+    await shoot(access, "manage-access-invite", 1300);
+    await pages.other.goto(link);
+    await pages.other
+        .getByRole("button", { name: "Accept invitation" })
+        .waitFor();
+    await shoot(pages.other, "accept-invitation");
+    // the invitation of this run: the one that wasn't open before
+    const revoke = access.getByRole("button", { name: /^Revoke/ });
+    const labels = await revoke.evaluateAll((els) =>
+        els.map((el) => el.getAttribute("aria-label")),
+    );
+    const mine = labels.filter((val) => !before.includes(val));
+    if (mine.length !== 1)
+        throw new Error(`expected one new invitation, found ${mine.length}`);
+    await access.getByRole("button", { name: mine[0], exact: true }).click();
+    await expect(revoke).toHaveCount(before.length);
     await owner.goto(`${appUrl}/dashboard/services/create`);
     await shoot(owner, "register-service");
     await owner.goto(`${appUrl}/dashboard/services/update/tes-north`);

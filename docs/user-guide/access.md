@@ -54,3 +54,45 @@ Notes:
   owner first, or delete the service.
 - **Your own role:** if you remove your own owner role, you can no longer
   manage access, and the dialog closes.
+
+## Inviting by link
+
+Instead of asking for a user ID, owners of a service, and admins, can
+invite a colleague with a link:
+
+1. Open the service, select **Manage access**, and find **Invite by link**.
+2. Choose the role the invitation is for, and select **Create link**.
+3. Copy the link (the button next to it), and send it to the person.
+
+![Managing access to a service, with a new invitation link](../images/manage-access-invite.png){ width="672" }
+
+Notes:
+
+- **The link is shown once**, with the role and when it expires. Copy it
+  before you close the dialog; if you lose it, revoke the invitation and
+  create a new one.
+- **Share it only with the person you mean:** whoever opens the link and
+  logs in gets the role, and the link works once. Send it in a private
+  message, not in a channel or on a page that others can read.
+- **The list** below shows the open invitations (role, when created and
+  when they expire) and the accepted ones (who accepted, and when), each
+  only until its expiry: the registry then drops it from the list, accepted
+  or not, and the role stays. Select
+  the bin icon to revoke an open invitation; its link then stops working.
+  An accepted invitation can't be revoked: remove the user's role instead
+  (see [Managing access](#managing-access)).
+- **Who is shown:** for the person who accepted, the list shows their name
+  and email address as far as the registry knows them. The registry knows
+  the email address only if the login provider marks it as verified;
+  otherwise, only the name, or the user ID, is shown.
+- **Limits:** invitations expire, and a service can have only so many open
+  invitations at a time. If the limit is reached, revoke open invitations
+  or wait until they expire. The expiry and the limit are settings of the
+  registry (see [Compatibility](../operator-guide/index.md#compatibility)).
+- **Registries without invitations:** the section reports that the registry
+  has none, and you grant roles as above. Invitations need cloud-registry
+  1.0.0-rc1 or later.
+
+The person who got the link follows [Accepting an
+invitation](invitations.md).
+
