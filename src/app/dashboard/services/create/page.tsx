@@ -15,6 +15,11 @@ import { useCloudRegistry, useFormChanged, useMe } from "@/hooks";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import { duplicateToast, withFieldLabels } from "@/lib/errors";
 import {
+    isServicesLimit,
+    maxServicesPerUser,
+    servicesLimitMessage,
+} from "@/lib/service-limits";
+import {
     environmentMessage,
     isAllowedEnvironment,
 } from "@/lib/service-environments";
@@ -114,6 +119,22 @@ function Page() {
         if (duplicate) {
             const { message, ...data } = duplicate;
             toast.error(message, data);
+            return;
+        }
+
+        // with the limit that the registry publishes, if it does
+        if (
+            err instanceof Error &&
+            err.message === e.detail.error &&
+            isServicesLimit(err)
+        ) {
+            (cloudRegistryProvider?.getServiceInfo() ?? Promise.reject())
+                .then(maxServicesPerUser, () => undefined)
+                .then((limit) =>
+                    toast.error(servicesLimitMessage(limit), {
+                        duration: 10000,
+                    }),
+                );
             return;
         }
 

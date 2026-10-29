@@ -59,7 +59,8 @@ type ConflictCode =
     | "verification-mismatch"
     | "last-owner"
     | "service-id-taken"
-    | "service-busy";
+    | "service-busy"
+    | "services-limit";
 
 // for registries that send no code (cloud-registry#247): the detail of the
 // 409 for changes of pending services (see `@/lib/approvals`) to types that
@@ -164,6 +165,12 @@ function isServiceBusy(err: unknown) {
     return isConflictOf(err, "service-busy", () => false);
 }
 
+/** Check if a registration failed as the user has as many as allowed */
+function isServicesLimit(err: unknown) {
+    // registries with the limit (cloud-registry 1.0.0) send codes
+    return isConflictOf(err, "services-limit", () => false);
+}
+
 /** Get the message for a failed change of a service's ID */
 function renameError(err: unknown) {
     if (isServiceIdTaken(err))
@@ -222,6 +229,7 @@ export {
     isLastOwner,
     isServiceBusy,
     isServiceIdTaken,
+    isServicesLimit,
     isVerificationMismatch,
     mutationError,
     renameError,
