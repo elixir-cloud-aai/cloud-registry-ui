@@ -59,8 +59,11 @@ test.describe("services limit", () => {
                 "You have registered as many services as this registry allows (3). Delete services you no longer need, or ask an admin.",
             ),
         ).toBeVisible();
-        // the browser logs the 409 that the page shows
-        expect(problems).toEqual([expect.stringContaining("status of 409")]);
+        // Chromium logs the 409 that the page shows, Firefox doesn't; the
+        // fixture checks the list after the test
+        expect(
+            problems.filter((val) => !val.includes("status of 409")),
+        ).toEqual([]);
         problems.length = 0;
     });
 });

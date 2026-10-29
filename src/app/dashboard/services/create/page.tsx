@@ -7,18 +7,14 @@ import type {
 import type { ExternalServiceRegister } from "@elixir-cloud/cloud-registry/providers";
 import { ECCClientElixirCloudRegistryServiceCreate } from "@elixir-cloud/cloud-registry/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { UnsavedChangesGuard } from "@/components/shared/unsaved-changes-guard";
 import { useCloudRegistry, useFormChanged, useMe } from "@/hooks";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
-import { duplicateToast, withFieldLabels } from "@/lib/errors";
-import {
-    isServicesLimit,
-    maxServicesPerUser,
-    servicesLimitMessage,
-} from "@/lib/service-limits";
+import { duplicateToast, isServicesLimit, withFieldLabels } from "@/lib/errors";
+import { servicesLimit, servicesLimitMessage } from "@/lib/service-limits";
 import {
     environmentMessage,
     isAllowedEnvironment,
@@ -30,6 +26,19 @@ function Page() {
     const { me, loading, error, expired } = useMe();
     const createError = useRef<unknown>(null);
     const { changed, setChanged, watchForm } = useFormChanged();
+    // the registry's limit of services per user, for its 409; read in
+    // advance, as the service info is the same for all users
+    const [limit, setLimit] = useState<number>();
+
+    useEffect(() => {
+        let current = true;
+        servicesLimit(cloudRegistryProvider).then((val) => {
+            if (current) setLimit(val);
+        });
+        return () => {
+            current = false;
+        };
+    }, [cloudRegistryProvider]);
 
     useEffect(() => {
         if (error && !expired)
@@ -112,29 +121,28 @@ function Page() {
         const err = createError.current;
         createError.current = null;
 
-        const duplicate =
-            err instanceof Error && err.message === e.detail.error
-                ? duplicateToast(err)
-                : null;
+        // the provider's error, if it is the one of this event
+        const own =
+            err instanceof Error && err.message === e.detail.error ? err : null;
+
+        const duplicate = own ? duplicateToast(own) : null;
         if (duplicate) {
             const { message, ...data } = duplicate;
             toast.error(message, data);
             return;
         }
 
-        // with the limit that the registry publishes, if it does
-        if (
-            err instanceof Error &&
-            err.message === e.detail.error &&
-            isServicesLimit(err)
-        ) {
-            (cloudRegistryProvider?.getServiceInfo() ?? Promise.reject())
-                .then(maxServicesPerUser, () => undefined)
-                .then((limit) =>
-                    toast.error(servicesLimitMessage(limit), {
-                        duration: 10000,
-                    }),
-                );
+        // with the limit that the registry publishes, else its detail
+        if (own && isServicesLimit(own)) {
+            toast.error(
+                limit === undefined
+                    ? withFieldLabels(e.detail.error)
+                    : servicesLimitMessage(
+                          limit,
+                          !!me?.admin_available && !me.admin,
+                      ),
+                { duration: 10000 },
+            );
             return;
         }
 
