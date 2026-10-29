@@ -37,9 +37,9 @@ function Page() {
     const [accepted, setAccepted] = useState<ServiceRole>();
     const [failure, setFailure] = useState<string>();
     const [expired, setExpired] = useState(false);
-    // the token shown now: results of an earlier one, e.g. before another
-    // link was opened on this page, are ignored
-    const current = useRef<string | null>(null);
+    // the latest acceptance: results of earlier ones, e.g. before a link
+    // was opened (again) on this page, are ignored
+    const latest = useRef(0);
 
     useEffect(() => {
         // also when another link is opened on this page, which changes
@@ -56,7 +56,7 @@ function Page() {
                     "",
                     invitationPath,
                 );
-            current.current = next;
+            latest.current++;
             setToken(next);
             // a request for an earlier token mustn't block this one
             setAccepting(false);
@@ -72,29 +72,28 @@ function Page() {
     const accept = () => {
         if (!cloudRegistryProvider || !token) return;
         const sent = token;
+        const request = ++latest.current;
+        const isLatest = () => request === latest.current;
         setAccepting(true);
         setFailure(undefined);
         cloudRegistryProvider
             .acceptInvitation(sent)
             .then((role) => {
                 dropPendingToken(sessionStore, sent);
-                if (current.current === sent) setAccepted(role);
+                if (isLatest()) setAccepted(role);
             })
             .catch((err) => {
                 const { message, final } = acceptInvitationError(err);
                 if (final) dropPendingToken(sessionStore, sent);
-                if (current.current !== sent) return;
-                if (final) {
-                    current.current = null;
-                    setToken(null);
-                }
+                if (!isLatest()) return;
+                if (final) setToken(null);
                 setExpired(isUnauthorized(err));
                 setFailure(message);
             })
             .finally(() => {
-                // a request for an earlier token mustn't re-enable the
-                // button while the current one is pending
-                if (current.current === sent) setAccepting(false);
+                // an earlier request mustn't re-enable the button while
+                // the latest one is pending
+                if (isLatest()) setAccepting(false);
             });
     };
 
