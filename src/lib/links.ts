@@ -1,3 +1,13 @@
+/**
+ * Get the link to the login, returning to a page of the app afterwards
+ * @param next The app's path to return to; without it, the dashboard
+ */
+export function loginHref(next?: string | null): string {
+    return next
+        ? `/auth/login?next=${encodeURIComponent(next)}`
+        : "/auth/login";
+}
+
 // mirrors httpUrl and contactUrl in services/update/_components/form-helper.ts
 const webSchemes = ["http:", "https:"];
 

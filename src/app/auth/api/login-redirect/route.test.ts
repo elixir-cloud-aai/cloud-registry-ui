@@ -81,6 +81,28 @@ describe("GET /auth/api/login-redirect", () => {
         expect((await login()).status).toBe(307);
     });
 
+    it("keeps the app's path to return to after the login", async () => {
+        setUp();
+        await login("?provider=mock&next=%2Finvitations%23token");
+        expect(jar.get("authReturnTo")).toMatchObject({
+            value: "/invitations",
+            httpOnly: true,
+            sameSite: "lax",
+            path: "/",
+            maxAge: 1800,
+        });
+    });
+
+    it.each([
+        "",
+        "&next=https%3A%2F%2Fevil.example.org%2F",
+        "&next=%2F%2Fevil.example.org",
+    ])("forgets an earlier path to return to (%j)", async (next) => {
+        setUp({ authReturnTo: "/invitations" });
+        await login(`?provider=mock${next}`);
+        expect(jar.has("authReturnTo")).toBe(false);
+    });
+
     it("rejects unknown providers", async () => {
         setUp();
         expect(await redirectOf(() => login("?provider=other"))).toBe(

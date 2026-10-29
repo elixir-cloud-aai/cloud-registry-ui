@@ -26,6 +26,7 @@ import {
 } from "./access-helper";
 import AccessList from "./access-list";
 import AccessGrantForm from "./grant-form";
+import Invitations from "./invitations";
 
 type Props = {
     provider: AccessProvider | null;
@@ -49,6 +50,7 @@ function ManageAccessDialog({
     );
     const [loading, setLoading] = useState(true);
     const [changing, setChanging] = useState(false);
+    const [inviting, setInviting] = useState(false);
     // why the dialog must close, e.g. after removing one's own owner role
     const [closeReason, setCloseReason] = useState<string | null>(null);
     const latestRequest = useRef(0);
@@ -167,10 +169,10 @@ function ManageAccessDialog({
             open={open}
             onOpenChange={(val) => {
                 // a change in progress refreshes only this dialog
-                if (!changing) onOpenChange(val);
+                if (!changing && !inviting) onOpenChange(val);
             }}
         >
-            <DialogContent className="sm:max-w-2xl">
+            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-lg font-bold">
                         Manage access
@@ -204,6 +206,15 @@ function ManageAccessDialog({
                 <AccessGrantForm
                     onGrant={handleGrant}
                     disabled={changing || !permissions}
+                />
+
+                <Separator />
+
+                <Invitations
+                    provider={provider}
+                    serviceId={serviceId}
+                    disabled={changing}
+                    onChanging={setInviting}
                 />
             </DialogContent>
         </Dialog>

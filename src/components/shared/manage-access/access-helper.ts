@@ -15,6 +15,9 @@ export type AccessProvider = Pick<
     | "revokeServicePermission"
     | "grantGroupPermission"
     | "revokeGroupPermission"
+    | "createInvitation"
+    | "getServiceInvitations"
+    | "revokeInvitation"
 >;
 
 const roles = ["owner", "maintainer"] as const satisfies readonly Role[];

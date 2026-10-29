@@ -96,6 +96,22 @@ describe("GET /auth/api/callback", () => {
             expect(jar.has(name)).toBe(false);
     });
 
+    it("returns to the app's path kept at the start of the login", async () => {
+        setUp({ ...pending, authReturnTo: "/invitations" });
+        expect((await callback("?code=c1&state=state-1")).url).toBe(
+            "/invitations",
+        );
+        expect(jar.has("authReturnTo")).toBe(false);
+    });
+
+    it("ignores a path to return to that isn't the app's", async () => {
+        setUp({ ...pending, authReturnTo: "//evil.example.org/" });
+        expect((await callback("?code=c1&state=state-1")).url).toBe(
+            "/dashboard",
+        );
+        expect(jar.has("authReturnTo")).toBe(false);
+    });
+
     it("starts in user mode", async () => {
         setUp({ ...pending, admin_mode: "1" });
         expect((await callback("?code=c1&state=state-1")).url).toBe(
