@@ -170,7 +170,7 @@ test.describe("admin mode", () => {
             await expect(page.getByText(service.name)).toBeVisible();
 
             // the table scrolls in its own container, not the page
-            const container = page.locator("[data-slot=table-container]");
+            const container = page.getByRole("table").locator("..");
             const overflow = await container.evaluate(
                 (val) => val.scrollWidth - val.clientWidth,
             );
