@@ -1,4 +1,4 @@
-# ELIXIR Cloud Registry UI
+# Cloud Registry UI
 
 Web frontend for the ELIXIR Cloud service registry ([cloud-registry](https://github.com/elixir-cloud-aai/cloud-registry)), providing a user interface for browsing and managing GA4GH Service Registry entries: registering and editing services, verifications, access management, service types and their approval.
 
