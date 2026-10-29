@@ -16,7 +16,8 @@ const registry = "http://localhost:8180/ga4gh/registry/v1";
 const adminGroup =
     "urn:geant:lifescience-ri.eu:group:elixir:ECP_CLN:ADMIN#aai.lifescience-ri.eu";
 
-/** Test users: the mock provider puts the claims in tokens and user info */
+/** Test users: the mock provider puts the claims in tokens and user info;
+ * `scripts/docs-screenshots.mjs` logs in the same way: keep it in step */
 const users = {
     admin: {
         sub: "alice@lifescience-ri.eu",

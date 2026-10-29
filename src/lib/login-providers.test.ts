@@ -86,6 +86,14 @@ describe("loginSettings", () => {
             },
             /no longer reads LS_LOGIN_URL, OIDC_CLIENT_ID/,
         ],
+        [
+            "old variables only, with where the docs explain them",
+            {
+                LOGIN_PROVIDERS: undefined,
+                OIDC_CLIENT_ID: "c",
+            },
+            "https://cloud-registry-ui.readthedocs.io/en/latest/operator-guide/upgrading/",
+        ],
     ])("rejects %s", async (_, env, message) => {
         const { loginSettings } = await load(env);
         expect(loginSettings).toThrow(message);

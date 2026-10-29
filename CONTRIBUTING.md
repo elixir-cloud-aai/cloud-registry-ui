@@ -92,12 +92,17 @@ git push origin your-branch-name
 
 3. Open a Pull Request on GitHub
 
+If your change affects what users or operators see or do (e.g. labels,
+pages, settings), update the docs in `docs/` with it, and take the
+screenshots again if they change (see "Screenshots" in
+`docs/development.md`).
+
 
 
 
 ## Releasing
 
-Releases are cut from `main` by the maintainers (see [Compatibility](README.md#compatibility) for the versions):
+Releases are cut from `main` by the maintainers (see [Compatibility](docs/operator-guide/index.md#compatibility) for the versions):
 
 1. Merge the release's changes into `main`, and let CI pass for that commit.
 2. On a branch, set the version in `package.json` and in `CITATION.cff` (`version`; add or update `date-released`), and update the authors in `CITATION.cff`: everyone who committed to the repository, listed by the number of lines they committed, then by the number of their commits. Merge it into `main`.

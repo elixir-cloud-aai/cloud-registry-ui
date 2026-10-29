@@ -11,9 +11,9 @@ import {
 import { useSidebar } from "@/components/ui/sidebar";
 
 // copying the access token puts a bearer token on the clipboard, so only
-// development servers offer it (see "Copying the access token" in the
-// README); Next inlines NODE_ENV at build time, so keep the literal
-// comparison, which drops the item from production bundles
+// development servers offer it (see "Copying the access token" in
+// `docs/operator-guide/login.md`); Next inlines NODE_ENV at build time, so
+// keep the literal comparison, which drops the item from production bundles
 const canCopyToken = process.env.NODE_ENV === "development";
 
 type Props = {
