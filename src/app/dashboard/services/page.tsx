@@ -13,6 +13,7 @@ import { useCloudRegistry, useMe, usePagination } from "@/hooks";
 import { getApprovalsOrNull, withPendingServices } from "@/lib/approvals";
 import type { ServiceVerification } from "@/lib/cloud-registry.types";
 import { errorMessage } from "@/lib/errors";
+import { loginHref } from "@/lib/links";
 import { isUnauthorized } from "@/lib/permissions";
 import { verifiedServices } from "@/lib/verifications";
 import {
@@ -152,7 +153,7 @@ function Page() {
                     )}
                     {isLoggedIn && expired && (
                         <Button variant={"outline"} asChild>
-                            <Link href={"/auth/login"}>
+                            <Link href={loginHref("/dashboard/services")}>
                                 <LogIn />
                                 Log in again
                             </Link>

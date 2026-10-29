@@ -4,7 +4,12 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
 import { adminModeCookie } from "@/lib/admin-mode";
-import { checkIdToken, loginCookies } from "@/lib/login-flow";
+import {
+    checkIdToken,
+    endedLoginCookies,
+    returnCookie,
+    returnPath,
+} from "@/lib/login-flow";
 import {
     loginErrorSummary,
     loginProvider,
@@ -51,9 +56,11 @@ export async function GET(request: NextRequest) {
     if (!verifier || !nonce) redirect("/auth/error?type=state");
 
     const providerId = await getCookie("authProvider", { cookies });
+    // checked again: the cookie may be of an earlier version
+    const next = returnPath(await getCookie(returnCookie, { cookies }));
     // a state can be used once, also if this callback fails or the provider
     // sends an error (e.g. a denied login) instead of a code
-    for (const name of loginCookies)
+    for (const name of endedLoginCookies)
         await deleteCookie(name, { cookies, path: "/" });
     if (code === null) redirect("/auth/error?type=params");
 
@@ -158,5 +165,5 @@ export async function GET(request: NextRequest) {
     // admins start in user mode
     await deleteCookie(adminModeCookie, { cookies, path: "/" });
 
-    redirect("/dashboard");
+    redirect(next ?? "/dashboard");
 }

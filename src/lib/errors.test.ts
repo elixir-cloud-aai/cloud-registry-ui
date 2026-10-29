@@ -6,6 +6,8 @@ import {
     errorField,
     errorMessage,
     isDuplicate,
+    isInvitationAccepted,
+    isInvitationsLimit,
     isLastOwner,
     isServiceBusy,
     isServiceIdTaken,
@@ -131,6 +133,8 @@ describe("conflicts", () => {
         isLastOwner,
         isServiceIdTaken,
         isServiceBusy,
+        isInvitationsLimit,
+        isInvitationAccepted,
     };
 
     it.each([
@@ -139,6 +143,8 @@ describe("conflicts", () => {
         ["last-owner", "isLastOwner"],
         ["service-id-taken", "isServiceIdTaken"],
         ["service-busy", "isServiceBusy"],
+        ["invitations-limit", "isInvitationsLimit"],
+        ["invitation-accepted", "isInvitationAccepted"],
         ["pending-service", undefined],
         ["conflict", undefined],
         ["added-later", undefined],
@@ -157,6 +163,9 @@ describe("conflicts", () => {
             // registries that rename services send codes
             expect(isServiceIdTaken(err)).toBe(false);
             expect(isServiceBusy(err)).toBe(false);
+            // registries with invitations send codes
+            expect(isInvitationsLimit(err)).toBe(false);
+            expect(isInvitationAccepted(err)).toBe(false);
         }
     });
 

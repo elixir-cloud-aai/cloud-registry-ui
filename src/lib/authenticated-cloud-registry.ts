@@ -13,6 +13,8 @@ import type {
   CloudRegistryProviderOptions,
   GroupName,
   GroupPermission,
+  Invitation,
+  InvitationCreated,
   Me,
   Permission,
   PermissionRegister,
@@ -518,6 +520,85 @@ class AuthenticatedCloudRegistryProvider
         authenticated: true,
       },
     );
+  }
+
+  // --------------------------------------------------
+  // Invitations
+  // --------------------------------------------------
+
+  /**
+   * POST /services/{serviceId}/invitations
+   * Authenticated (owners, admins).
+   *
+   * Create an invitation to a service for a role.
+   *
+   * @returns The invitation, with its token, which only this response has
+   */
+  async createInvitation(
+    serviceId: ServiceId,
+    permission: PermissionRegister,
+  ): Promise<InvitationCreated> {
+    return this.request(
+      `/services/${this.idPath(serviceId)}/invitations`,
+      {
+        method: "POST",
+        body: permission,
+        authenticated: true,
+      },
+    );
+  }
+
+  /**
+   * GET /services/{serviceId}/invitations
+   * Authenticated (owners, admins).
+   *
+   * List the open and accepted invitations that haven't expired.
+   */
+  async getServiceInvitations(
+    serviceId: ServiceId,
+  ): Promise<Invitation[]> {
+    return this.request(
+      `/services/${this.idPath(serviceId)}/invitations`,
+      {
+        authenticated: true,
+      },
+    );
+  }
+
+  /**
+   * DELETE /services/{serviceId}/invitations/{invitationId}
+   * Authenticated (owners, admins).
+   *
+   * Revoke an open invitation.
+   */
+  async revokeInvitation(
+    serviceId: ServiceId,
+    invitationId: string,
+  ): Promise<string> {
+    return this.request(
+      `/services/${this.idPath(serviceId)}/invitations/${this.idPath(invitationId)}`,
+      {
+        method: "DELETE",
+        authenticated: true,
+      },
+    );
+  }
+
+  /**
+   * POST /invitations/accept
+   * Authenticated.
+   *
+   * Accept an invitation, which grants its role to the current user. The
+   * token goes in the body, not in the URL, so that it stays out of logs.
+   *
+   * @returns The role granted on the service
+   */
+  async acceptInvitation(token: string): Promise<ServiceRole> {
+    return this.request("/invitations/accept", {
+      method: "POST",
+      body: { token },
+      authenticated: true,
+    });
   }
 
   // --------------------------------------------------
