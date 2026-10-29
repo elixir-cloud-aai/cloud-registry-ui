@@ -52,12 +52,13 @@ async function servicesLimit(
  * @returns The message, with what to do
  */
 function servicesLimitMessage(limit: number, adminAvailable = false) {
-    const message =
-        limit === 0
-            ? "Only admins can register services in this registry. Please ask an admin."
-            : `You have registered as many services as this registry allows (${limit}). Delete services you no longer need, or ask an admin.`;
+    if (limit === 0)
+        return adminAvailable
+            ? "Only admins can register services in this registry. Switch to admin mode to register this service."
+            : "Only admins can register services in this registry. Please ask an admin.";
+    const message = `You have registered as many services as this registry allows (${limit}). Delete services you no longer need, or ask an admin.`;
     return adminAvailable
-        ? `${message} As an admin, you can also register it in admin mode.`
+        ? `${message} As an admin, you can also register this service in admin mode.`
         : message;
 }
 

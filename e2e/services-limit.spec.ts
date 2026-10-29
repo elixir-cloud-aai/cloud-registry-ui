@@ -57,6 +57,8 @@ test.describe("services limit", () => {
         await expect(
             page.getByText(
                 "You have registered as many services as this registry allows (3). Delete services you no longer need, or ask an admin.",
+                // no hint at admin mode for users other than admins
+                { exact: true },
             ),
         ).toBeVisible();
         // Chromium logs the 409 that the page shows, Firefox doesn't; the

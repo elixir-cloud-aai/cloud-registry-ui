@@ -51,10 +51,10 @@ describe("servicesLimitMessage", () => {
 
     it("points admins to admin mode", () => {
         expect(servicesLimitMessage(50, true)).toBe(
-            "You have registered as many services as this registry allows (50). Delete services you no longer need, or ask an admin. As an admin, you can also register it in admin mode.",
+            "You have registered as many services as this registry allows (50). Delete services you no longer need, or ask an admin. As an admin, you can also register this service in admin mode.",
         );
         expect(servicesLimitMessage(0, true)).toBe(
-            "Only admins can register services in this registry. Please ask an admin. As an admin, you can also register it in admin mode.",
+            "Only admins can register services in this registry. Switch to admin mode to register this service.",
         );
     });
 
