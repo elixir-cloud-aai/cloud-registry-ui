@@ -117,7 +117,7 @@ function Page() {
         router.replace("/dashboard/services");
     };
 
-    const onServiceCreationFailed = (e: EccServiceCreateFailedEvent) => {
+    const onServiceCreationFailed = async (e: EccServiceCreateFailedEvent) => {
         const err = createError.current;
         createError.current = null;
 
@@ -132,13 +132,15 @@ function Page() {
             return;
         }
 
-        // with the limit that the registry publishes, else its detail
+        // with the limit that the registry publishes (read now if the
+        // advance read isn't done yet), else its detail
         if (own && isServicesLimit(own)) {
+            const max = limit ?? (await servicesLimit(cloudRegistryProvider));
             toast.error(
-                limit === undefined
+                max === undefined
                     ? withFieldLabels(e.detail.error)
                     : servicesLimitMessage(
-                          limit,
+                          max,
                           !!me?.admin_available && !me.admin,
                       ),
                 { duration: 10000 },
