@@ -150,6 +150,44 @@ test.describe("admin mode", () => {
         expect(after).not.toContain("admin_mode");
     });
 
+    // laptop widths, at which a wide table once pushed the switch out of view
+    for (const width of [1024, 1280]) {
+        test(`the switch stays in view at ${width} px`, async ({
+            page,
+            browser,
+        }) => {
+            // a long name, which the table doesn't wrap
+            const service = await registerService(
+                browser,
+                "owner",
+                "A service with a name that makes the table wider than the page",
+            );
+            await page.setViewportSize({ width, height: 800 });
+            await login(page, "admin", { adminMode: true });
+            await page.goto("/dashboard/services");
+            await page.waitForLoadState("networkidle");
+            await page.getByLabel("Search services").fill(service.name);
+            await expect(page.getByText(service.name)).toBeVisible();
+
+            // the table scrolls in its own container, not the page
+            const container = page.getByRole("table").locator("..");
+            const overflow = await container.evaluate(
+                (val) => val.scrollWidth - val.clientWidth,
+            );
+            expect(overflow).toBeGreaterThan(0);
+            const pageWidth = await page.evaluate(
+                () => document.documentElement.scrollWidth,
+            );
+            expect(pageWidth).toBeLessThanOrEqual(width);
+            const adminMode = page.getByRole("button", { name: "Admin mode" });
+            await expect(adminMode).toBeInViewport({ ratio: 1 });
+            await adminMode.click();
+            await expect(
+                page.getByRole("button", { name: "User mode" }),
+            ).toBeInViewport({ ratio: 1 });
+        });
+    }
+
     test("other users and guests see no switch", async ({ page }) => {
         await page.goto("/dashboard/services");
         await page.waitForLoadState("networkidle");
