@@ -63,7 +63,8 @@ sidebar of the repository formats it as APA or BibTeX.
 
 Contributions are welcome! See [`CONTRIBUTING.md`](CONTRIBUTING.md) and
 [Development][docs-development] in the documentation; the sources of the
-documentation are in [`docs/`](docs/).
+documentation are in [`docs/`](docs/). For anything else, write to
+[cloud-service@elixir-europe.org](mailto:cloud-service@elixir-europe.org).
 
 [badge-build-status]: <https://github.com/elixir-cloud-aai/cloud-registry-ui/actions/workflows/ci.yml/badge.svg>
 [badge-docs]: <https://img.shields.io/readthedocs/cloud-registry-ui>
