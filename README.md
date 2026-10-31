@@ -17,8 +17,9 @@ API](https://github.com/ga4gh-discovery/ga4gh-service-registry), brought to
 you by [ELIXIR On-Cloud](https://elixir-on.cloud/). Anyone can browse and
 search the services of the registry (unless it requires login); users logged
 in with an OpenID Connect provider, such as LS Login, register and edit their
-services, share them with their team and invite others by link, and admins
-verify services and approve new service types. The app is generic: deploy it
+services and share them with their team (with Cloud Registry 1.0.0-rc1 or
+later also by invitation links), and admins verify services and approve new
+service types. The app is generic: deploy it
 for your own registry with its Docker image, with your logos, titles and login
 providers.
 
