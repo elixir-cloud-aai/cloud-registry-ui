@@ -10,11 +10,13 @@ import {
     useRegistrationRules,
     useServiceVerification,
 } from "@/hooks";
-import { getServiceWithApproval } from "@/lib/approvals";
+import { getApprovalsOrNull, getServiceWithApproval } from "@/lib/approvals";
+import type { ServiceType } from "@/lib/cloud-registry.types";
 import { errorMessage } from "@/lib/errors";
 import { canEditService, isUnauthorized } from "@/lib/permissions";
-import { typeKey } from "@/lib/service-types";
+import { mayAddServiceTypes } from "@/lib/service-types";
 import { ServiceUpdationForm } from "../_components";
+import { approvedTypes } from "../_components/form-helper";
 
 function Page() {
     const { id } = useParams();
@@ -35,9 +37,13 @@ function Page() {
         loading: rulesLoading,
         error: rulesError,
     } = useRegistrationRules();
-    // the approved types (GET /services/types lists no pending ones to
-    // requests without a user), for the form's note on new types
-    const [approvedTypes, setApprovedTypes] = useState<Set<string>>();
+    // the registered types to choose from, approved ones only (GET
+    // /services/types lists no pending ones to requests without a user):
+    // undefined while loading (the page waits), null if they couldn't be
+    // loaded (the form then offers the stored type, and new ones)
+    const [serviceTypes, setServiceTypes] = useState<ServiceType[] | null>();
+    // whether the user's pending types are known, and so left out
+    const [pendingTypesKnown, setPendingTypesKnown] = useState(true);
 
     // pending services are only listed in GET /approvals, e.g. after a
     // change to a pending type
@@ -81,26 +87,40 @@ function Page() {
     }, [refetchService]);
 
     useEffect(() => {
-        if (!cloudRegistryProvider || !me?.service_types_pending) return;
+        if (!cloudRegistryProvider) return;
         let current = true;
-        cloudRegistryProvider
-            .getServiceTypes()
-            .then((val) => {
-                if (current) setApprovedTypes(new Set(val.map(typeKey)));
+        // registries that require login for reads list the user's pending
+        // types too: they are left out, as approved types only can be
+        // chosen (see the form)
+        Promise.all([
+            cloudRegistryProvider.getServiceTypes(),
+            getApprovalsOrNull(cloudRegistryProvider),
+        ])
+            .then(([val, approvals]) => {
+                if (!current) return;
+                setServiceTypes(
+                    approvedTypes(val, approvals?.service_types ?? []),
+                );
+                setPendingTypesKnown(approvals !== null);
             })
             .catch((err) => {
-                // the note then shows for every change of the type
+                // the form then offers the stored type, and new ones if
+                // the user may add them
                 console.error("Failed to load the service types:", err);
+                if (current) setServiceTypes(null);
             });
         return () => {
             current = false;
         };
-    }, [cloudRegistryProvider, me?.service_types_pending]);
+    }, [cloudRegistryProvider]);
 
     // the saved values are the form's new defaults; the form stays disabled
     // until the registry's version replaces them
     const onServiceUpdated = (saved: ExternalService) => {
         setService(saved);
+        // a change of the type may have made it pending: unknown until the
+        // registry's version is loaded
+        setPending(undefined);
         setRefreshing(true);
         refetchService();
     };
@@ -135,7 +155,7 @@ function Page() {
             <LoginPrompt message="Your session expired. Please log in again." />
         );
 
-    if (loading || meLoading || rulesLoading)
+    if (loading || meLoading || rulesLoading || serviceTypes === undefined)
         return (
             <div className="w-full flex justify-center items-center h-full">
                 <p>Loading...</p>
@@ -168,7 +188,11 @@ function Page() {
                     admin={me?.admin}
                     pending={pending}
                     typesPending={me?.service_types_pending}
-                    approvedTypes={approvedTypes}
+                    serviceTypes={serviceTypes}
+                    // as in the create form: without the registry's
+                    // answer, the registry decides when the form is sent
+                    mayAddServiceTypes={mayAddServiceTypes(me, rules)}
+                    pendingTypesKnown={pendingTypesKnown}
                     disabled={refreshing}
                     onServiceUpdated={onServiceUpdated}
                     onServiceRenamed={onServiceRenamed}

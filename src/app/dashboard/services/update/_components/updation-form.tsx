@@ -9,7 +9,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { UnsavedChangesGuard } from "@/components/shared/unsaved-changes-guard";
 import { useCloudRegistry } from "@/hooks";
-import type { Verification } from "@/lib/cloud-registry.types";
+import type { ServiceType, Verification } from "@/lib/cloud-registry.types";
 import {
     duplicateMessage,
     duplicateToast,
@@ -38,6 +38,7 @@ import {
     hasServiceChanges,
     normalizeFormData,
     normalizeServiceData,
+    offersNewType,
     serviceFormSchema,
 } from "./form-helper";
 import ServiceRenameDialog from "./rename-dialog";
@@ -50,7 +51,14 @@ type Props = {
     admin?: boolean;
     pending?: boolean;
     typesPending?: boolean;
-    approvedTypes?: Set<string>;
+    // the registered types to choose from (`GET /services/types`, which
+    // lists only approved ones); null if they couldn't be loaded
+    serviceTypes: readonly ServiceType[] | null;
+    // whether the user's pending types are known to be left out of them
+    pendingTypesKnown?: boolean;
+    // whether the user may add types (`mayAddServiceTypes()` of
+    // `@/lib/service-types`)
+    mayAddServiceTypes?: boolean;
     disabled?: boolean;
     onServiceUpdated?: (service: ExternalService) => void;
     onServiceRenamed?: (id: string) => void;
@@ -63,7 +71,9 @@ function ServiceUpdationForm({
     admin = false,
     pending,
     typesPending = false,
-    approvedTypes,
+    serviceTypes,
+    pendingTypesKnown = true,
+    mayAddServiceTypes = true,
     disabled,
     onServiceUpdated,
     onServiceRenamed,
@@ -73,6 +83,14 @@ function ServiceUpdationForm({
     // the values to save once the new ID is confirmed
     const [renaming, setRenaming] = useState<FormData>();
     const initial = normalizeFormData(service, admin);
+    // the approved types, if known, for the note on new types
+    const approvedTypes = useMemo(
+        () =>
+            pendingTypesKnown && serviceTypes
+                ? new Set(serviceTypes.map(typeKey))
+                : undefined,
+        [serviceTypes, pendingTypesKnown],
+    );
     const schema = useMemo(
         () =>
             serviceFormSchema(
@@ -92,11 +110,11 @@ function ServiceUpdationForm({
             ...prev,
             isTouched: true,
             errorMap: {
-                ...prev.errorMap,
+                ...prev?.errorMap,
                 onServer: { message },
             },
             errorSourceMap: {
-                ...prev.errorSourceMap,
+                ...prev?.errorSourceMap,
                 onServer: "form",
             },
         }));
@@ -229,7 +247,16 @@ function ServiceUpdationForm({
                     />
                 )}
                 <ServiceBasicInfoSection form={form} />
-                <ServiceTypeSection form={form} />
+                <ServiceTypeSection
+                    form={form}
+                    serviceTypes={serviceTypes}
+                    current={initial.type}
+                    allowNewType={offersNewType({
+                        mayAdd: mayAddServiceTypes,
+                        pending,
+                        admin,
+                    })}
+                />
                 {pending && !admin && (
                     <p className="flex items-center gap-2 text-sm text-muted-foreground">
                         <ClockIcon className="size-4 shrink-0" />
