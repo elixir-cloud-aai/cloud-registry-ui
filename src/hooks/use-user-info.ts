@@ -1,4 +1,3 @@
-import type { AxiosError } from "axios";
 import { useCallback, useEffect, useState } from "react";
 
 type UserInfoResponse = {
@@ -21,8 +20,7 @@ export function useUserInfo() {
 
             if (userResp.error === false) setUser(userResp.user);
             else setError(true);
-        } catch (e: any) {
-            e = e as AxiosError;
+        } catch {
             setError(true);
         } finally {
             setLoading(false);

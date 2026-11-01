@@ -1,6 +1,6 @@
 # Login
 
-Users log in with one of the login providers that you configure (OpenID Connect, authorization code flow with PKCE and a nonce). Providers must support PKCE with `S256`, as LS Login does; if a provider names itself in its responses (RFC 9207), the app checks the name. ID tokens must name the provider's issuer, the client ID and the login's nonce. The app reads these settings when the server starts and refuses to start without at least one valid provider. They are read at runtime, so `docker run -e` and `--env-file` work, and they stay on the server: client secrets never reach the browser or the image (pass them with `docker run`, see [Docker](deployment.md#docker)).
+Users log in with one of the login providers that you configure (OpenID Connect, authorization code flow with PKCE and a nonce). Providers must support PKCE with `S256`, as LS Login does; if a provider names itself in its responses (RFC 9207), the app checks the name. ID tokens must name the provider's issuer, the client ID and the login's nonce. To get tokens, the app sends its client ID and secret in the body of the token request (`client_secret_post`), so providers must accept that method, as LS Login does; providers that accept only HTTP Basic authentication (`client_secret_basic`) aren't supported yet. The app reads these settings when the server starts and refuses to start without at least one valid provider. They are read at runtime, so `docker run -e` and `--env-file` work, and they stay on the server: client secrets never reach the browser or the image (pass them with `docker run`, see [Docker](deployment.md#docker)).
 
 | Variable             | Required | Description                                                                                  |
 | -------------------- | -------- | -------------------------------------------------------------------------------------------- |
@@ -13,7 +13,7 @@ Each provider has these fields:
 | -------------- | -------- | ------------------------------------------------------------------------------------ |
 | `id`           | yes      | Unique ID, `a-z`, `0-9` and `-` only, e.g. `ls-login`                                |
 | `name`         | yes      | Name on the login page                                                               |
-| `logo`         | yes      | Logo on the login page; a URL, or a path in `public/` (built into the image)         |
+| `logo`         | yes      | Logo on the login page; an `https` URL, or a path in `public/` (built into the image) |
 | `issuer`       | yes      | Issuer URL, as in its `/.well-known/openid-configuration`, which lists the endpoints |
 | `clientId`     | yes      | Client ID registered with the provider                                               |
 | `clientSecret` | yes      | Client secret                                                                        |
@@ -43,6 +43,8 @@ Put the client ID and secret in `LOGIN_PROVIDERS` (see the example above), and k
 ## Sessions and logout
 
 After logging in, the app keeps the session in cookies for as long as the access token is valid (`expires_in` of the provider's token response), at most 12 hours (also if the provider doesn't say); an `expires_in` that isn't a number of at least 1 second fails the login. The app doesn't refresh tokens, so users log in again afterwards: set the provider's access token lifetime to the session length you want (e.g. Keycloak's "Access Token Lifespan", 5 minutes by default). The cookies are `access_token`, which the browser sends to the registry, and the ID token and provider, which only the server reads (`httpOnly`). Logging out is a `POST` to `/auth/api/logout` from the app's own pages (same origin; a sent `Origin` must be that of `LOGIN_REDIRECT_URI`), so serve the app at that address; other requests lead to an error page.
+
+Logging out deletes only the app's cookies. The app doesn't end the session at the provider (it doesn't use the provider's `end_session_endpoint`) and doesn't revoke tokens: users stay logged in at the provider, so the next login there may not ask for their credentials, and the access token stays valid until it expires. Tell users of shared computers to log out at the provider too.
 
 Failed requests to login providers are logged without secrets or tokens.
 
@@ -75,7 +77,10 @@ security:
             "<admin group, a value of eduperson_entitlement>": admin
 ```
 
-- `issuers` must contain the provider's issuer, exactly as in `LOGIN_PROVIDERS`.
+- `issuers` must contain the provider's issuer exactly as the provider spells it in its `/.well-known/openid-configuration` (the `iss` of its tokens), trailing slash included; otherwise, the registry rejects every request with `401`. LS Login's issuer ends with a slash.
+
+    The app accepts the issuer in `LOGIN_PROVIDERS` with or without the slash, but the registry compares it exactly. To see the spelling, look for the log line starting with `Login provider <id>: issuer`, which the app writes when it first contacts a provider, e.g. at the first login.
+
 - `audience` must contain the app's client ID; otherwise, all requests that need a login fail with `401`.
 - `userinfo_claims` lets the registry read the groups and names that LS Login doesn't put in access tokens.
 
