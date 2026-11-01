@@ -10,11 +10,12 @@ import {
     useRegistrationRules,
     useServiceVerification,
 } from "@/hooks";
-import { getServiceWithApproval } from "@/lib/approvals";
+import { getApprovalsOrNull, getServiceWithApproval } from "@/lib/approvals";
 import type { ServiceType } from "@/lib/cloud-registry.types";
 import { errorMessage } from "@/lib/errors";
 import { canEditService, isUnauthorized } from "@/lib/permissions";
 import { ServiceUpdationForm } from "../_components";
+import { approvedTypes } from "../_components/form-helper";
 
 function Page() {
     const { id } = useParams();
@@ -85,10 +86,18 @@ function Page() {
     useEffect(() => {
         if (!cloudRegistryProvider) return;
         let current = true;
-        cloudRegistryProvider
-            .getServiceTypes()
-            .then((val) => {
-                if (current) setServiceTypes(val);
+        // registries that require login for reads list the user's pending
+        // types too: they are left out, as approved types only can be
+        // chosen (see the form)
+        Promise.all([
+            cloudRegistryProvider.getServiceTypes(),
+            getApprovalsOrNull(cloudRegistryProvider),
+        ])
+            .then(([val, approvals]) => {
+                if (current)
+                    setServiceTypes(
+                        approvedTypes(val, approvals?.service_types ?? []),
+                    );
             })
             .catch((err) => {
                 // the form then offers the stored type, and new ones if

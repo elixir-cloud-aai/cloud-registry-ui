@@ -194,20 +194,38 @@ export function typeOfChoice(choice: string) {
  * Check whether the edit form offers new service types
  * @param options `mayAdd`: whether the user may add types
  * (`may_add_service_types` of `GET /me`); `pending`: whether the service
- * is pending; `admin`: whether the user acts as admin
+ * is pending, undefined if unknown; `admin`: whether the user acts as admin
  * @returns Whether to offer them: pending services take only approved
- * types from users other than admins
+ * types from users other than admins, so these users get them only for
+ * services known not to be pending
  */
 export function offersNewType({
     mayAdd,
-    pending = false,
+    pending,
     admin = false,
 }: {
     mayAdd: boolean;
     pending?: boolean;
     admin?: boolean;
 }) {
-    return mayAdd && (admin || !pending);
+    return mayAdd && (admin || pending === false);
+}
+
+/**
+ * Get the approved service types
+ * @param serviceTypes Types from `GET /services/types`, which lists the
+ * user's pending ones too if the registry requires login for reads (the
+ * request is then sent with the token)
+ * @param pending The pending types that the user may see (`GET
+ * /approvals`)
+ * @returns The listed types that aren't pending
+ */
+export function approvedTypes(
+    serviceTypes: readonly ServiceType[],
+    pending: readonly ServiceType[],
+) {
+    const keys = new Set(pending.map(typeKey));
+    return serviceTypes.filter((type) => !keys.has(typeKey(type)));
 }
 
 /** The fields of a service type in the form */

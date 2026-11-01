@@ -236,4 +236,92 @@ test.describe("service types", () => {
         ).toEqual([]);
         problems.length = 0;
     });
+
+    test("users save a new type, which is pending; Reset goes back to the list", async ({
+        page,
+        browser,
+    }) => {
+        const service = await registerService(browser, "owner", "New type");
+        await login(page, "owner");
+
+        await openTypeList(page, service.id);
+        await page
+            .getByRole("option", { name: "Add new service type" })
+            .click();
+        await page.getByRole("button", { name: "Reset" }).click();
+        await expect(
+            page.getByRole("textbox", { name: "Type Artifact" }),
+        ).toHaveCount(0);
+        await expect(
+            page.getByRole("combobox", { name: "Service Type" }),
+        ).toHaveText("org.ga4gh · tes · 1.1.0");
+
+        await page.getByRole("combobox", { name: "Service Type" }).click();
+        await page
+            .getByRole("option", { name: "Add new service type" })
+            .click();
+        const artifact = `e2e-${uniqueId()}`;
+        await page
+            .getByRole("textbox", { name: "Type Artifact" })
+            .fill(artifact);
+        await page.getByRole("textbox", { name: "Type Version" }).fill("1.0.0");
+        await page.getByRole("button", { name: "Submit" }).click();
+        // the service is pending with its new type: hidden from the public
+        await expect
+            .poll(
+                async () =>
+                    (await api(undefined, "GET", `/services/${service.id}`))
+                        .status,
+            )
+            .toBe(404);
+        const approvals = await api(
+            await tokenOf(browser, "owner"),
+            "GET",
+            "/approvals",
+        );
+        expect(approvals.body.service_types).toContainEqual({
+            group: "org.ga4gh",
+            artifact,
+            version: "1.0.0",
+        });
+        await page.waitForLoadState("networkidle");
+    });
+
+    test("the user's own pending types aren't offered", async ({
+        page,
+        browser,
+    }) => {
+        const service = await registerService(browser, "owner", "Own type");
+        const owner = await tokenOf(browser, "owner");
+        const pendingType = {
+            group: "org.example",
+            artifact: `e2e-${uniqueId()}`,
+            version: "1.0.0",
+        };
+        expect(
+            (await api(owner, "POST", "/services/types", pendingType)).status,
+        ).toBe(201);
+        // as registries that require login for reads list them, to the
+        // users who added them
+        await page.route(`${registry}/services/types`, async (route) => {
+            const response = await route.fetch();
+            await route.fulfill({
+                response,
+                json: [...(await response.json()), pendingType],
+            });
+        });
+        await login(page, "owner");
+
+        await openTypeList(page, service.id);
+        await expect(
+            page.getByRole("option", { name: "org.ga4gh · tes · 1.1.0" }),
+        ).toBeVisible();
+        await expect(
+            page.getByRole("option", {
+                name: `${pendingType.group} · ${pendingType.artifact} · ${pendingType.version}`,
+            }),
+        ).toHaveCount(0);
+        await page.keyboard.press("Escape");
+        await page.waitForLoadState("networkidle");
+    });
 });

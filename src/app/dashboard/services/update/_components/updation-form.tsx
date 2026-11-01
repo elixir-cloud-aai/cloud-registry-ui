@@ -103,11 +103,11 @@ function ServiceUpdationForm({
             ...prev,
             isTouched: true,
             errorMap: {
-                ...prev.errorMap,
+                ...prev?.errorMap,
                 onServer: { message },
             },
             errorSourceMap: {
-                ...prev.errorSourceMap,
+                ...prev?.errorSourceMap,
                 onServer: "form",
             },
         }));

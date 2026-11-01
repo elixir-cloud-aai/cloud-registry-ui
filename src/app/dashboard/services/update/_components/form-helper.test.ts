@@ -4,6 +4,7 @@ import {
     type RegistrationRules,
 } from "@/lib/registration-rules";
 import {
+    approvedTypes,
     type FormData,
     formDataSchema,
     hasServiceChanges,
@@ -304,16 +305,19 @@ describe("typeOfChoice", () => {
 
 describe("offersNewType", () => {
     it("offers new types to users who may add them", async () => {
-        expect(offersNewType({ mayAdd: true })).toBe(true);
-        expect(offersNewType({ mayAdd: false })).toBe(false);
+        expect(offersNewType({ mayAdd: true, pending: false })).toBe(true);
+        expect(offersNewType({ mayAdd: false, pending: false })).toBe(false);
         expect(offersNewType({ mayAdd: false, admin: true })).toBe(false);
     });
 
     it("offers none for pending services, except to admins", async () => {
         expect(offersNewType({ mayAdd: true, pending: true })).toBe(false);
+        // unknown: the service may be pending
+        expect(offersNewType({ mayAdd: true })).toBe(false);
         expect(
             offersNewType({ mayAdd: true, pending: true, admin: true }),
         ).toBe(true);
+        expect(offersNewType({ mayAdd: true, admin: true })).toBe(true);
     });
 });
 
@@ -328,5 +332,14 @@ describe("typeErrors", () => {
             }),
         ).toEqual(["group", "version"]);
         expect(typeErrors({})).toEqual([]);
+    });
+});
+
+describe("approvedTypes", () => {
+    it("leaves out the pending types", async () => {
+        const tes = { group: "org.ga4gh", artifact: "tes", version: "1.1.0" };
+        const own = { group: "org.example", artifact: "x", version: "1.0" };
+        expect(approvedTypes([own, tes], [own])).toEqual([tes]);
+        expect(approvedTypes([tes], [])).toEqual([tes]);
     });
 });
