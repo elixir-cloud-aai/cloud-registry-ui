@@ -15,6 +15,7 @@ import {
     isVerificationMismatch,
     mutationError,
     renameError,
+    serviceTypeConflict,
     withFieldLabels,
 } from "./errors";
 
@@ -95,6 +96,30 @@ describe("mutationError", () => {
         ).toBe(
             "The service is being changed by another request. Please try again in a moment.",
         );
+    });
+});
+
+describe("serviceTypeConflict", () => {
+    it.each([
+        ["unused-types-limit", "as many service types that no service has"],
+        ["service-type-registered", "already registered"],
+        ["service-type-in-use", "can't be removed"],
+    ])("explains %s instead of the detail", (code, text) => {
+        const err = failure(409, { detail: "raw detail", code });
+        expect(serviceTypeConflict(err)).toContain(text);
+        expect(mutationError(err, "f")).toBe(serviceTypeConflict(err));
+    });
+
+    it("leaves other failures to the detail", () => {
+        for (const err of [
+            failure(409, { detail: "d", code: "duplicate-service" }),
+            // registries before cloud-registry 0.5.0 send no codes
+            failure(409, { detail: "d" }),
+            failure(400, { detail: "d", code: "service-type-in-use" }),
+        ]) {
+            expect(serviceTypeConflict(err)).toBeUndefined();
+            expect(mutationError(err, "f")).toBe("d");
+        }
     });
 });
 

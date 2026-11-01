@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { failure } from "@/test/errors";
-import { duplicateMessage } from "./errors";
+import { duplicateMessage, serviceTypeConflict } from "./errors";
 import { createError, createFailedToast } from "./service-create";
 import { servicesLimitMessage } from "./service-limits";
 
@@ -116,6 +116,18 @@ describe("createFailedToast", () => {
             { ...options, limit: 3 },
         );
         expect(toast.message).toBe(servicesLimitMessage(3));
+    });
+
+    it("explains the limit of unused service types", async () => {
+        const cause = failure(409, {
+            detail: "You have added 0 service types",
+            code: "unused-types-limit",
+        });
+        const toast = await createFailedToast(
+            { error: "You have added 0 service types", status: 409, cause },
+            options,
+        );
+        expect(toast).toEqual({ message: serviceTypeConflict(cause) });
     });
 
     it("shows other errors with the form's labels", async () => {

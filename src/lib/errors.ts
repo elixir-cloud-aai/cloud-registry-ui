@@ -57,6 +57,9 @@ const duplicateMessage =
 // detail
 type ConflictCode =
     | "duplicate-service"
+    | "unused-types-limit"
+    | "service-type-registered"
+    | "service-type-in-use"
     | "verification-mismatch"
     | "last-owner"
     | "service-id-taken"
@@ -101,7 +104,39 @@ function errorMessage(err: unknown, fallback: string) {
     return detail === undefined ? fallback : withFieldLabels(detail);
 }
 
-/** Get the message for a failed change: login, role, busy, detail or fallback */
+// the messages for the conflicts of service types, by the registry's code;
+// registries send these codes since cloud-registry 0.5.0, so older ones show
+// their detail
+const serviceTypeConflicts = {
+    // also of registrations and changes of services with new types
+    "unused-types-limit":
+        "You have added as many service types that no service has as this registry allows. Register services with them, or ask an admin to remove those you don't need, before you add others.",
+    "service-type-registered":
+        "This service type is already registered. If it isn't listed, it is pending until an admin approves it.",
+    "service-type-in-use":
+        "Services have this service type, so it can't be removed. Change the type of these services, or delete them, first.",
+} satisfies Partial<Record<ConflictCode, string>>;
+
+/**
+ * Get the message for a conflict of service types
+ * @param err Error of the request
+ * @returns The message, if the request failed with a conflict of service
+ * types (`unused-types-limit`, `service-type-registered` or
+ * `service-type-in-use`)
+ */
+function serviceTypeConflict(err: unknown) {
+    const code = (
+        Object.keys(
+            serviceTypeConflicts,
+        ) as (keyof typeof serviceTypeConflicts)[]
+    ).find((val) => isConflictOf(err, val, () => false));
+    return code === undefined ? undefined : serviceTypeConflicts[code];
+}
+
+/**
+ * Get the message for a failed change: login, role, busy, conflicts of
+ * service types, detail or fallback
+ */
 function mutationError(
     err: unknown,
     fallback: string,
@@ -112,7 +147,7 @@ function mutationError(
     if (isForbidden(err)) return forbidden;
     if (isServiceBusy(err))
         return "The service is being changed by another request. Please try again in a moment.";
-    return errorMessage(err, fallback);
+    return serviceTypeConflict(err) ?? errorMessage(err, fallback);
 }
 
 /**
@@ -251,5 +286,6 @@ export {
     isVerificationMismatch,
     mutationError,
     renameError,
+    serviceTypeConflict,
     withFieldLabels,
 };
