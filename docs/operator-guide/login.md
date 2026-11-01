@@ -28,7 +28,7 @@ LOGIN_REDIRECT_URI=https://app.example.org/auth/api/callback
 
 The login page lists the providers, also when there is only one, so that logging out doesn't log users straight back in. Restart the app after changing the providers.
 
-**Configure one provider for now:** the registry must trust each provider's issuer, and user IDs from different providers can clash until the registry namespaces them by issuer ([elixir-cloud-aai/foca#503](https://github.com/elixir-cloud-aai/foca/issues/503)). All providers also share one redirect URI, so the app can't yet tell which provider answered a login; don't combine trusted and untrusted providers.
+**Several providers:** the registry must trust each provider's issuer (`security.auth.issuers`, see below). Since cloud-registry 0.6.0, it namespaces user IDs by issuer, so IDs from different providers don't clash. All providers share one redirect URI, though, so the app can't tell which provider answered a login: register the same redirect URI with each provider, and don't combine trusted and untrusted providers.
 
 ## Registering the app with LS Login
 
