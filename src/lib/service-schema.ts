@@ -45,9 +45,12 @@ const hasNoUserInfoOrSpaces = (value: string) =>
  * Check the length of a string as the registry does
  * @param max Maximum length, in characters (code points, not UTF-16 code
  * units as `z.string().max()` counts them)
- * @returns The check
+ * @returns The check; it counts the characters only where needed, as they
+ * are between half the code units and all of them
  */
-const atMost = (max: number) => (value: string) => [...value].length <= max;
+const atMost = (max: number) => (value: string) =>
+    value.length <= max ||
+    (value.length <= 2 * max && [...value].length <= max);
 
 /** The group of new service types, unless another one is given */
 const defaultTypeGroup = "org.ga4gh";
