@@ -138,29 +138,32 @@ versions):
 
    ```bash
    version=X.Y.Z  # e.g. 1.0.0-rc1
-   git fetch origin
-   sha="$(git rev-parse --verify "<sha>^{commit}")"  # the full SHA
+   sha=""
+   git fetch origin && sha="$(git rev-parse --verify "<sha>^{commit}")"  # the full SHA
    (
-       git switch --detach "${sha}" || exit 1
+       [[ -n "${sha}" ]] || { echo "Fetch failed, or the commit is unknown"; exit 1; }
        git merge-base --is-ancestor "${sha}" origin/dev || { echo "${sha} is not on dev"; exit 1; }
        pattern='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)[1-9][0-9]*)?$'
        [[ "v${version}" =~ ${pattern} ]] || { echo "Not a release version: v${version}"; exit 1; }
-       [[ "$(jq -r .version package.json)" == "${version}" ]] || { echo "Wrong version in package.json"; exit 1; }
-       [[ "$(yq -r .version CITATION.cff)" == "${version}" ]] || { echo "Wrong version in CITATION.cff"; exit 1; }
-       runs="$(gh api "repos/elixir-cloud-aai/cloud-registry-ui/actions/workflows/ci.yml/runs?head_sha=${sha}&event=push&status=success&per_page=1" --jq .total_count)"
-       (( runs >= 1 )) || { echo "No successful CI run for the push of ${sha}"; exit 1; }
+       # The files of the commit, not of the working tree
+       [[ "$(git show "${sha}:package.json" | jq -r .version)" == "${version}" ]] || { echo "Wrong version in package.json"; exit 1; }
+       [[ "$(git show "${sha}:CITATION.cff" | yq -r .version)" == "${version}" ]] || { echo "Wrong version in CITATION.cff"; exit 1; }
+       runs="$(gh api "repos/elixir-cloud-aai/cloud-registry-ui/actions/workflows/ci.yml/runs?head_sha=${sha}&branch=dev&event=push&status=success&per_page=1" --jq .total_count)"
+       (( runs >= 1 )) || { echo "No successful CI run for the push of ${sha} to dev"; exit 1; }
        git merge-base --is-ancestor origin/main "${sha}" || { echo "main can't be fast-forwarded to ${sha}"; exit 1; }
    ) && echo "All checks passed"
    ```
 
    Only if all checks passed, move `main` to the commit, and tag it with a
    signed, annotated tag `vX.Y.Z` (or `vX.Y.Z-alphaN`, `vX.Y.Z-betaN` or
-   `vX.Y.Z-rcN` for a pre-release):
+   `vX.Y.Z-rcN` for a pre-release). Each command runs only if the one
+   before it succeeded: a tag on a commit that isn't on `main` would use up
+   the version.
 
    ```bash
-   git push origin "${sha}:main"  # fails unless it is a fast-forward
-   git tag -s "v${version}" "${sha}" -m "v${version}"
-   git push origin "v${version}"
+   git push origin "${sha}:main" &&  # fails unless it is a fast-forward
+       git tag -s "v${version}" "${sha}" -m "v${version}" &&
+       git push origin "v${version}"
    ```
 
    Moving `main` also deploys it to Vercel production

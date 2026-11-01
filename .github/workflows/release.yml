@@ -122,19 +122,20 @@ jobs:
                       exit 1
                   fi
             # The checks above don't run the tests: require a successful run of
-            # the CI workflow for a push of the release commit (to `dev`,
-            # before `main` moved to it); runs for pull requests test merge
-            # commits, not the commit itself. Re-runs that succeeded count
+            # the CI workflow for a push of the release commit to `dev` (before
+            # `main` moved to it; not to other branches, e.g. `ai`); runs for pull
+            # requests test merge commits, not the commit itself. Re-runs that
+            # succeeded count
             - name: Check that CI passed for the release commit
               env:
                   GH_TOKEN: ${{ github.token }}
                   REPOSITORY: ${{ github.repository }}
                   SHA: ${{ steps.version.outputs.sha }}
               run: |
-                  runs="$(gh api "repos/${REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${SHA}&event=push&status=success&per_page=1" \
+                  runs="$(gh api "repos/${REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${SHA}&branch=dev&event=push&status=success&per_page=1" \
                       --jq .total_count)"
                   if [[ ! "${runs}" =~ ^[0-9]+$ || "${runs}" -lt 1 ]]; then
-                      echo "::error::No successful run of the CI workflow (ci.yml) for a push of ${SHA}; once CI passed for it, re-run this workflow"
+                      echo "::error::No successful run of the CI workflow (ci.yml) for a push of ${SHA} to dev; once CI passed for it, re-run this workflow"
                       exit 1
                   fi
 
