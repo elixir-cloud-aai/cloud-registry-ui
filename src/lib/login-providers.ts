@@ -226,13 +226,7 @@ function oidcEndpoints(provider: LoginProvider): Promise<OidcEndpoints> {
                 ].every((val) => URL.canParse(val))
             )
                 throw new Error(`Malformed endpoint URLs at ${url}`);
-            // the registry compares the tokens' `iss` with its trusted
-            // issuers exactly, trailing slash included
-            console.info(
-                logSafe(
-                    `Login provider ${provider.id}: issuer ${issuer} (list it exactly so in the registry's security.auth.issuers)`,
-                ),
-            );
+            console.info(issuerLogLine(provider.id, issuer));
             return {
                 issuer,
                 authorization_endpoint,
@@ -254,10 +248,30 @@ function oidcEndpoints(provider: LoginProvider): Promise<OidcEndpoints> {
  * Make text safe for a log line: no control characters (they could forge
  * log entries), at most 300 characters
  * @param text Text, e.g. from a login provider
+ * @param maxLength Most characters to keep
  * @returns The text, with control characters replaced by spaces
  */
-function logSafe(text: string) {
-    return text.replace(/\p{Cc}/gu, " ").slice(0, 300);
+function logSafe(text: string, maxLength = 300) {
+    return text.replace(/\p{Cc}/gu, " ").slice(0, maxLength);
+}
+
+/**
+ * Describe a discovered issuer for the log, in full, as the registry
+ * compares the tokens' `iss` with its trusted issuers exactly (trailing
+ * slash included). Issuers with credentials, a query or a fragment, which
+ * OpenID Connect doesn't allow, aren't logged, as those parts could hold
+ * secrets.
+ * @param id Provider ID
+ * @param issuer Issuer as discovered
+ * @returns Log line naming the issuer, or saying why it isn't named
+ */
+function issuerLogLine(id: string, issuer: string) {
+    const { username, password, search, hash } = new URL(issuer);
+    const line =
+        username || password || search || hash
+            ? `Login provider ${id}: issuer not logged, as it has credentials, a query or a fragment, which OpenID Connect doesn't allow`
+            : `Login provider ${id}: issuer ${issuer} (list it exactly so in the registry's security.auth.issuers)`;
+    return logSafe(line, Number.POSITIVE_INFINITY);
 }
 
 /**

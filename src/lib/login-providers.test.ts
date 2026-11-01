@@ -232,6 +232,43 @@ describe("oidcEndpoints", () => {
         );
     });
 
+    it("logs long issuers in full", async () => {
+        const info = vi.spyOn(console, "info").mockImplementation(() => {});
+        const issuer = `https://login.example.org/${"a".repeat(300)}/`;
+        const { oidcEndpoints, loginSettings } = await load({
+            LOGIN_PROVIDERS: JSON.stringify([{ ...provider, issuer }]),
+        });
+        vi.spyOn(axios, "get").mockResolvedValue({
+            data: { ...discovery, issuer },
+        });
+        await oidcEndpoints(loginSettings().providers[0]);
+        expect(info).toHaveBeenCalledWith(
+            expect.stringContaining(`issuer ${issuer} `),
+        );
+    });
+
+    it.each([
+        ["credentials", "https://user:pass@login.example.org/oidc/"],
+        ["a query", "https://login.example.org/oidc/?key=secret"],
+        ["a fragment", "https://login.example.org/oidc/#secret"],
+    ])("doesn't log issuers with %s", async (_, issuer) => {
+        const info = vi.spyOn(console, "info").mockImplementation(() => {});
+        const { oidcEndpoints, loginSettings } = await load({
+            LOGIN_PROVIDERS: JSON.stringify([{ ...provider, issuer }]),
+        });
+        vi.spyOn(axios, "get").mockResolvedValue({
+            data: { ...discovery, issuer },
+        });
+        await oidcEndpoints(loginSettings().providers[0]);
+        expect(info).toHaveBeenCalledOnce();
+        expect(info).toHaveBeenCalledWith(
+            expect.stringContaining(
+                "Login provider ls-login: issuer not logged",
+            ),
+        );
+        expect(info.mock.calls.join(" ")).not.toMatch(/pass|secret/);
+    });
+
     it.each([
         [true, true],
         ["true", true],
