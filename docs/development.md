@@ -80,7 +80,7 @@ test changes.
 ## Dependency updates
 
 Dependabot (`.github/dependabot.yml`) opens grouped pull requests against
-`ai-post-deploy` each month, with commit messages starting with
+`dev` each month, with commit messages starting with
 `build(deps)`, for the Bun dependencies, the docs packages, the actions and
 the Docker image. `@playwright/test` is left out: bump it by hand, together
 with the Playwright image of the `e2e` job (`.github/workflows/ci.yml`).
