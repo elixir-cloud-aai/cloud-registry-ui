@@ -6,6 +6,7 @@ import {
     fillCreateForm,
     login,
     newService,
+    publishRules,
     registry,
     test,
     uniqueId,
@@ -29,25 +30,6 @@ async function expectNoAdminFields(page: Page) {
     await expect(
         page.getByRole("textbox", { name: "2019-06-04T12:58:19Z (optional)" }),
     ).toHaveCount(0);
-}
-
-/**
- * Let the page see other registration rules than the registry's own
- * @param page Page
- * @param rules Rules that replace the published ones
- */
-async function publishRules(page: Page, rules: object) {
-    await page.route(`${registry}/service-info`, async (route) => {
-        const response = await route.fetch();
-        const info = await response.json();
-        await route.fulfill({
-            response,
-            json: {
-                ...info,
-                registration_rules: { ...info.registration_rules, ...rules },
-            },
-        });
-    });
 }
 
 test.describe("registering services", () => {
@@ -116,9 +98,13 @@ test.describe("registering services", () => {
                 registrations++;
         });
         await login(page, "owner");
+        let rulesRead = 0;
+        page.on("response", (response) => {
+            if (response.url() === `${registry}/service-info`) rulesRead++;
+        });
         await page.goto("/dashboard/services/create");
         // the page and the form have read the rules
-        await page.waitForLoadState("networkidle");
+        await expect.poll(() => rulesRead).toBeGreaterThanOrEqual(2);
 
         const service = newService("Checked");
         await fillCreateForm(page, {
@@ -159,6 +145,27 @@ test.describe("registering services", () => {
         await expect(
             page.getByRole("textbox", { name: "beacon, wes, trs, etc." }),
         ).toBeVisible();
+    });
+
+    test("users choose a registered type if they may add no unused types", async ({
+        page,
+        browser,
+    }) => {
+        await addTesType(browser);
+        // `GET /me` still says that they may add types
+        await publishRules(page, { max_unused_service_types: 0 });
+        await login(page, "owner");
+        await page.goto("/dashboard/services/create");
+        await expect(page.getByText(pendingNote)).toHaveCount(0);
+        await page
+            .getByRole("button", { name: "Select a service type" })
+            .click();
+        await expect(
+            page.getByRole("option", { name: "org.ga4gh · tes · 1.1.0" }),
+        ).toBeVisible();
+        await expect(
+            page.getByRole("option", { name: "Add new service type" }),
+        ).toHaveCount(0);
     });
 
     test("users who may not add types choose a registered one", async ({

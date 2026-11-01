@@ -69,7 +69,9 @@ A new type is added with the service. In some deployments, new types of
 users other than admins are pending until an admin approves them, and so are
 the services that have them (see [Pending entries](pending.md)); the form
 says so above its fields. If you may not add types, the form offers only the
-registered ones.
+registered ones; so it does for users other than admins if the registry
+lets them have no unused types (limit 0, see [Service
+types](browsing.md#service-types)).
 
 ### Known limitations
 

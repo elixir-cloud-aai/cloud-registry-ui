@@ -16,6 +16,7 @@ import { useCloudRegistry, useMe, useRegistrationRules } from "@/hooks";
 import { unknownRegistrationRules } from "@/lib/registration-rules";
 import { checkedProvider, createFailedToast } from "@/lib/service-create";
 import { servicesLimit } from "@/lib/service-limits";
+import { mayAddServiceTypes, noUnusedTypes } from "@/lib/service-types";
 
 function Page() {
     const router = useRouter();
@@ -95,10 +96,16 @@ function Page() {
 
     // the form shows before `GET /me` has loaded, and follows later changes
     // of `admin`, `allowNewType` and the provider.
-    // The registry decides who may add types: while `GET /me` loads, only
-    // listed types are offered; without its answer (e.g. after an error, or
-    // from registries without the flag), new ones are, too
-    const allowNewType = !loading && me?.may_add_service_types !== false;
+    // The registry decides who may add types: while `GET /me` and the rules
+    // load, only listed types are offered; without its answer (e.g. after an
+    // error, or from registries without the flag), new ones are, too, unless
+    // users other than admins may add none (`max_unused_service_types: 0`)
+    const allowNewType =
+        !loading &&
+        !rulesLoading &&
+        (me?.may_add_service_types === undefined
+            ? !!me?.admin || !noUnusedTypes(rules)
+            : mayAddServiceTypes(me, rules));
 
     return (
         <div className="max-w-5xl mx-auto mt-5 md:mt-8">
