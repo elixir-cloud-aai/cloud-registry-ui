@@ -3,8 +3,10 @@
 In some deployments, new service types of users other than admins are
 **pending** until an admin approves them, and so are the services that
 have them, also those of other users. The **Service Types** page then says
-"New service types are pending until an admin approves them". Types that
-admins add are approved at once.
+"New service types are pending until an admin approves them", and the
+registration rules on the service info page say who may add types (see
+[Service info](browsing.md#service-info)). Types that admins add are
+approved at once.
 
 Pending entries are only visible to admins and to the users who added
 them (for services: the users with a role on them). They have a
