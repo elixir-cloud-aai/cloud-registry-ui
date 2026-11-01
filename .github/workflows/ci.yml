@@ -1,8 +1,8 @@
 # Everything that must pass on pull requests and pushes: unit tests with
 # coverage (reported to Codecov), type checks and the build, an audit of the
-# production dependencies for known vulnerabilities, the Docker
-# image, the end-to-end tests against a registry and a mock login provider,
-# and the docs. The gate `passed` ("CI passed") is the only required check
+# production dependencies for known vulnerabilities, the Docker image, the
+# end-to-end tests against a registry and a mock login provider, and the
+# docs. The gate `passed` ("CI passed") is the only required check
 # and needs every other job to succeed. No `paths:` filters, so that the
 # gate always reports; to skip a job with `if:`, allow that skip in the
 # gate. Lint isn't checked yet: the code has Biome errors to fix first
@@ -82,12 +82,9 @@ jobs:
             - name: Build the app
               run: bun run build
 
-    # Known vulnerabilities in the dependencies that ship: Next.js bundles
-    # them into the server and browser chunks, without their `package.json`,
-    # so image scanners can't see them. Fails on high and critical advisories
-    # (npm's advisory database) in the production dependencies of `bun.lock`;
-    # `--prod` leaves out the dev dependencies, but still reports dev-only
-    # copies of packages that the production dependencies use, too. Needs no
+    # Fails on high and critical advisories in the production dependencies
+    # of `bun.lock`, which Next.js bundles where image scanners can't see
+    # them (see "Dependency audit" in `docs/development.md`). Needs no
     # installed packages
     audit:
         name: Audit

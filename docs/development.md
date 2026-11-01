@@ -87,6 +87,8 @@ with the Playwright image of the `e2e` job (`.github/workflows/ci.yml`).
 Pull requests that bump the Bun image of the `Dockerfile` must also bump
 `bun-version` in the workflows. Codecov uploads use the organisation secret `CODECOV_TOKEN`.
 
+## Dependency audit
+
 The `audit` job of CI fails on high and critical advisories in the
 production dependencies, because Next.js bundles them into the app, where
 image scanners can't see them. Run it locally with:
@@ -95,9 +97,15 @@ image scanners can't see them. Run it locally with:
 bun audit --prod --audit-level=high
 ```
 
+The job checks npm's advisory database as it is when the job runs, so a
+newly published advisory fails it on every pull request and push, without a
+change to the code. Fix it by updating the package (`bun update <package>`
+for a direct dependency, otherwise the dependency that pulls it in).
 `--prod` also reports dev-only copies of packages that the production
 dependencies use (for example an old copy pulled in by a CLI): update the
-dev dependency that brings the copy.
+dev dependency that brings the copy. If no fixed version exists, ignoring
+the advisory (`--ignore <CVE>` in the job) leaves a deliberate gap in the
+check: agree on it in a pull request that says why.
 
 ## Docs
 
