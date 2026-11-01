@@ -5,7 +5,12 @@
  */
 import type { EccServiceCreateFailedEvent } from "@elixir-cloud/cloud-registry/events";
 import type { ExternalToast } from "sonner";
-import { duplicateToast, isServicesLimit, withFieldLabels } from "./errors";
+import {
+    duplicateToast,
+    isServicesLimit,
+    serviceTypeConflict,
+    withFieldLabels,
+} from "./errors";
 import { servicesLimitToast } from "./service-limits";
 
 type CreateFailure = EccServiceCreateFailedEvent["detail"];
@@ -47,7 +52,8 @@ function createError({
  * already read; `readLimit`: reads it now otherwise; `adminAvailable`:
  * whether the user may switch to admin mode
  * @returns The toast: the duplicate with a link to it, the limit of
- * services, else the error with the form's labels
+ * services, the limit of unused service types, else the error with the
+ * form's labels
  */
 async function createFailedToast(
     failure: CreateFailure,
@@ -74,7 +80,9 @@ async function createFailedToast(
             duration: 10000,
         };
 
-    return { message: withFieldLabels(failure.error) };
+    return {
+        message: serviceTypeConflict(err) ?? withFieldLabels(failure.error),
+    };
 }
 
 export { createError, createFailedToast };

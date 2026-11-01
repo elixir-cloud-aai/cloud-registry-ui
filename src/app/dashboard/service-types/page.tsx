@@ -1,6 +1,6 @@
 "use client";
 import type { ServiceType } from "@elixir-cloud/cloud-registry/providers";
-import { ClockIcon, LogIn } from "lucide-react";
+import { ClockIcon, InfoIcon, LogIn } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -8,13 +8,27 @@ import { ListPagination } from "@/components/shared/list-pagination";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { PageSubtitle } from "@/components/shared/page-subtitle";
 import { Button } from "@/components/ui/button";
-import { useCloudRegistry, useMe, usePagination } from "@/hooks";
+import {
+    useCloudRegistry,
+    useMe,
+    usePagination,
+    useRegistrationRules,
+} from "@/hooks";
 import { getApprovalsOrNull, withPendingTypes } from "@/lib/approvals";
 import { errorMessage, mutationError } from "@/lib/errors";
 import { loginHref } from "@/lib/links";
 import { canApproveServiceType, isUnauthorized } from "@/lib/permissions";
-import { typeKey, typeLabel } from "@/lib/service-types";
-import { ServiceTypeAddDialog, ServiceTypeCard } from "./_components";
+import {
+    mayAddServiceTypes,
+    typeKey,
+    typeLabel,
+    unusedTypesLimit,
+} from "@/lib/service-types";
+import {
+    ServiceTypeAddDialog,
+    ServiceTypeCard,
+    typeLimitNote,
+} from "./_components";
 
 const pageSize = 12;
 
@@ -30,6 +44,10 @@ function Page() {
     const latestRequest = useRef(0);
     const removingRef = useRef(false);
     const { me, loading: meLoading, expired } = useMe();
+    // the limit of unused types; adding is offered once it is known
+    const { rules, loading: rulesLoading } = useRegistrationRules();
+    const mayAdd = !rulesLoading && mayAddServiceTypes(me, rules);
+    const limitNote = rulesLoading ? undefined : typeLimitNote(me, rules);
     const { page, pageCount, pageItems, setPage } = usePagination(
         serviceTypes ?? [],
         pageSize,
@@ -118,17 +136,23 @@ function Page() {
                         loading={meLoading}
                         guest="View our registered service types"
                         user={
-                            me?.may_add_service_types
+                            mayAdd
                                 ? "View our registered service types and add your own"
                                 : undefined
                         }
                         admin="View and manage all service types"
                     />
-                    {me?.may_add_service_types && me.service_types_pending && (
+                    {mayAdd && me?.service_types_pending && (
                         <p className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                             <ClockIcon className="size-4 shrink-0" />
                             New service types are pending until an admin
                             approves them.
+                        </p>
+                    )}
+                    {limitNote && (
+                        <p className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                            <InfoIcon className="size-4 shrink-0" />
+                            {limitNote}
                         </p>
                     )}
                     {isLoggedIn && expired && (
@@ -146,10 +170,11 @@ function Page() {
                         </Link>
                     </Button>
                 )}
-                {me?.may_add_service_types && (
+                {mayAdd && (
                     <ServiceTypeAddDialog
                         provider={cloudRegistryProvider}
-                        pending={me.service_types_pending}
+                        pending={me?.service_types_pending}
+                        limit={unusedTypesLimit(me, rules)}
                         onAdded={fetchServiceTypes}
                     />
                 )}

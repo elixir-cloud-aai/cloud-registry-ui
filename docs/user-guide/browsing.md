@@ -61,17 +61,50 @@ e.g. `org.ga4gh · tes · 1.1.0`. Services are registered with one of them.
 
 ![The service types, with a pending one](../images/service-types.png)
 
-If you may add service types (the registry decides who may), the page shows
+If you may add service types (the registry decides who may, see the
+registration rules under [Service info](#service-info)), the page shows
 **Add service type**: enter the group (e.g. `org.ga4gh`), the artifact
 (e.g. `wes`) and the version (e.g. `1.1.0`), and select **Add**. In some
 deployments, new types of users other than admins are pending until an
 admin approves them; the page then says so (see [Pending
 entries](pending.md)).
 
+Registries limit how many service types that no service has each user
+other than admins may have added; the dialog names the limit. Types count
+until services have them or an admin removes them: register services with
+your types, or ask an admin to remove those you don't need, before you add
+others. If the limit is 0, only admins can add types, also by registering
+services: the page then says so instead of offering **Add service type**
+(admins who may switch to admin mode are asked to switch).
+
+The page explains what went wrong if the registry refuses a type: it is
+already registered (also if it is pending, and so not listed for you), you
+have reached the limit of unused types, or, when an admin removes it,
+services still have it (change or delete these services first).
+
 ## Service info
 
 The "i" icon in the top bar opens the registry's service info: the
 registry's name, ID, description, organization, version, type and
 environment, as the registry reports them.
+
+Under **Registration Rules**, it shows the rules that the registry checks
+for registrations:
+
+- **Environments**: the environments that services may have; "Any" if the
+  registry takes any value;
+- **URL schemes**: the schemes that service URLs may have, e.g. `https`;
+- **Who may add service types**: logged-in users, logged-in users with
+  their new types pending until an admin approves them, or admins only
+  (see [Service types](#service-types));
+- **Unused service types per user**: how many service types that no
+  service has each user may have added;
+- **Services per user**: how many services each user may have registered
+  (see [Limit on registered
+  services](registering.md#limit-on-registered-services)).
+
+The limits apply to users other than admins; 0 means that only admins add
+types, or register services. Registries older than cloud-registry 0.6.0
+publish no rules, and the page then leaves them out.
 
 ![The service info of the registry](../images/service-info.png)

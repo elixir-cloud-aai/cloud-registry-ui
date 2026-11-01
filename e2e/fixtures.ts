@@ -296,13 +296,67 @@ async function registerService(browser: Browser, user: User, name: string) {
     return { ...service, id: String(created.body) };
 }
 
+/**
+ * Let the page see other registration rules than the registry's own
+ * (`registration_rules` of `GET /service-info`)
+ * @param page Page
+ * @param rules Rules that replace the published ones
+ */
+async function publishRules(page: Page, rules: object) {
+    await page.route(`${registry}/service-info`, async (route) => {
+        const response = await route.fetch();
+        const info = await response.json();
+        await route.fulfill({
+            response,
+            json: {
+                ...info,
+                registration_rules: { ...info.registration_rules, ...rules },
+            },
+        });
+    });
+}
+
+/**
+ * Let requests of the page fail with a conflict, as the registry sends it
+ * @param page Page
+ * @param path Path below the API's base URL, whatever the query
+ * @param method HTTP method of the requests to fail
+ * @param code The registry's code for the conflict
+ */
+async function failWithConflict(
+    page: Page,
+    path: string,
+    method: string,
+    code: string,
+) {
+    const { origin, pathname } = new URL(`${registry}${path}`);
+    await page.route(
+        (url) => url.origin === origin && url.pathname === pathname,
+        (route) =>
+            route.request().method() === method
+                ? route.fulfill({
+                      status: 409,
+                      contentType: "application/problem+json",
+                      body: JSON.stringify({
+                          title: "Conflict",
+                          status: 409,
+                          detail: "The registry's own detail.",
+                          code,
+                      }),
+                  })
+                : route.fallback(),
+    );
+}
+
 export {
     addTesType,
     api,
     expect,
+    failWithConflict,
     fillCreateForm,
     login,
     newService,
+    publishRules,
     registerService,
     registry,
     test,

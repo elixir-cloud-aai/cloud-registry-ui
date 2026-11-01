@@ -118,6 +118,20 @@ describe("createFailedToast", () => {
         expect(toast.message).toBe(servicesLimitMessage(3));
     });
 
+    it("explains the limit of unused service types", async () => {
+        const cause = failure(409, {
+            detail: "You have added 0 service types",
+            code: "unused-types-limit",
+        });
+        const toast = await createFailedToast(
+            { error: "You have added 0 service types", status: 409, cause },
+            options,
+        );
+        expect(toast.message).toContain(
+            "You have added as many service types that no service has as this registry allows.",
+        );
+    });
+
     it("shows other errors with the form's labels", async () => {
         const cause = failure(400, {
             detail: "'url' must use one of the schemes: 'https'",

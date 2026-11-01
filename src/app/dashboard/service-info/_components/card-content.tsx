@@ -1,5 +1,5 @@
 import type { Service } from "@elixir-cloud/cloud-registry/providers";
-import { Building2, Clock, Settings, Tag } from "lucide-react";
+import { Building2, ClipboardList, Clock, Settings, Tag } from "lucide-react";
 import { CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -8,6 +8,8 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { safeHref } from "@/lib/links";
+import { registrationRules } from "@/lib/registration-rules";
+import { registrationRuleRows } from "./rules-helper";
 
 type Props = {
     serviceInfo: Service;
@@ -16,6 +18,8 @@ type Props = {
 function ServiceInfoCardContent({ serviceInfo }: Props) {
     if (serviceInfo === undefined) return null;
     const organizationUrl = safeHref(serviceInfo.organization.url);
+    // registries older than cloud-registry 0.6.0 publish no rules
+    const rules = registrationRules(serviceInfo);
 
     return (
         <CardContent className="space-y-6">
@@ -116,6 +120,43 @@ function ServiceInfoCardContent({ serviceInfo }: Props) {
                             )}
                         </div>
                     </div>
+                )}
+
+                {rules && (
+                    <>
+                        <Separator className="md:col-span-2" />
+                        <section
+                            aria-labelledby="registration-rules"
+                            className="space-y-3 md:col-span-2"
+                        >
+                            <div className="flex items-center gap-2 text-slate-500 mb-1">
+                                <ClipboardList className="w-4 h-4" />
+                                <h3
+                                    id="registration-rules"
+                                    className="font-medium"
+                                >
+                                    Registration Rules
+                                </h3>
+                            </div>
+                            <dl className="pl-6 grid grid-cols-1 sm:grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-xs">
+                                {registrationRuleRows(rules).map(
+                                    ({ label, value }) => (
+                                        <div key={label} className="contents">
+                                            <dt className="text-slate-400">
+                                                {label}
+                                            </dt>
+                                            <dd className="text-slate-600 mb-1 sm:mb-0">
+                                                {value}
+                                            </dd>
+                                        </div>
+                                    ),
+                                )}
+                            </dl>
+                            <p className="pl-6 text-xs text-muted-foreground">
+                                The limits apply to users other than admins.
+                            </p>
+                        </section>
+                    </>
                 )}
             </div>
         </CardContent>
