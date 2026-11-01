@@ -23,8 +23,8 @@ type SelectFieldProps = {
     emptyLabel?: string;
 };
 
-// select items can't have an empty value; no option can be a comma, as
-// options come from comma-separated settings
+// select items can't have an empty value; an option `,` (e.g. an environment
+// that a registry allows) would be taken for no value
 const emptyValue = ",";
 
 export function SelectField({

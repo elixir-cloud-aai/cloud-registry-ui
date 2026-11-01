@@ -4,7 +4,6 @@ import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { TextField } from "@/app/dashboard/services/update/_components/_fields";
-import { serviceTypeSchema } from "@/app/dashboard/services/update/_components/form-helper";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -16,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import { mutationError } from "@/lib/errors";
+import { serviceTypeSchema } from "@/lib/service-schema";
 import { typeLabel } from "@/lib/service-types";
 import { defaultType } from "./type-helper";
 

@@ -10,6 +10,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Toggle } from "@/components/ui/toggle";
+import { useRegistrationRules } from "@/hooks";
 import { typeFromKey, typeLabel } from "@/lib/service-types";
 import {
     defaultFilters,
@@ -103,6 +104,8 @@ function ServicesTableFilters({
     onSearchChange,
     onFiltersChange,
 }: Props) {
+    // for the order of the environments
+    const { rules } = useRegistrationRules();
     const handleFilterChange =
         (key: SelectFilterKey) => (value?: FilterValue) =>
             onFiltersChange({ ...filters, [key]: value });
@@ -147,7 +150,11 @@ function ServicesTableFilters({
                 label="Filter by environment"
                 allLabel="All environments"
                 value={filters.environment}
-                options={filterOptions(services, "environment")}
+                options={filterOptions(
+                    services,
+                    "environment",
+                    rules.environments,
+                )}
                 disabled={disabled}
                 onValueChange={handleFilterChange("environment")}
             />

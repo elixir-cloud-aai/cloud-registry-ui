@@ -120,7 +120,6 @@ don't set them, e.g. a title or logos other than the default branding:
 docker compose -f e2e/stack/compose.yaml up -d --wait
 bun run build
 NEXT_PUBLIC_CLOUD_REGISTRY_URL=http://localhost:8180/ga4gh/registry/v1 \
-  NEXT_PUBLIC_SERVICE_URL_SCHEMES=http,https \
   LOGIN_PROVIDERS='[{"id": "mock", "name": "Mock Login", "logo": "/elixir-on-cloud-mark.svg", "issuer": "http://oidc.localhost:8190/oidc", "clientId": "cloud-registry-ui-e2e", "clientSecret": "e2e-secret"}]' \
   LOGIN_REDIRECT_URI=http://localhost:3100/auth/api/callback \
   bun run start --port 3100 &

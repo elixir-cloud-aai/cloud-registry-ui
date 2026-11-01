@@ -23,18 +23,42 @@ describe("publicSettingsChecks", () => {
         expect(publicSettingsChecks).not.toThrow();
     });
 
+    it("checks the branding", async () => {
+        vi.stubEnv(
+            "NEXT_PUBLIC_CLOUD_REGISTRY_URL",
+            "https://registry.example.org/ga4gh/registry/v1",
+        );
+        vi.stubEnv("NEXT_PUBLIC_APP_TITLE", "x".repeat(25));
+        const { publicSettingsChecks } = await load();
+        expect(publicSettingsChecks).toThrow(/APP_TITLE/);
+    });
+
     it.each([
-        ["NEXT_PUBLIC_SERVICE_URL_SCHEMES", "ftp", /SERVICE_URL_SCHEMES/],
-        ["NEXT_PUBLIC_APP_TITLE", "x".repeat(25), /APP_TITLE/],
-        ["NEXT_PUBLIC_SERVICE_ENVIRONMENTS", "*,prod", /ENVIRONMENTS/],
-    ])("checks %s", async (name, value, message) => {
+        ["NEXT_PUBLIC_SERVICE_ENVIRONMENTS", "*,prod", "environments"],
+        ["NEXT_PUBLIC_SERVICE_URL_SCHEMES", "", "URL schemes"],
+    ])("ignores the removed %s with a warning", async (name, value, rule) => {
         vi.stubEnv(
             "NEXT_PUBLIC_CLOUD_REGISTRY_URL",
             "https://registry.example.org/ga4gh/registry/v1",
         );
         vi.stubEnv(name, value);
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
         const { publicSettingsChecks } = await load();
-        expect(publicSettingsChecks).toThrow(message);
+        expect(publicSettingsChecks).not.toThrow();
+        expect(warn).toHaveBeenCalledExactlyOnceWith(
+            `Ignoring setting ${name}: the app reads the allowed ${rule} of services from the registry's service info (registration_rules). Remove the setting.`,
+        );
+    });
+
+    it("warns of no removed settings that aren't set", async () => {
+        vi.stubEnv(
+            "NEXT_PUBLIC_CLOUD_REGISTRY_URL",
+            "https://registry.example.org/ga4gh/registry/v1",
+        );
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        const { publicSettingsChecks } = await load();
+        publicSettingsChecks();
+        expect(warn).not.toHaveBeenCalled();
     });
 
     it("needs the registry URL", async () => {

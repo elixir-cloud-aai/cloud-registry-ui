@@ -1,24 +1,9 @@
 /**
- * @description registry settings, `NEXT_PUBLIC_CLOUD_REGISTRY_URL` and
- * `NEXT_PUBLIC_SERVICE_URL_SCHEMES`, read when the server runs (see
- * `public-settings.ts`)
+ * @description the registry setting, `NEXT_PUBLIC_CLOUD_REGISTRY_URL`, read
+ * when the server runs (see `public-settings.ts`); the registry's rules for
+ * registrations come from its service info (`registration-rules.ts`)
  */
 import { publicSetting } from "./public-settings";
-
-// schemes the registry can allow for service URLs
-// (`custom.endpoints.services.url_schemes`)
-const allowedSchemes = ["http", "https"];
-// as the registry allows them, comma-separated; unset or empty for its
-// default
-const configuredSchemes = (
-    publicSetting("NEXT_PUBLIC_SERVICE_URL_SCHEMES") ?? ""
-)
-    .split(",")
-    .map((scheme) => scheme.trim().toLowerCase())
-    .filter(Boolean);
-const serviceUrlSchemes = configuredSchemes.length
-    ? configuredSchemes
-    : ["https"];
 
 /**
  * Check whether a host name is the local machine
@@ -75,14 +60,6 @@ function registrySettings() {
         throw new Error(
             `Invalid setting NEXT_PUBLIC_CLOUD_REGISTRY_URL: "${shown}" must not have a user, password, query or fragment`,
         );
-
-    const invalid = configuredSchemes.find(
-        (scheme) => !allowedSchemes.includes(scheme),
-    );
-    if (invalid !== undefined)
-        throw new Error(
-            `Invalid setting NEXT_PUBLIC_SERVICE_URL_SCHEMES: "${invalid}" is not one of ${allowedSchemes.join(", ")}`,
-        );
 }
 
-export { registrySettings, serviceUrlSchemes };
+export { registrySettings };

@@ -4,7 +4,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
-import { useCloudRegistry, useMe, useServiceVerification } from "@/hooks";
+import {
+    useCloudRegistry,
+    useMe,
+    useRegistrationRules,
+    useServiceVerification,
+} from "@/hooks";
 import { getServiceWithApproval } from "@/lib/approvals";
 import { errorMessage } from "@/lib/errors";
 import { canEditService, isUnauthorized } from "@/lib/permissions";
@@ -23,6 +28,13 @@ function Page() {
     const { me, loading: meLoading, error: meError, expired } = useMe();
     const [loginRequired, setLoginRequired] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    // the registry's rules for the entries; if they are unknown, the
+    // registry checks the entries when they are sent
+    const {
+        rules,
+        loading: rulesLoading,
+        error: rulesError,
+    } = useRegistrationRules();
     // the approved types (GET /services/types lists no pending ones to
     // requests without a user), for the form's note on new types
     const [approvedTypes, setApprovedTypes] = useState<Set<string>>();
@@ -102,6 +114,13 @@ function Page() {
     };
 
     useEffect(() => {
+        if (rulesError)
+            toast.warning(
+                "The registry's rules for registrations are unknown (it publishes none, or they couldn't be read): the registry checks the environment and the service URL when you submit.",
+            );
+    }, [rulesError]);
+
+    useEffect(() => {
         if (meError && !expired)
             toast.error(
                 "Could not check your permissions. Please try again later.",
@@ -116,7 +135,7 @@ function Page() {
             <LoginPrompt message="Your session expired. Please log in again." />
         );
 
-    if (loading || meLoading)
+    if (loading || meLoading || rulesLoading)
         return (
             <div className="w-full flex justify-center items-center h-full">
                 <p>Loading...</p>
@@ -144,6 +163,7 @@ function Page() {
                     // a new form for the saved service, so it has no changes
                     key={JSON.stringify(service)}
                     service={service}
+                    rules={rules}
                     verification={verification}
                     admin={me?.admin}
                     pending={pending}

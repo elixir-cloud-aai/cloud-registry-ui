@@ -8,7 +8,7 @@ export function loginHref(next?: string | null): string {
         : "/auth/login";
 }
 
-// mirrors httpUrl and contactUrl in services/update/_components/form-helper.ts
+// mirrors httpUrl and contactUrl in service-schema.ts
 const webSchemes = ["http:", "https:"];
 
 /**

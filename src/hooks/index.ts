@@ -4,6 +4,7 @@ import { useFitText } from "./use-fit-text";
 import { useMe } from "./use-me";
 import { useIsMobile } from "./use-mobile";
 import { usePagination } from "./use-pagination";
+import { useRegistrationRules } from "./use-registration-rules";
 import { useServiceVerification } from "./use-service-verification";
 import { useUserInfo } from "./use-user-info";
 
@@ -14,6 +15,7 @@ export {
     useIsMobile,
     useMe,
     usePagination,
+    useRegistrationRules,
     useServiceVerification,
     useUserInfo,
 };

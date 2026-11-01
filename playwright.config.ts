@@ -27,7 +27,6 @@ export default defineConfig({
             NEXT_TELEMETRY_DISABLED: "1",
             NEXT_PUBLIC_CLOUD_REGISTRY_URL:
                 "http://localhost:8180/ga4gh/registry/v1",
-            NEXT_PUBLIC_SERVICE_URL_SCHEMES: "http,https",
             LOGIN_PROVIDERS: JSON.stringify([
                 {
                     id: "mock",
