@@ -52,6 +52,11 @@ and access helpers:
 npm run test:coverage
 ```
 
+The report goes to `coverage/` (`lcov.info` for
+[Codecov](https://app.codecov.io/gh/elixir-cloud-aai/cloud-registry-ui),
+where CI uploads it; `codecov.yml` requires full coverage of the code and of
+the changes of each pull request).
+
 End-to-end tests (`e2e/`, Playwright, in Chromium and Firefox) need a
 registry and a login provider: `e2e/stack/compose.yaml` runs cloud-registry,
 MongoDB and a mock OpenID Connect provider on ports 8180 and 8190. The tests

@@ -1,6 +1,7 @@
 # Everything that must pass on pull requests and pushes: unit tests with
-# coverage, type checks and the build, the Docker image, the end-to-end
-# tests against a registry and a mock login provider, and the docs. The
+# coverage (reported to Codecov), type checks and the build, the Docker
+# image, the end-to-end tests against a registry and a mock login provider,
+# and the docs. The
 # gate `passed` ("CI passed") is the only required check and needs every
 # other job to succeed. No `paths:` filters, so that the gate always
 # reports; to skip a job with `if:`, allow that skip in the gate. Lint
@@ -9,7 +10,7 @@
 name: CI
 on:
     push:
-        branches: [main, ai]
+        branches: [main, ai, ai-post-deploy]
     pull_request:
 
 permissions:
@@ -45,8 +46,19 @@ jobs:
                   node-version: 22
             - name: Install dependencies
               run: bun install --frozen-lockfile
+            # writes `coverage/lcov.info` (`vitest.config.mts`)
             - name: Run unit tests with coverage
               run: npm run test:coverage
+            # Upload errors fail the workflow only on pushes to this
+            # repository, because pull requests from forks and Dependabot,
+            # and forks themselves, get no access to the Codecov token
+            - name: Submit Report to Codecov
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+              with:
+                  token: ${{ secrets.CODECOV_TOKEN }}
+                  files: ./coverage/lcov.info
+                  fail_ci_if_error: ${{ github.event_name == 'push' && github.repository_owner == 'elixir-cloud-aai' }}
+                  verbose: true
 
     build:
         name: Build

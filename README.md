@@ -10,6 +10,7 @@
 [![License][badge-license]][badge-url-license]
 [![Build_status][badge-build-status]][badge-url-build-status]
 [![Docs][badge-docs]][badge-url-docs]
+[![Coverage][badge-coverage]][badge-url-coverage]
 
 A web front end for [Cloud Registry][cloud-registry], a registry of web
 services that implements the [GA4GH Service Registry
@@ -67,9 +68,11 @@ documentation are in [`docs/`](docs/). For anything else, write to
 [cloud-service@elixir-europe.org](mailto:cloud-service@elixir-europe.org).
 
 [badge-build-status]: <https://github.com/elixir-cloud-aai/cloud-registry-ui/actions/workflows/ci.yml/badge.svg>
+[badge-coverage]: <https://codecov.io/gh/elixir-cloud-aai/cloud-registry-ui/branch/ai-post-deploy/graph/badge.svg?branch=ai-post-deploy>
 [badge-docs]: <https://img.shields.io/readthedocs/cloud-registry-ui>
 [badge-license]: <https://img.shields.io/badge/license-Apache%202.0-blue.svg>
 [badge-url-build-status]: <https://github.com/elixir-cloud-aai/cloud-registry-ui/actions/workflows/ci.yml>
+[badge-url-coverage]: <https://codecov.io/gh/elixir-cloud-aai/cloud-registry-ui?branch=ai-post-deploy>
 [badge-url-docs]: <https://cloud-registry-ui.readthedocs.io/en/latest/>
 [badge-url-license]: <https://www.apache.org/licenses/LICENSE-2.0>
 [cloud-registry]: <https://cloud-registry.readthedocs.io/en/latest/>
