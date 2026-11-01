@@ -13,7 +13,7 @@
         "test:e2e": "playwright test"
     },
     "dependencies": {
-        "@elixir-cloud/cloud-registry": "^2.0.0-alpha.48",
+        "@elixir-cloud/cloud-registry": "^2.0.0-alpha.50",
         "@tanstack/react-form": "^1.29.1",
         "axios": "^1.15.2",
         "class-variance-authority": "^0.7.1",
