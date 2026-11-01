@@ -15,7 +15,8 @@ type CreateFailure = EccServiceCreateFailedEvent["detail"];
  * @param detail Detail of the event `ecc-service-create-failed`
  * @returns The provider's error (`cause`), with all its fields (e.g. the
  * registry's `code`); else an error with the event's status, detail and
- * service ID, e.g. of a provider that throws no `Error`
+ * service ID, and the `code` of the cause, e.g. of a provider that throws no
+ * `Error`
  */
 function createError({
     error,
@@ -27,6 +28,15 @@ function createError({
     if (cause instanceof Error) return cause;
     const err = new Error(error);
     if (status !== undefined) Object.assign(err, { status });
+    // the registry's code, from causes that aren't errors, e.g. plain objects
+    const code =
+        cause !== null &&
+        typeof cause === "object" &&
+        "code" in cause &&
+        typeof cause.code === "string"
+            ? cause.code
+            : undefined;
+    if (code !== undefined) Object.assign(err, { code });
     return Object.assign(err, { detail, serviceId });
 }
 

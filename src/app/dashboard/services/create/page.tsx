@@ -85,7 +85,9 @@ function Page() {
             <LoginPrompt message="Your session expired. Please log in again." />
         );
 
-    // the registry decides who may add types: while `GET /me` loads, only
+    // the form follows later changes of `admin` and `allowNewType` (and of
+    // the provider), so it shows before `GET /me` has loaded; the registry
+    // decides who may add types: while `GET /me` loads, only
     // listed types are offered; without its answer (e.g. after an error, or
     // from registries without the flag), new ones are, too
     const allowNewType = !loading && me?.may_add_service_types !== false;

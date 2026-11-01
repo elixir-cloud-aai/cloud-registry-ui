@@ -27,6 +27,18 @@ describe("createError", () => {
         });
     });
 
+    it("keeps the code of causes that aren't errors", () => {
+        const err = createError({
+            error: "Too many services",
+            status: 409,
+            cause: { code: "services-limit" },
+        });
+        expect(err).toMatchObject({ status: 409, code: "services-limit" });
+        expect(
+            createError({ error: "x", cause: { code: 1 } }),
+        ).not.toHaveProperty("code");
+    });
+
     it("is a plain error for failures without a request", () => {
         const err = createError({ error: "Service name is required" });
         expect(err.message).toBe("Service name is required");
@@ -92,6 +104,18 @@ describe("createFailedToast", () => {
         );
         expect(toast.message).toBe(servicesLimitMessage(0));
         expect(readLimit).toHaveBeenCalledOnce();
+    });
+
+    it("shows the limit for causes that aren't errors", async () => {
+        const toast = await createFailedToast(
+            {
+                error: "Too many services",
+                status: 409,
+                cause: { code: "services-limit" },
+            },
+            { ...options, limit: 3 },
+        );
+        expect(toast.message).toBe(servicesLimitMessage(3));
     });
 
     it("shows other errors with the form's labels", async () => {

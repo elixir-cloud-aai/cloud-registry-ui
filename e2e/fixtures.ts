@@ -250,7 +250,8 @@ async function addTesType(browser: Browser) {
 /**
  * Fill in the create form (`/dashboard/services/create`) with a service of
  * `newService()`, choosing its type from the registered ones (see
- * `addTesType()`); the environment stays empty
+ * `addTesType()`); the environment stays empty. The fields are found by
+ * the placeholders of cloud-components 2.0.0-alpha.50
  * @param page Page with the form
  * @param service The service
  */

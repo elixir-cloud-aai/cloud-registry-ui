@@ -7,6 +7,7 @@ import {
     newService,
     registry,
     test,
+    uniqueId,
 } from "./fixtures";
 
 const pendingNote =
@@ -97,7 +98,10 @@ test.describe("registering services", () => {
             });
         });
         await login(page, "owner");
+        // the form follows the user once it is loaded
+        const me = page.waitForResponse(`${registry}/me`);
         await page.goto("/dashboard/services/create");
+        await me;
         await page
             .getByRole("button", { name: "Select a service type" })
             .click();
@@ -114,16 +118,17 @@ test.describe("registering services", () => {
         await addTesType(browser);
         await login(page, "admin");
         await page.goto("/dashboard/services/create");
-        await page.waitForLoadState("networkidle");
+        const userMode = page.getByRole("button", { name: "User mode" });
+        await expect(userMode).toBeVisible();
         // in user mode, admins register services like other users
         await expect(page.getByText("Advanced Configuration")).toHaveCount(0);
 
-        await page.getByRole("button", { name: "User mode" }).click();
+        await userMode.click();
         await expect(
             page.getByRole("button", { name: "Admin mode" }),
         ).toBeVisible();
         const service = newService("Chosen ID");
-        const id = `e2e-${service.url.split(".")[0].slice("https://".length)}`;
+        const id = `e2e-${uniqueId()}`;
         await fillCreateForm(page, service);
         await page.getByText("Advanced Configuration").click();
         await page
@@ -192,6 +197,11 @@ test.describe("registering services", () => {
             asked++;
             return dialog.dismiss();
         });
+        // the form has loaded the user and the types
+        await expect(page.getByText(pendingNote)).toBeVisible();
+        await expect(
+            page.getByRole("button", { name: "Select a service type" }),
+        ).toBeVisible();
         await name.fill("Not saved");
         await page.getByRole("link", { name: "Services", exact: true }).click();
         await expect(
