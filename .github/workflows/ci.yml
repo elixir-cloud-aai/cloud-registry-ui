@@ -9,7 +9,7 @@
 name: CI
 on:
     push:
-        branches: [main, ai, ai-post-deploy]
+        branches: [dev, ai]
     pull_request:
 
 permissions:
