@@ -3,7 +3,7 @@
 ## Requirements
 
 - [Git](https://git-scm.com/)
-- [Bun 1.3+](https://bun.com/)
+- [Bun 1.4+](https://bun.com/)
 - [Node.js 22+](https://nodejs.org/), for the tests
 - [Docker](https://www.docker.com/)
 - A cloud-registry deployment (see
