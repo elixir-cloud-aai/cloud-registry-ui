@@ -45,8 +45,9 @@ checks that:
 
 - the required fields are filled in;
 - the service, organization and documentation URLs are `http` or `https`
-  URLs, without spaces or user names (e.g. `user@`), and the contact URL is
-  one of these or a `mailto:` URL (an email address needs `mailto:`);
+  URLs, without spaces (except around the service URL) or user names (e.g.
+  `user@`), and the contact URL is one of these or a `mailto:` URL (an
+  email address needs `mailto:`);
 - the service URL has a scheme that the registry allows, and the
   environment is one that it allows, as it publishes them in its service
   info;

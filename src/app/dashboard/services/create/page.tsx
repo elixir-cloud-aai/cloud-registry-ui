@@ -22,12 +22,12 @@ function Page() {
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const { me, loading, error, expired } = useMe();
     const [changed, setChanged] = useState(false);
-    // the registry's limit of services per user, for its 409; read in
-    // advance, as the service info is the same for all users
-    const [limit, setLimit] = useState<number>();
-    // the registry's rules for the checks before sending; until they are
-    // read, the registry checks what depends on them
+    // the registry's rules, read in advance, as the service info is the
+    // same for all users: for the checks before sending (until they are
+    // read, the registry checks what depends on them) and the limit of
+    // services per user, for its 409
     const { rules, loading: rulesLoading } = useRegistrationRules();
+    const limit = rulesLoading ? undefined : rules.maxServicesPerUser;
     const checkRules = useRef(unknownRegistrationRules);
     useEffect(() => {
         checkRules.current = rulesLoading ? unknownRegistrationRules : rules;
@@ -42,16 +42,6 @@ function Page() {
             checkedProvider(cloudRegistryProvider, () => checkRules.current),
         [cloudRegistryProvider],
     );
-
-    useEffect(() => {
-        let current = true;
-        servicesLimit(cloudRegistryProvider).then((val) => {
-            if (current) setLimit(val);
-        });
-        return () => {
-            current = false;
-        };
-    }, [cloudRegistryProvider]);
 
     useEffect(() => {
         if (error && !expired)

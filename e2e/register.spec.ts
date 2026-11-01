@@ -51,7 +51,8 @@ async function publishRules(page: Page, rules: object) {
 }
 
 test.describe("registering services", () => {
-    // the page may still read the service info when a test ends
+    // remove the routes of `publishRules()`, which the page may still use
+    // when a test ends
     test.afterEach(async ({ page }) => {
         await page.unrouteAll({ behavior: "ignoreErrors" });
     });
@@ -106,18 +107,18 @@ test.describe("registering services", () => {
         await addTesType(browser);
         // a registry that allows https only (the stack allows http, too)
         await publishRules(page, { url_schemes: ["https"] });
-        const registrations: string[] = [];
+        let registrations = 0;
         page.on("request", (request) => {
             if (
                 request.method() === "POST" &&
                 request.url() === `${registry}/services`
             )
-                registrations.push(request.url());
+                registrations++;
         });
         await login(page, "owner");
-        const rules = page.waitForResponse(`${registry}/service-info`);
         await page.goto("/dashboard/services/create");
-        await rules;
+        // the page and the form have read the rules
+        await page.waitForLoadState("networkidle");
 
         const service = newService("Checked");
         await fillCreateForm(page, {
@@ -130,7 +131,7 @@ test.describe("registering services", () => {
                 "Service URL must be an https URL, e.g. https://example.org/.",
             ),
         ).toBeVisible();
-        expect(registrations).toEqual([]);
+        expect(registrations).toBe(0);
 
         // the entries stay, to be corrected
         await page
@@ -143,7 +144,7 @@ test.describe("registering services", () => {
         await expect(
             page.getByText(`Registered ${service.name}`),
         ).toBeVisible();
-        expect(registrations).toHaveLength(1);
+        expect(registrations).toBe(1);
     });
 
     test("users who may add types can add a new one", async ({ page }) => {

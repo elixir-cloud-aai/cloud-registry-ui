@@ -237,7 +237,9 @@ describe("checkedProvider", () => {
         let rules = defaultRegistrationRules;
         const checked = checkedProvider(provider, () => rules);
         const http = { ...service, url: "http://tes.example.org/" };
-        await expect(checked.createService(http)).rejects.toThrow();
+        await expect(checked.createService(http)).rejects.toThrow(
+            "Service URL must be an https URL",
+        );
         rules = { ...defaultRegistrationRules, urlSchemes: ["https", "http"] };
         await expect(checked.createService(http)).resolves.toBe("created");
     });
@@ -264,14 +266,32 @@ describe("checkedProvider", () => {
         ).rejects.toThrow("Description must be at most 4096 characters.");
     });
 
-    it("passes on the client's other methods", async () => {
-        const provider = registry();
+    it("passes on the client's other methods and fields", async () => {
+        class Registry {
+            readonly baseUrl = "https://registry.example.org";
+            createService = vi.fn(
+                async (_service: ExternalServiceRegister) => "created",
+            );
+            createServiceWithId = vi.fn(
+                async (id: string, _service: ExternalServiceRegister) => id,
+            );
+            async getServiceInfo() {
+                return { url: this.baseUrl };
+            }
+        }
+        const provider = new Registry();
+        const { createService } = provider;
         const checked = checkedProvider(
             provider,
             () => defaultRegistrationRules,
         );
-        await checked.getServiceInfo();
-        expect(provider.getServiceInfo).toHaveBeenCalled();
-        expect(provider.createService).not.toBe(checked.createService);
+        expect(checked.baseUrl).toBe(provider.baseUrl);
+        await expect(checked.getServiceInfo()).resolves.toEqual({
+            url: provider.baseUrl,
+        });
+        // the client itself stays as it is
+        expect(provider.createService).toBe(createService);
+        await checked.createService(service);
+        expect(createService).toHaveBeenCalledWith(service);
     });
 });
