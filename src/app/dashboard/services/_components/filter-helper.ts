@@ -1,6 +1,6 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import type { ServiceVerification } from "@/lib/cloud-registry.types";
-import { environmentRank } from "@/lib/service-environments";
+import { environmentRank } from "@/lib/registration-rules";
 import { typeKey } from "@/lib/service-types";
 
 export type FilterValue = string | null;
@@ -28,17 +28,21 @@ const filterValues: Record<
 
 const filterKeys = Object.keys(filterValues) as SelectFilterKey[];
 
+// `environments`: as the registry allows them, in its order
 export function filterOptions(
     services: ExternalService[],
     key: SelectFilterKey,
+    environments: readonly string[] = [],
 ) {
     const values = [...new Set(services.map(filterValues[key]))];
     return values.sort((a, b) => {
         if (a === null) return 1;
         if (b === null) return -1;
-        // configured environments first, in their order
+        // allowed environments first, in the registry's order
         if (key === "environment") {
-            const rank = environmentRank(a) - environmentRank(b);
+            const rank =
+                environmentRank(environments, a) -
+                environmentRank(environments, b);
             if (rank) return rank;
         }
         return a.localeCompare(b);

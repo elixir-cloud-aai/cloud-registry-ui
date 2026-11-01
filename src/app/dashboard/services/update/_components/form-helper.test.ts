@@ -1,12 +1,18 @@
-import { describe, expect, it, vi } from "vitest";
-import type { FormData } from "./form-helper";
+import { describe, expect, it } from "vitest";
+import {
+    defaultRegistrationRules,
+    type RegistrationRules,
+} from "@/lib/registration-rules";
+import {
+    type FormData,
+    formDataSchema,
+    hasServiceChanges,
+    normalizeFormData,
+    normalizeServiceData,
+    serviceFormSchema,
+} from "./form-helper";
 
-// the schemes and environments are read when the modules load
-async function load(env: Record<string, string | undefined> = {}) {
-    vi.resetModules();
-    for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
-    return import("./form-helper");
-}
+const rules = defaultRegistrationRules;
 
 const valid: FormData = {
     id: "tes-1",
@@ -22,9 +28,11 @@ const valid: FormData = {
     createdAt: "",
 };
 
-async function messages(change: object, env = {}) {
-    const { formDataSchema } = await load(env);
-    return formDataSchema
+function messages(
+    change: object,
+    registrationRules: RegistrationRules = rules,
+) {
+    return formDataSchema(registrationRules)
         .safeParse({ ...valid, ...change })
         .error?.issues.map((val) => val.message);
 }
@@ -96,26 +104,32 @@ describe("formDataSchema", () => {
         expect(await messages(change)).toEqual([message]);
     });
 
-    it("follows the configured schemes and environments", async () => {
-        const env = {
-            NEXT_PUBLIC_SERVICE_URL_SCHEMES: "http,https",
-            NEXT_PUBLIC_SERVICE_ENVIRONMENTS: "*",
-        };
+    it("follows the registry's schemes and environments", async () => {
+        const any = { environments: [], urlSchemes: ["http", "https"] };
         expect(
             await messages(
                 { url: "http://tes.example.org", environment: "anything" },
-                env,
+                any,
             ),
         ).toBeUndefined();
-        expect(await messages({ environment: "é".repeat(257) }, env)).toEqual([
+        expect(await messages({ environment: "é".repeat(257) }, any)).toEqual([
             "Environment must be at most 256 characters.",
         ]);
+        const qa = { environments: ["qa", "prod"], urlSchemes: ["http"] };
+        expect(await messages({ environment: "qa" }, qa)).toEqual([
+            "Service URL must be an http URL, e.g. http://example.org/.",
+        ]);
+        expect(
+            await messages(
+                { url: "http://tes.example.org", environment: "test" },
+                qa,
+            ),
+        ).toEqual(["Environment must be one of: 'qa', 'prod'."]);
     });
 });
 
 describe("normalizeFormData", () => {
     it("fills in defaults", async () => {
-        const { normalizeFormData } = await load();
         expect(normalizeFormData()).toEqual({
             ...valid,
             id: "",
@@ -128,7 +142,6 @@ describe("normalizeFormData", () => {
     });
 
     it("keeps the creation time for admins only", async () => {
-        const { normalizeFormData } = await load();
         const data = { ...valid, createdAt: "2024-01-01T00:00:00Z" };
         expect(normalizeFormData(data).createdAt).toBe("");
         expect(normalizeFormData(data, true)).toEqual(data);
@@ -138,7 +151,6 @@ describe("normalizeFormData", () => {
 
 describe("normalizeServiceData", () => {
     it("trims and drops empty optional fields", async () => {
-        const { normalizeServiceData } = await load();
         const service = normalizeServiceData({
             ...valid,
             url: ` ${valid.url} `,
@@ -158,7 +170,6 @@ describe("normalizeServiceData", () => {
     });
 
     it("sends the creation time only if an admin changed it", async () => {
-        const { normalizeServiceData } = await load();
         const initial = { ...valid, createdAt: "2024-01-01T00:00:00Z" };
         expect(normalizeServiceData(initial, initial)).not.toHaveProperty(
             "createdAt",
@@ -175,16 +186,15 @@ describe("normalizeServiceData", () => {
 
 describe("serviceFormSchema", () => {
     async function idMessages(id: string, servicesPath?: string) {
-        const { serviceFormSchema } = await load();
-        return serviceFormSchema("tes-1", servicesPath)
+        return serviceFormSchema("tes-1", rules, servicesPath)
             .safeParse({ ...valid, id })
             .error?.issues.map((val) => val.message);
     }
 
     it("keeps the current ID, also if new IDs couldn't have it", async () => {
-        const { serviceFormSchema } = await load();
         expect(
-            serviceFormSchema("a,b").safeParse({ ...valid, id: "a,b" }).success,
+            serviceFormSchema("a,b", rules).safeParse({ ...valid, id: "a,b" })
+                .success,
         ).toBe(true);
         expect(await idMessages("tes-1")).toBeUndefined();
     });
@@ -201,9 +211,8 @@ describe("serviceFormSchema", () => {
     });
 
     it("checks the other fields too", async () => {
-        const { serviceFormSchema } = await load();
         expect(
-            serviceFormSchema("tes-1").safeParse({ ...valid, name: "" })
+            serviceFormSchema("tes-1", rules).safeParse({ ...valid, name: "" })
                 .success,
         ).toBe(false);
     });
@@ -211,7 +220,6 @@ describe("serviceFormSchema", () => {
 
 describe("hasServiceChanges", () => {
     it("ignores the ID and what isn't sent", async () => {
-        const { hasServiceChanges } = await load();
         expect(hasServiceChanges(valid, valid)).toBe(false);
         expect(hasServiceChanges({ ...valid, id: "tes-2" }, valid)).toBe(false);
         expect(
@@ -220,7 +228,6 @@ describe("hasServiceChanges", () => {
     });
 
     it("finds changes of other fields", async () => {
-        const { hasServiceChanges } = await load();
         expect(hasServiceChanges({ ...valid, name: "TES 2" }, valid)).toBe(
             true,
         );

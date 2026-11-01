@@ -90,7 +90,9 @@ Owners and maintainers of a service, and admins, can edit it:
 
 1. Open the service (from the list, or its page) and select **Edit**.
 2. Change the fields. The environment is chosen from those that the
-   deployment allows.
+   registry allows, as it publishes them in its service info (any text if
+   it allows any environment), and the service URL must have a scheme
+   that it allows (e.g. `https`).
 3. Select **Submit**. **Reset** undoes your changes.
 
 If you leave the page with unsaved changes, the app asks first.

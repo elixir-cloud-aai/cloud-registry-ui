@@ -1,16 +1,13 @@
 import type { ExternalServiceRegister } from "@elixir-cloud/cloud-registry/providers";
 import type { DeepKeys } from "@tanstack/react-form";
-import { serviceUrlSchemes } from "@/lib/registry-settings";
 import { serviceIdError } from "@/lib/service-ids";
 import {
-    environmentMessage,
-    isAllowedEnvironment,
-    maxEnvironmentLength,
-} from "@/lib/service-environments";
+    type ServiceSchemaRules,
+    serviceFields,
+    serviceSchema,
+} from "@/lib/service-schema";
 import { z } from "@/lib/zod";
 
-const httpUrl = z.url({ protocol: z.regexes.httpProtocol });
-const contactUrl = z.url({ protocol: /^(https?|mailto)$/ });
 // as the registry checks timestamps (`is_date_time()` of cloud-registry)
 const dateTime =
     /^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:[Zz]|[+-](\d{2}):(\d{2}))$/;
@@ -41,127 +38,37 @@ const timestamp = (label: string) =>
             (value) => value === "" || isDateTime(value),
             `${label} must be an RFC 3339 date-time, e.g. 2024-01-01T00:00:00Z.`,
         );
-const hasNoUserInfoOrSpaces = (value: string) =>
-    !/\s|^https?:\/\/[^/?#]*@/i.test(value);
 
-export const defaultTypeGroup = "org.ga4gh";
+/**
+ * Get the schema of the fields of the edit form
+ * @param rules The registry's rules, e.g. from `useRegistrationRules()`
+ * @returns The schema of a service's registration (`serviceSchema()`),
+ * with the stored ID (see `serviceFormSchema()` for new ones) and the
+ * creation time
+ */
+export function formDataSchema(rules: ServiceSchemaRules) {
+    return serviceSchema(rules).extend({
+        id: z.string(),
+        createdAt: timestamp("Created At"),
+    });
+}
 
-export const serviceTypeSchema = z.object({
-    group: z
-        .string()
-        .trim()
-        .min(1, "Type group is required.")
-        .max(256, "Type group must be at most 256 characters."),
-    artifact: z
-        .string()
-        .trim()
-        .min(1, "Type artifact is required.")
-        .max(256, "Type artifact must be at most 256 characters."),
-    version: z
-        .string()
-        .trim()
-        .min(1, "Type version is required.")
-        .max(256, "Type version must be at most 256 characters."),
-});
-
-export const formDataSchema = z.object({
-    // stored IDs as they are; see `serviceFormSchema` for new ones
-    id: z.string(),
-    name: z
-        .string()
-        .min(1, "Service name is required.")
-        .max(1024, "Service name must be at most 1024 characters."),
-    url: z
-        .string()
-        .max(2048, "Service URL must be at most 2048 characters.")
-        .refine(
-            (value) =>
-                httpUrl.safeParse(value).success &&
-                hasNoUserInfoOrSpaces(value.trim()),
-            {
-                message:
-                    "Service URL must be a valid URL, e.g. https://example.org/.",
-                abort: true,
-            },
-        )
-        .refine(
-            (value) =>
-                serviceUrlSchemes.includes(
-                    value.trim().split(":")[0].toLowerCase(),
-                ),
-            `Service URL must be an ${serviceUrlSchemes.join(" or ")} URL, e.g. ${serviceUrlSchemes[0]}://example.org/.`,
-        ),
-    organization: z.object({
-        name: z
-            .string()
-            .min(1, "Organization name is required.")
-            .max(1024, "Organization name must be at most 1024 characters."),
-        url: z
-            .string()
-            .max(2048, "Organization URL must be at most 2048 characters.")
-            .refine(
-                (value) =>
-                    httpUrl.safeParse(value).success &&
-                    hasNoUserInfoOrSpaces(value),
-                "Organization URL must be an http(s) URL, e.g. https://example.org/.",
-            ),
-    }),
-    type: serviceTypeSchema,
-    version: z
-        .string()
-        .min(1, "Service version is required.")
-        .max(256, "Service version must be at most 256 characters."),
-    description: z
-        .string()
-        .max(4096, "Description must be at most 4096 characters."),
-    contactUrl: z
-        .string()
-        .max(2048, "Contact URL must be at most 2048 characters.")
-        .refine((value) => !z.email().safeParse(value).success, {
-            message:
-                "Contact URL needs mailto: for email addresses, e.g. mailto:support@example.org.",
-            abort: true,
-        })
-        .refine(
-            (value) =>
-                value === "" ||
-                (contactUrl.safeParse(value).success &&
-                    hasNoUserInfoOrSpaces(value)),
-            "Contact URL must be an http(s) or mailto: URL, e.g. mailto:support@example.org.",
-        ),
-    documentationUrl: z
-        .string()
-        .max(2048, "Documentation URL must be at most 2048 characters.")
-        .refine(
-            (value) =>
-                value === "" ||
-                (httpUrl.safeParse(value).success &&
-                    hasNoUserInfoOrSpaces(value)),
-            "Documentation URL must be an http(s) URL, e.g. https://docs.example.org/.",
-        ),
-    environment: z
-        .string()
-        // characters, not UTF-16 code units, as the registry counts them
-        .refine(
-            (value) => [...value].length <= maxEnvironmentLength,
-            `Environment must be at most ${maxEnvironmentLength} characters.`,
-        )
-        // as the registry checks it, also for stored values
-        .refine(isAllowedEnvironment, environmentMessage),
-    createdAt: timestamp("Created At"),
-});
-
-export type FormData = z.infer<typeof formDataSchema>;
+export type FormData = z.infer<ReturnType<typeof formDataSchema>>;
 
 /**
  * Get the schema of the edit form of a service
  * @param initialId Current ID of the service, which stays valid
+ * @param rules The registry's rules, e.g. from `useRegistrationRules()`
  * @param servicesPath Path of the services on the registry's server, for
  * the length of new IDs
  * @returns The schema, which checks new IDs as the registry does
  */
-export function serviceFormSchema(initialId: string, servicesPath?: string) {
-    return formDataSchema.extend({
+export function serviceFormSchema(
+    initialId: string,
+    rules: ServiceSchemaRules,
+    servicesPath?: string,
+) {
+    return formDataSchema(rules).extend({
         id: z.string().superRefine((value, ctx) => {
             if (value === initialId) return;
             const message = serviceIdError(value, servicesPath);
@@ -193,25 +100,9 @@ export function normalizeFormData(
     admin = false,
 ): FormData {
     return {
+        ...serviceFields(data),
         id: data?.id ?? "",
-        name: data?.name ?? "",
-        url: data?.url ?? "",
-        version: data?.version ?? "",
-        description: data?.description ?? "",
-        contactUrl: data?.contactUrl ?? "",
-        documentationUrl: data?.documentationUrl ?? "",
-        environment: data?.environment ?? "",
         createdAt: admin ? (data?.createdAt ?? "") : "",
-        organization: {
-            name: data?.organization?.name ?? "",
-            url: data?.organization?.url ?? "",
-        },
-
-        type: {
-            group: data?.type?.group ?? defaultTypeGroup,
-            artifact: data?.type?.artifact ?? "",
-            version: data?.type?.version ?? "",
-        },
     };
 }
 
@@ -225,7 +116,7 @@ export function normalizeServiceData(
     return {
         ...data,
         url: data.url.trim(),
-        // as validated by `serviceTypeSchema`
+        // as validated by `serviceTypeSchema` (`@/lib/service-schema`)
         type: {
             group: data.type.group.trim(),
             artifact: data.type.artifact.trim(),

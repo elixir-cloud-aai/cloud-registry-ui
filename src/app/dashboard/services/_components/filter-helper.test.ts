@@ -50,13 +50,26 @@ describe("filterOptions", () => {
         ]);
     });
 
-    it("lists configured environments first, in their order", () => {
+    it("lists the registry's environments first, in its order", () => {
+        const all = [...services, service("e", { environment: "alpha" })];
         expect(
-            filterOptions(
-                [...services, service("e", { environment: "alpha" })],
-                "environment",
-            ),
+            filterOptions(all, "environment", ["prod", "test", "dev"]),
         ).toEqual(["prod", "test", "alpha", "custom", null]);
+        expect(filterOptions(all, "environment", ["custom", "prod"])).toEqual([
+            "custom",
+            "prod",
+            "alpha",
+            "test",
+            null,
+        ]);
+        // without a list, e.g. if any value is allowed: alphabetically
+        expect(filterOptions(all, "environment")).toEqual([
+            "alpha",
+            "custom",
+            "prod",
+            "test",
+            null,
+        ]);
     });
 
     it("sorts missing values last wherever they are", () => {

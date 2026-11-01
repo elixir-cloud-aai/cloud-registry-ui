@@ -7,8 +7,6 @@ The settings are read when the app starts (`bun run start`, `docker run`, `bun r
 | Variable                           | Required | Section                 |
 | ---------------------------------- | -------- | ----------------------- |
 | `NEXT_PUBLIC_CLOUD_REGISTRY_URL`   | yes      | [Registry](#registry)   |
-| `NEXT_PUBLIC_SERVICE_URL_SCHEMES`  | no       | [Registry](#registry)   |
-| `NEXT_PUBLIC_SERVICE_ENVIRONMENTS` | no       | [Registry](#registry)   |
 | `NEXT_PUBLIC_APP_TITLE`            | no       | [Branding](branding.md) |
 | `NEXT_PUBLIC_APP_TITLE_SIZE`       | no       | [Branding](branding.md) |
 | `NEXT_PUBLIC_APP_TITLE_FONT`       | no       | [Branding](branding.md) |
@@ -34,11 +32,9 @@ Set `NEXT_PUBLIC_CLOUD_REGISTRY_URL` (required) to the registry's API, including
 
 The app's Content Security Policy lets browsers connect only to the app and to this URL's origin, and other sites can't frame the app. Scripts run only with a nonce that changes on every request, so pages are rendered per request and not cached. The policy still allows inline styles (used by components and libraries) and images from any `https` URL (logos). Don't let a proxy in front of the app add a second Content Security Policy: browsers enforce both, and one without the nonce blocks the app's scripts. On Vercel, the toolbar of preview deployments is blocked.
 
-Set `NEXT_PUBLIC_SERVICE_URL_SCHEMES` to the schemes that the registry allows for service URLs (`custom.endpoints.services.url_schemes`, see the registry's [service URL schemes](https://cloud-registry.readthedocs.io/en/latest/configuration/#service-url-schemes)), comma-separated: `https` (default, also if empty), `http` or `http,https`. Other values stop the app.
+The app follows the registry's rules for registrations, as the registry publishes them in its service info (`registration_rules` of `GET /service-info`, see the registry's [registration rules](https://cloud-registry.readthedocs.io/en/latest/api/#registration-rules)): the edit form offers and accepts only the environments that the registry allows (`custom.endpoints.services.environments`), also for services that already have another one (the registry checks them on every change), or any text if it allows any environment; it accepts only service URLs with the schemes that the registry allows (`custom.endpoints.services.url_schemes`); and the environment filter of the list shows the allowed environments that are in use first, in the registry's order. If the service info can't be read, the edit form says so and checks the registry's defaults (`prod`, `test`, `dev` and `staging`; `https`), and the registry checks its own rules when the form is sent. The app follows who may add service types (`custom.access_control.service_types`) and who is an admin through `GET /me`. There is nothing to set for any of these in the app: change them in the registry, and the app follows without a restart.
 
-Set `NEXT_PUBLIC_SERVICE_ENVIRONMENTS` to the environments that the registry allows (`custom.endpoints.services.environments`, see the registry's [service environments](https://cloud-registry.readthedocs.io/en/latest/configuration/#service-environments)), comma-separated (default, also if empty: `prod,test,dev,staging`). The edit form offers and accepts only these values, also for services that already have another one (the registry checks them on every change), and the environment filter lists those in use first, in this order. The create form offers only the four default values for now (see [Known limitations](../user-guide/registering.md#known-limitations)). Set it to `*` if the registry allows any environment (`[]`): the edit form then takes any text. Each value may have at most 256 characters, and `*` can't be combined with other values.
-
-The app follows the registry's other settings, such as who may add service types (`custom.access_control.service_types`) and who is an admin, through `GET /me`: there is nothing to set for them in the app.
+The settings `NEXT_PUBLIC_SERVICE_ENVIRONMENTS` and `NEXT_PUBLIC_SERVICE_URL_SCHEMES` of earlier versions are no longer read: if they are set, the app ignores them and logs a warning when it starts (see [Upgrading](upgrading.md#registration-rules-instead-of-settings)).
 
 Admin mode needs no settings in the app either; see [Admins and admin
 mode](admins.md).

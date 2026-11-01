@@ -19,6 +19,7 @@ import {
     mutationError,
     renameError,
 } from "@/lib/errors";
+import type { RegistrationRules } from "@/lib/registration-rules";
 import { typeKey } from "@/lib/service-types";
 import { matchesVerification } from "@/lib/verifications";
 import { ReadOnlyField, TextField } from "./_fields";
@@ -43,6 +44,8 @@ import ServiceRenameDialog from "./rename-dialog";
 
 type Props = {
     service: ExternalService;
+    // the registry's rules, which the form checks the entries against
+    rules: RegistrationRules;
     verification?: Verification;
     admin?: boolean;
     pending?: boolean;
@@ -55,6 +58,7 @@ type Props = {
 
 function ServiceUpdationForm({
     service,
+    rules,
     verification,
     admin = false,
     pending,
@@ -71,8 +75,12 @@ function ServiceUpdationForm({
     const initial = normalizeFormData(service, admin);
     const schema = useMemo(
         () =>
-            serviceFormSchema(service.id, cloudRegistryProvider?.servicesPath),
-        [service.id, cloudRegistryProvider],
+            serviceFormSchema(
+                service.id,
+                rules,
+                cloudRegistryProvider?.servicesPath,
+            ),
+        [service.id, rules, cloudRegistryProvider],
     );
 
     // shown on the field until a field changes or loses focus
@@ -253,7 +261,10 @@ function ServiceUpdationForm({
                         }
                     </form.Subscribe>
                 )}
-                <ServiceEnvSection form={form} />
+                <ServiceEnvSection
+                    form={form}
+                    environments={rules.environments}
+                />
                 <ServiceContactInfoSection form={form} />
                 <TextareaField
                     form={form}

@@ -4,7 +4,23 @@
  */
 import { brandingSettings } from "./branding";
 import { registrySettings } from "./registry-settings";
-import { environmentSettings } from "./service-environments";
+
+// settings that the app no longer reads, with what replaces them
+const removedSettings = {
+    NEXT_PUBLIC_SERVICE_ENVIRONMENTS: "environments",
+    NEXT_PUBLIC_SERVICE_URL_SCHEMES: "URL schemes",
+};
+
+/**
+ * Warn of removed settings that are still set; they are ignored
+ */
+function removedSettingsWarnings() {
+    for (const [name, rule] of Object.entries(removedSettings))
+        if (process.env[name] !== undefined)
+            console.warn(
+                `Ignoring setting ${name}: the app reads the allowed ${rule} of services from the registry's service info (registration_rules). Remove the setting.`,
+            );
+}
 
 /**
  * Check the public settings; the login settings have their own checks
@@ -13,7 +29,7 @@ import { environmentSettings } from "./service-environments";
 function publicSettingsChecks() {
     registrySettings();
     brandingSettings();
-    environmentSettings();
+    removedSettingsWarnings();
 }
 
 export { publicSettingsChecks };

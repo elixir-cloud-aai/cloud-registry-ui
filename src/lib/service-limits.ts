@@ -5,6 +5,7 @@
  */
 import type { AuthenticatedCloudRegistryProvider } from "./authenticated-cloud-registry";
 import { withFieldLabels } from "./errors";
+import { readRegistrationRules, registrationRules } from "./registration-rules";
 
 /**
  * Get the limit of services per user from the registry's service info
@@ -13,21 +14,7 @@ import { withFieldLabels } from "./errors";
  * publish it
  */
 function maxServicesPerUser(info: unknown) {
-    const rules =
-        info !== null &&
-        typeof info === "object" &&
-        "registration_rules" in info
-            ? info.registration_rules
-            : undefined;
-    const limit =
-        rules !== null &&
-        typeof rules === "object" &&
-        "max_services_per_user" in rules
-            ? rules.max_services_per_user
-            : undefined;
-    return typeof limit === "number" && Number.isInteger(limit) && limit >= 0
-        ? limit
-        : undefined;
+    return registrationRules(info).maxServicesPerUser;
 }
 
 /**
@@ -38,11 +25,7 @@ function maxServicesPerUser(info: unknown) {
 async function servicesLimit(
     provider: Pick<AuthenticatedCloudRegistryProvider, "getServiceInfo"> | null,
 ) {
-    try {
-        return maxServicesPerUser(await provider?.getServiceInfo());
-    } catch {
-        return undefined;
-    }
+    return (await readRegistrationRules(provider))?.maxServicesPerUser;
 }
 
 /**

@@ -17,7 +17,8 @@ import { duplicateToast, isServicesLimit, withFieldLabels } from "@/lib/errors";
 import {
     environmentMessage,
     isAllowedEnvironment,
-} from "@/lib/service-environments";
+    readRegistrationRules,
+} from "@/lib/registration-rules";
 import { servicesLimit, servicesLimitToast } from "@/lib/service-limits";
 
 function Page() {
@@ -53,15 +54,21 @@ function Page() {
         if (cloudRegistryProvider === null) return null;
 
         // cloud-components gap (cloud-components#461): the create component
-        // offers the default environments only, so others get an error
-        // before the request
-        const checkEnvironment = (
+        // offers the default environments only, so those that the registry
+        // doesn't allow get an error before the request; if its rules can't
+        // be read, the registry checks the environment
+        const checkEnvironment = async (
             service: ExternalServiceRegister,
             request: () => Promise<string>,
-        ) =>
-            isAllowedEnvironment(service.environment)
-                ? request()
-                : Promise.reject(new Error(environmentMessage));
+        ) => {
+            const rules = await readRegistrationRules(cloudRegistryProvider);
+            if (
+                rules &&
+                !isAllowedEnvironment(rules.environments, service.environment)
+            )
+                throw new Error(environmentMessage(rules.environments));
+            return request();
+        };
 
         const keepError = (promise: Promise<string>) => {
             createError.current = null;
