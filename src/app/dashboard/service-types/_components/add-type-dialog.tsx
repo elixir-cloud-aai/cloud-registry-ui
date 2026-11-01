@@ -17,15 +17,23 @@ import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-clo
 import { mutationError } from "@/lib/errors";
 import { serviceTypeSchema } from "@/lib/service-schema";
 import { typeLabel } from "@/lib/service-types";
-import { defaultType } from "./type-helper";
+import { addTypeDescription, defaultType } from "./type-helper";
 
 type Props = {
     provider: AuthenticatedCloudRegistryProvider | null;
     pending?: boolean;
+    /** How many types that no service has the user may have added;
+     * undefined without a limit (e.g. for admins) */
+    limit?: number;
     onAdded?: () => void;
 };
 
-function ServiceTypeAddDialog({ provider, pending = false, onAdded }: Props) {
+function ServiceTypeAddDialog({
+    provider,
+    pending = false,
+    limit,
+    onAdded,
+}: Props) {
     const [open, setOpen] = useState(false);
     const form = useForm({
         defaultValues: defaultType,
@@ -81,9 +89,7 @@ function ServiceTypeAddDialog({ provider, pending = false, onAdded }: Props) {
                         Add service type
                     </DialogTitle>
                     <DialogDescription>
-                        {pending
-                            ? "Services can then be registered with this type. New types are pending until an admin approves them: until then, only admins and you see the type, and the services that have it are pending too."
-                            : "Services can then be registered with this type."}
+                        {addTypeDescription(pending, limit)}
                     </DialogDescription>
                 </DialogHeader>
                 <form

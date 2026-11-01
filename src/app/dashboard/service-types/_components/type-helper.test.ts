@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultType } from "./type-helper";
+import { addTypeDescription, defaultType, typeLimitNote } from "./type-helper";
 
 describe("defaultType", () => {
     it("starts in the GA4GH group", () => {
@@ -8,5 +8,53 @@ describe("defaultType", () => {
             artifact: "",
             version: "",
         });
+    });
+});
+
+describe("addTypeDescription", () => {
+    it("says whether new types are pending", () => {
+        expect(addTypeDescription(false)).toBe(
+            "Services can then be registered with this type.",
+        );
+        expect(addTypeDescription(true)).toContain("pending");
+    });
+
+    it("names the limit of unused types", () => {
+        expect(addTypeDescription(false, 5)).toContain(
+            "You may have added up to 5 service types that no service has",
+        );
+        expect(addTypeDescription(true, 1)).toContain(
+            "up to 1 service type that",
+        );
+    });
+});
+
+describe("typeLimitNote", () => {
+    const user = {
+        admin: false,
+        admin_available: false,
+        may_add_service_types: true,
+    };
+    const none = { maxUnusedServiceTypes: 0 };
+
+    it("explains why users without unused types can't add types", () => {
+        expect(typeLimitNote(user, none)).toBe(
+            "Only admins can add service types in this registry. Please ask an admin to add the type you need.",
+        );
+        expect(typeLimitNote({ ...user, admin_available: true }, none)).toBe(
+            "Only admins can add service types in this registry. Switch to admin mode to add one.",
+        );
+    });
+
+    it("says nothing if the user may add types, or never may", () => {
+        expect(typeLimitNote(user, { maxUnusedServiceTypes: 2 })).toBe(
+            undefined,
+        );
+        expect(typeLimitNote({ ...user, admin: true }, none)).toBe(undefined);
+        // GET /me says so, e.g. in mode `controlled`
+        expect(
+            typeLimitNote({ ...user, may_add_service_types: false }, none),
+        ).toBe(undefined);
+        expect(typeLimitNote(null, none)).toBe(undefined);
     });
 });

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { compareTypes, typeFromKey, typeKey, typeLabel } from "./service-types";
+import {
+    compareTypes,
+    mayAddServiceTypes,
+    typeFromKey,
+    typeKey,
+    typeLabel,
+} from "./service-types";
 
 const tes = { group: "org.ga4gh", artifact: "tes", version: "1.1.0" };
 
@@ -27,5 +33,29 @@ describe("service types", () => {
             "org.ga4gh · tes · 2.0.0",
         ]);
         expect(compareTypes(tes, { ...tes })).toBe(0);
+    });
+});
+
+describe("mayAddServiceTypes", () => {
+    const user = { admin: false, may_add_service_types: true };
+
+    it("follows GET /me", () => {
+        expect(mayAddServiceTypes(user, {})).toBe(true);
+        expect(mayAddServiceTypes(user, { maxUnusedServiceTypes: 3 })).toBe(
+            true,
+        );
+        expect(
+            mayAddServiceTypes({ ...user, may_add_service_types: false }, {}),
+        ).toBe(false);
+        // registries before cloud-registry 0.5.0 don't say
+        expect(mayAddServiceTypes({ admin: false }, {})).toBe(false);
+        expect(mayAddServiceTypes(null, {})).toBe(false);
+        expect(mayAddServiceTypes(undefined, {})).toBe(false);
+    });
+
+    it("refuses users other than admins without unused types", () => {
+        const rules = { maxUnusedServiceTypes: 0 };
+        expect(mayAddServiceTypes(user, rules)).toBe(false);
+        expect(mayAddServiceTypes({ ...user, admin: true }, rules)).toBe(true);
     });
 });
