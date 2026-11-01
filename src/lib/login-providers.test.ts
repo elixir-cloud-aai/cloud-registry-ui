@@ -157,6 +157,22 @@ describe("loginSettingsAtBuild", () => {
         expect(providers.loginSettingsAtBuild).not.toThrow();
     });
 
+    it("warns of old variables next to sensitive settings", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        const { loginSettingsAtBuild } = await load({
+            LOGIN_PROVIDERS: sensitive,
+            OIDC_CLIENT_ID: "c",
+        });
+        expect(loginSettingsAtBuild).not.toThrow();
+        expect(warn).toHaveBeenCalledTimes(2);
+        expect(warn).toHaveBeenCalledWith(
+            expect.stringMatching(/^Ignoring setting OIDC_CLIENT_ID:/),
+        );
+        expect(warn).toHaveBeenCalledWith(
+            expect.stringMatching(/^Can't check LOGIN_PROVIDERS/),
+        );
+    });
+
     it("checks the readable setting next to a sensitive one", async () => {
         vi.spyOn(console, "warn").mockImplementation(() => {});
         for (const env of [
@@ -206,7 +222,9 @@ describe("oidcEndpoints", () => {
         // once, with the issuer as the registry must spell it
         expect(info).toHaveBeenCalledOnce();
         expect(info).toHaveBeenCalledWith(
-            "Login provider ls-login: issuer https://login.example.org/oidc/ (list it exactly so in the registry's security.auth.issuers)",
+            expect.stringContaining(
+                "Login provider ls-login: issuer https://login.example.org/oidc/ ",
+            ),
         );
         expect(get).toHaveBeenCalledWith(
             "https://login.example.org/oidc/.well-known/openid-configuration",

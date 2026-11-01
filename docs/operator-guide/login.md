@@ -77,7 +77,10 @@ security:
             "<admin group, a value of eduperson_entitlement>": admin
 ```
 
-- `issuers` must contain the provider's issuer exactly as the provider spells it in its `/.well-known/openid-configuration` (the `iss` of its tokens), trailing slash included: LS Login's issuer ends with a slash. The app accepts the issuer in `LOGIN_PROVIDERS` with or without the slash, but the registry compares it exactly and otherwise rejects every request with `401`. The app logs the issuer as discovered (`Login provider <id>: issuer …`) when it first contacts a provider, e.g. at the first login.
+- `issuers` must contain the provider's issuer exactly as the provider spells it in its `/.well-known/openid-configuration` (the `iss` of its tokens), trailing slash included; otherwise, the registry rejects every request with `401`. LS Login's issuer ends with a slash.
+
+    The app accepts the issuer in `LOGIN_PROVIDERS` with or without the slash, but the registry compares it exactly. To see the spelling, look for the log line starting with `Login provider <id>: issuer`, which the app writes when it first contacts a provider, e.g. at the first login.
+
 - `audience` must contain the app's client ID; otherwise, all requests that need a login fail with `401`.
 - `userinfo_claims` lets the registry read the groups and names that LS Login doesn't put in access tokens.
 
