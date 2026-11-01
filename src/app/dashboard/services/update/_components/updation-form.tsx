@@ -54,7 +54,10 @@ type Props = {
     // the registered types to choose from (`GET /services/types`, which
     // lists only approved ones); null if they couldn't be loaded
     serviceTypes: readonly ServiceType[] | null;
-    // whether the user may add types (`may_add_service_types` of `GET /me`)
+    // whether the user's pending types are known to be left out of them
+    pendingTypesKnown?: boolean;
+    // whether the user may add types (`mayAddServiceTypes()` of
+    // `@/lib/service-types`)
     mayAddServiceTypes?: boolean;
     disabled?: boolean;
     onServiceUpdated?: (service: ExternalService) => void;
@@ -69,6 +72,7 @@ function ServiceUpdationForm({
     pending,
     typesPending = false,
     serviceTypes,
+    pendingTypesKnown = true,
     mayAddServiceTypes = true,
     disabled,
     onServiceUpdated,
@@ -81,8 +85,11 @@ function ServiceUpdationForm({
     const initial = normalizeFormData(service, admin);
     // the approved types, if known, for the note on new types
     const approvedTypes = useMemo(
-        () => serviceTypes && new Set(serviceTypes.map(typeKey)),
-        [serviceTypes],
+        () =>
+            pendingTypesKnown && serviceTypes
+                ? new Set(serviceTypes.map(typeKey))
+                : undefined,
+        [serviceTypes, pendingTypesKnown],
     );
     const schema = useMemo(
         () =>

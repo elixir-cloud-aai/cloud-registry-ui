@@ -14,6 +14,7 @@ import { getApprovalsOrNull, getServiceWithApproval } from "@/lib/approvals";
 import type { ServiceType } from "@/lib/cloud-registry.types";
 import { errorMessage } from "@/lib/errors";
 import { canEditService, isUnauthorized } from "@/lib/permissions";
+import { mayAddServiceTypes } from "@/lib/service-types";
 import { ServiceUpdationForm } from "../_components";
 import { approvedTypes } from "../_components/form-helper";
 
@@ -41,6 +42,8 @@ function Page() {
     // undefined while loading (the page waits), null if they couldn't be
     // loaded (the form then offers the stored type, and new ones)
     const [serviceTypes, setServiceTypes] = useState<ServiceType[] | null>();
+    // whether the user's pending types are known, and so left out
+    const [pendingTypesKnown, setPendingTypesKnown] = useState(true);
 
     // pending services are only listed in GET /approvals, e.g. after a
     // change to a pending type
@@ -94,10 +97,11 @@ function Page() {
             getApprovalsOrNull(cloudRegistryProvider),
         ])
             .then(([val, approvals]) => {
-                if (current)
-                    setServiceTypes(
-                        approvedTypes(val, approvals?.service_types ?? []),
-                    );
+                if (!current) return;
+                setServiceTypes(
+                    approvedTypes(val, approvals?.service_types ?? []),
+                );
+                setPendingTypesKnown(approvals !== null);
             })
             .catch((err) => {
                 // the form then offers the stored type, and new ones if
@@ -184,7 +188,8 @@ function Page() {
                     serviceTypes={serviceTypes}
                     // as in the create form: without the registry's
                     // answer, the registry decides when the form is sent
-                    mayAddServiceTypes={me?.may_add_service_types !== false}
+                    mayAddServiceTypes={mayAddServiceTypes(me, rules)}
+                    pendingTypesKnown={pendingTypesKnown}
                     disabled={refreshing}
                     onServiceUpdated={onServiceUpdated}
                     onServiceRenamed={onServiceRenamed}
