@@ -77,6 +77,16 @@ docker compose -f e2e/stack/compose.yaml down
 `npm run test:e2e` reuses an app already running on port 3100; stop it to
 test changes.
 
+## Dependency updates
+
+Dependabot (`.github/dependabot.yml`) opens grouped pull requests against
+`ai-post-deploy` each month, with commit messages starting with
+`build(deps)`, for the Bun dependencies, the docs packages, the actions and
+the Docker image. `@playwright/test` is left out: bump it by hand, together
+with the Playwright image of the `e2e` job (`.github/workflows/ci.yml`).
+Pull requests that bump the Bun image of the `Dockerfile` must also bump
+`bun-version` in the workflows. Codecov uploads use the organisation secret `CODECOV_TOKEN`.
+
 ## Docs
 
 The docs (`docs/`) are built with [MkDocs](https://www.mkdocs.org/) and the

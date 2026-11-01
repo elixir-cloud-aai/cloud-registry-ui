@@ -1,7 +1,7 @@
 version: 2
-# Every entry targets `ai-post-deploy`, the default branch, which takes all
-# pull requests; commit messages start with `build(deps)` (Conventional
-# Commits). Security updates always target the default branch
+# Every entry targets `ai-post-deploy`, currently the default branch, which
+# takes all pull requests; commit messages start with `build(deps)`
+# (Conventional Commits). Security updates always target the default branch
 updates:
   # Dependencies in `package.json` and the lock (`bun.lock`), updated
   # together
@@ -46,8 +46,8 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
-  # Images in the `Dockerfile` (Bun); keep `bun-version` in the workflows
-  # in line with it
+  # Images in the `Dockerfile` (Bun); pull requests that bump it must also
+  # bump `bun-version` in the workflows
   - package-ecosystem: docker
     directory: /
     schedule:
