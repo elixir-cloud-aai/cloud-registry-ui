@@ -118,6 +118,9 @@ function Page() {
     // until the registry's version replaces them
     const onServiceUpdated = (saved: ExternalService) => {
         setService(saved);
+        // a change of the type may have made it pending: unknown until the
+        // registry's version is loaded
+        setPending(undefined);
         setRefreshing(true);
         refetchService();
     };
