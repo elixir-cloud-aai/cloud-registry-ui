@@ -31,27 +31,38 @@ async function expectNoAdminFields(page: Page) {
     ).toHaveCount(0);
 }
 
+/**
+ * Let the page see other registration rules than the registry's own
+ * @param page Page
+ * @param rules Rules that replace the published ones
+ */
+async function publishRules(page: Page, rules: object) {
+    await page.route(`${registry}/service-info`, async (route) => {
+        const response = await route.fetch();
+        const info = await response.json();
+        await route.fulfill({
+            response,
+            json: {
+                ...info,
+                registration_rules: { ...info.registration_rules, ...rules },
+            },
+        });
+    });
+}
+
 test.describe("registering services", () => {
+    // the page may still read the service info when a test ends
+    test.afterEach(async ({ page }) => {
+        await page.unrouteAll({ behavior: "ignoreErrors" });
+    });
+
     test("users choose a registered type and an allowed environment", async ({
         page,
         browser,
     }) => {
         await addTesType(browser);
         // a registry that allows two environments, one without a label
-        await page.route(`${registry}/service-info`, async (route) => {
-            const response = await route.fetch();
-            const info = await response.json();
-            await route.fulfill({
-                response,
-                json: {
-                    ...info,
-                    registration_rules: {
-                        ...info.registration_rules,
-                        environments: ["test", "qa"],
-                    },
-                },
-            });
-        });
+        await publishRules(page, { environments: ["test", "qa"] });
         const token = await login(page, "owner");
         await page.goto("/dashboard/services/create");
 
@@ -86,6 +97,53 @@ test.describe("registering services", () => {
         expect(created.find((val) => val?.name === service.name)).toMatchObject(
             { type: service.type, environment: "test" },
         );
+    });
+
+    test("invalid entries are reported before sending", async ({
+        page,
+        browser,
+    }) => {
+        await addTesType(browser);
+        // a registry that allows https only (the stack allows http, too)
+        await publishRules(page, { url_schemes: ["https"] });
+        const registrations: string[] = [];
+        page.on("request", (request) => {
+            if (
+                request.method() === "POST" &&
+                request.url() === `${registry}/services`
+            )
+                registrations.push(request.url());
+        });
+        await login(page, "owner");
+        const rules = page.waitForResponse(`${registry}/service-info`);
+        await page.goto("/dashboard/services/create");
+        await rules;
+
+        const service = newService("Checked");
+        await fillCreateForm(page, {
+            ...service,
+            url: service.url.replace("https:", "http:"),
+        });
+        await page.getByRole("button", { name: "Create Service" }).click();
+        await expect(
+            page.getByText(
+                "Service URL must be an https URL, e.g. https://example.org/.",
+            ),
+        ).toBeVisible();
+        expect(registrations).toEqual([]);
+
+        // the entries stay, to be corrected
+        await page
+            .getByRole("textbox", {
+                name: "https://api.example.com/v1",
+                exact: true,
+            })
+            .fill(service.url);
+        await page.getByRole("button", { name: "Create Service" }).click();
+        await expect(
+            page.getByText(`Registered ${service.name}`),
+        ).toBeVisible();
+        expect(registrations).toHaveLength(1);
     });
 
     test("users who may add types can add a new one", async ({ page }) => {
