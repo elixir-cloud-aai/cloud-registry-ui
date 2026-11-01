@@ -208,9 +208,10 @@ release the next patch version (with its own release-prep pull request).
 
 After a release, the workflow `Scan` (`.github/workflows/scan.yml`) scans
 the image of the latest release (or, before the first stable release, of
-the newest pre-release) every Monday, and can be run by hand. It uploads the fixable findings to code scanning and a
-full report as a workflow artifact, and fails on fixable critical and high
-vulnerabilities: release a patch version with the fix.
+the newest pre-release) every Monday, and can be run by hand. It uploads
+the fixable findings to code scanning and a full report as a workflow
+artifact, and fails on fixable critical and high vulnerabilities: release a
+patch version with the fix.
 
 ## Reporting Issues
 

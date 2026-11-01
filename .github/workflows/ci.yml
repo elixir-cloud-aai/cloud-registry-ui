@@ -5,7 +5,8 @@
 # registry and a mock login provider, and the docs. The gate `passed` ("CI
 # passed") is the only required check and needs every other job to succeed.
 # No `paths:` filters, so that the gate always reports; to skip a job with
-# `if:`, allow that skip in the gate. Lint isn't checked yet: the code has Biome errors to fix first
+# `if:`, allow that skip in the gate. Lint isn't checked yet: the code has
+# Biome errors to fix first
 
 name: CI
 on:
