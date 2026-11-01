@@ -5,7 +5,7 @@
     "": {
       "name": "frontend",
       "dependencies": {
-        "@elixir-cloud/cloud-registry": "^2.0.0-alpha.48",
+        "@elixir-cloud/cloud-registry": "^2.0.0-alpha.50",
         "@tanstack/react-form": "^1.29.1",
         "axios": "^1.15.2",
         "class-variance-authority": "^0.7.1",
@@ -127,11 +127,11 @@
 
     "@ecies/ciphers": ["@ecies/ciphers@0.2.6", "", { "peerDependencies": { "@noble/ciphers": "^1.0.0" } }, "sha512-patgsRPKGkhhoBjETV4XxD0En4ui5fbX0hzayqI3M8tvNMGUoUvmyYAIWwlxBc1KX5cturfqByYdj5bYGRpN9g=="],
 
-    "@elixir-cloud/cloud-registry": ["@elixir-cloud/cloud-registry@2.0.0-alpha.48", "", { "dependencies": { "@elixir-cloud/design": "2.0.0-alpha.48", "@elixir-cloud/service-registry": "2.0.0-alpha.48", "@lit/react": "^1.0.2", "lit": "^2.8.0" } }, "sha512-28lpB+MBgBdd8xH2rBX7eL0eJ6s5JxkLR9OHp3c01XyKV8hi++8601IOFf9pRPnFQmae8Uhihd2Tx8im3Zek8A=="],
+    "@elixir-cloud/cloud-registry": ["@elixir-cloud/cloud-registry@2.0.0-alpha.50", "", { "dependencies": { "@elixir-cloud/design": "2.0.0-alpha.50", "@elixir-cloud/service-registry": "2.0.0-alpha.50", "@lit/react": "^1.0.2", "lit": "^2.8.0" } }, "sha512-DBnhdcEEwsRYD5578wA8S4fKaoxTNSTXUaK7kCPYjotY/HYUhyCF8xG8OPDCNRALv2646yx3VMm5NHpNaJ/0OQ=="],
 
-    "@elixir-cloud/design": ["@elixir-cloud/design@2.0.0-alpha.48", "", { "dependencies": { "@lit/react": "^1.0.2", "ace-builds": "^1.35.0", "lit": "^2.8.0" } }, "sha512-xoqdlGFMvqxh2GnrqATaV1UqrWWXKksXBv4VrJNlnVJaI063fhhSIWJ5RWKdpYpMYZP6EBD8flVEmbHXplHeIQ=="],
+    "@elixir-cloud/design": ["@elixir-cloud/design@2.0.0-alpha.50", "", { "dependencies": { "@lit/react": "^1.0.2", "ace-builds": "^1.35.0", "lit": "^2.8.0" } }, "sha512-RhQ3zggsmvGpI7zwLRXGaa8KglxJdJrgUlJG2NhKWKAgaGdgK3Y0RNxs7H0GxQAgyyU5kVxeg0R6i3aBSV06Ww=="],
 
-    "@elixir-cloud/service-registry": ["@elixir-cloud/service-registry@2.0.0-alpha.48", "", { "dependencies": { "@elixir-cloud/design": "2.0.0-alpha.48", "@lit/react": "^1.0.2", "lit": "^2.8.0" } }, "sha512-b74nxGQz/bZ+cfse4fWNdIiFX2/HrYDUD/+ihCDVzVkp7Kk64O+UhrXIwKiEifB+ZTqOwy8zCUD8chsq4vO+6A=="],
+    "@elixir-cloud/service-registry": ["@elixir-cloud/service-registry@2.0.0-alpha.50", "", { "dependencies": { "@elixir-cloud/design": "2.0.0-alpha.50", "@lit/react": "^1.0.2", "lit": "^2.8.0" } }, "sha512-m4rDPCLknrrfJ/O5T/B0ms6swtM92ulo3R9puZOKMrP2iYySCcNDq8Ovz9ZTdXcoEIZyGdniGGDLQQV5LZMsAA=="],
 
     "@emnapi/runtime": ["@emnapi/runtime@1.11.3", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-Xz4Tpyki7XyrpbUK1jR1AhdAdaXyhhY4lZ3neLodmhpuWfy2PAQN5B46sAiU4liOXGLkHypn/qU+jvfWSCYYLA=="],
 

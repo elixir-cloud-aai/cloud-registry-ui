@@ -3,30 +3,24 @@ import type {
     EccServiceCreatedEvent,
     EccServiceCreateFailedEvent,
     EccServiceCreateValidationFailedEvent,
+    EccServiceFormChangedEvent,
 } from "@elixir-cloud/cloud-registry/events";
-import type { ExternalServiceRegister } from "@elixir-cloud/cloud-registry/providers";
 import { ECCClientElixirCloudRegistryServiceCreate } from "@elixir-cloud/cloud-registry/react";
+import { ClockIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { UnsavedChangesGuard } from "@/components/shared/unsaved-changes-guard";
-import { useCloudRegistry, useFormChanged, useMe } from "@/hooks";
-import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
-import { duplicateToast, isServicesLimit, withFieldLabels } from "@/lib/errors";
-import {
-    environmentMessage,
-    isAllowedEnvironment,
-    readRegistrationRules,
-} from "@/lib/registration-rules";
-import { servicesLimit, servicesLimitToast } from "@/lib/service-limits";
+import { useCloudRegistry, useMe } from "@/hooks";
+import { createFailedToast } from "@/lib/service-create";
+import { servicesLimit } from "@/lib/service-limits";
 
 function Page() {
     const router = useRouter();
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const { me, loading, error, expired } = useMe();
-    const createError = useRef<unknown>(null);
-    const { changed, setChanged, watchForm } = useFormChanged();
+    const [changed, setChanged] = useState(false);
     // the registry's limit of services per user, for its 409; read in
     // advance, as the service info is the same for all users
     const [limit, setLimit] = useState<number>();
@@ -48,66 +42,6 @@ function Page() {
             );
     }, [error, expired]);
 
-    // cloud-components gap: the create component passes on only the error
-    // message, so the provider keeps the error, e.g. for the duplicate's ID
-    const provider = useMemo(() => {
-        if (cloudRegistryProvider === null) return null;
-
-        // cloud-components gap (cloud-components#461): the create component
-        // offers the default environments only, so those that the registry
-        // doesn't allow get an error before the request; if its rules can't
-        // be read, the registry checks the environment
-        const checkEnvironment = async (
-            service: ExternalServiceRegister,
-            request: () => Promise<string>,
-        ) => {
-            const rules = await readRegistrationRules(cloudRegistryProvider);
-            if (
-                rules &&
-                !isAllowedEnvironment(rules.environments, service.environment)
-            )
-                throw new Error(environmentMessage(rules.environments));
-            return request();
-        };
-
-        const keepError = (promise: Promise<string>) => {
-            createError.current = null;
-            return promise.catch((err) => {
-                createError.current = err;
-                throw err;
-            });
-        };
-
-        return Object.assign(Object.create(cloudRegistryProvider), {
-            createService: (service: ExternalServiceRegister) =>
-                keepError(
-                    checkEnvironment(service, () =>
-                        cloudRegistryProvider.createService(service),
-                    ),
-                ),
-            // cloud-components gap: the create component can't hide the
-            // custom ID field, so non-admins get an error before the request
-            createServiceWithId: (
-                id: string,
-                service: ExternalServiceRegister,
-            ) =>
-                keepError(
-                    me?.admin
-                        ? checkEnvironment(service, () =>
-                              cloudRegistryProvider.createServiceWithId(
-                                  id,
-                                  service,
-                              ),
-                          )
-                        : Promise.reject(
-                              new Error(
-                                  "Only admins can choose identifiers; leave the field empty.",
-                              ),
-                          ),
-                ),
-        }) as AuthenticatedCloudRegistryProvider;
-    }, [cloudRegistryProvider, me]);
-
     const onServiceCreated = (e: EccServiceCreatedEvent) => {
         const { serviceId, serviceData } = e.detail;
         setChanged(false);
@@ -125,43 +59,23 @@ function Page() {
     };
 
     const onServiceCreationFailed = async (e: EccServiceCreateFailedEvent) => {
-        const err = createError.current;
-        createError.current = null;
-
-        // the provider's error, if it is the one of this event
-        const own =
-            err instanceof Error && err.message === e.detail.error ? err : null;
-
-        const duplicate = own ? duplicateToast(own) : null;
-        if (duplicate) {
-            const { message, ...data } = duplicate;
-            toast.error(message, data);
-            return;
-        }
-
-        // with the limit that the registry publishes (read now if the
-        // advance read isn't done yet), else its detail
-        if (own && isServicesLimit(own)) {
-            toast.error(
-                await servicesLimitToast(
-                    limit,
-                    () => servicesLimit(cloudRegistryProvider),
-                    e.detail.error,
-                    !!me?.admin_available && !me.admin,
-                ),
-                { duration: 10000 },
-            );
-            return;
-        }
-
-        toast.error(withFieldLabels(e.detail.error));
+        const { message, ...data } = await createFailedToast(e.detail, {
+            limit,
+            readLimit: () => servicesLimit(cloudRegistryProvider),
+            adminAvailable: !!me?.admin_available && !me.admin,
+        });
+        toast.error(message, data);
     };
 
     const onValidationError = (e: EccServiceCreateValidationFailedEvent) => {
         toast.error(e.detail.error);
     };
 
-    if (provider === null) return;
+    const onFormChanged = (e: EccServiceFormChangedEvent) => {
+        setChanged(e.detail.dirty);
+    };
+
+    if (cloudRegistryProvider === null) return;
 
     if (!isLoggedIn)
         return <LoginPrompt message="Log in to register a service" />;
@@ -171,23 +85,31 @@ function Page() {
             <LoginPrompt message="Your session expired. Please log in again." />
         );
 
-    // cloud-components gap: the create component ignores later provider
-    // changes, so it renders only once the admin flag is known
-    if (loading)
-        return (
-            <p className="font-bold text-lg mt-20 text-center w-full">
-                Loading...
-            </p>
-        );
+    // the form shows before `GET /me` has loaded, and follows later changes
+    // of `admin`, `allowNewType` and the provider.
+    // The registry decides who may add types: while `GET /me` loads, only
+    // listed types are offered; without its answer (e.g. after an error, or
+    // from registries without the flag), new ones are, too
+    const allowNewType = !loading && me?.may_add_service_types !== false;
 
     return (
-        <div ref={watchForm} className="max-w-5xl mx-auto mt-5 md:mt-8">
+        <div className="max-w-5xl mx-auto mt-5 md:mt-8">
             <UnsavedChangesGuard when={changed} />
+            {allowNewType && me?.service_types_pending && (
+                <p className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
+                    <ClockIcon className="size-4 shrink-0" />
+                    New service types are pending until an admin approves them,
+                    and so are the services that have them.
+                </p>
+            )}
             <ECCClientElixirCloudRegistryServiceCreate
+                admin={!!me?.admin}
+                allowNewType={allowNewType}
                 onEccServiceCreated={onServiceCreated}
                 onEccServiceCreateFailed={onServiceCreationFailed}
                 onEccServiceCreateValidationFailed={onValidationError}
-                provider={provider}
+                onEccServiceFormChanged={onFormChanged}
+                provider={cloudRegistryProvider}
             />
         </div>
     );
