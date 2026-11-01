@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { failure } from "@/test/errors";
-import { duplicateMessage, serviceTypeConflict } from "./errors";
+import { duplicateMessage } from "./errors";
 import { createError, createFailedToast } from "./service-create";
 import { servicesLimitMessage } from "./service-limits";
 
@@ -127,7 +127,9 @@ describe("createFailedToast", () => {
             { error: "You have added 0 service types", status: 409, cause },
             options,
         );
-        expect(toast).toEqual({ message: serviceTypeConflict(cause) });
+        expect(toast.message).toContain(
+            "You have added as many service types that no service has as this registry allows.",
+        );
     });
 
     it("shows other errors with the form's labels", async () => {

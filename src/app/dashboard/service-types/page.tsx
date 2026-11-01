@@ -18,9 +18,17 @@ import { getApprovalsOrNull, withPendingTypes } from "@/lib/approvals";
 import { errorMessage, mutationError } from "@/lib/errors";
 import { loginHref } from "@/lib/links";
 import { canApproveServiceType, isUnauthorized } from "@/lib/permissions";
-import { mayAddServiceTypes, typeKey, typeLabel } from "@/lib/service-types";
-import { ServiceTypeAddDialog, ServiceTypeCard } from "./_components";
-import { typeLimitNote } from "./_components/type-helper";
+import {
+    mayAddServiceTypes,
+    typeKey,
+    typeLabel,
+    unusedTypesLimit,
+} from "@/lib/service-types";
+import {
+    ServiceTypeAddDialog,
+    ServiceTypeCard,
+    typeLimitNote,
+} from "./_components";
 
 const pageSize = 12;
 
@@ -166,9 +174,7 @@ function Page() {
                     <ServiceTypeAddDialog
                         provider={cloudRegistryProvider}
                         pending={me?.service_types_pending}
-                        limit={
-                            me?.admin ? undefined : rules.maxUnusedServiceTypes
-                        }
+                        limit={unusedTypesLimit(me, rules)}
                         onAdded={fetchServiceTypes}
                     />
                 )}

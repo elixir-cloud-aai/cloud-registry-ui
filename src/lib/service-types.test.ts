@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
     compareTypes,
     mayAddServiceTypes,
+    noUnusedTypes,
     typeFromKey,
     typeKey,
     typeLabel,
+    unusedTypesLimit,
 } from "./service-types";
 
 const tes = { group: "org.ga4gh", artifact: "tes", version: "1.1.0" };
@@ -57,5 +59,21 @@ describe("mayAddServiceTypes", () => {
         const rules = { maxUnusedServiceTypes: 0 };
         expect(mayAddServiceTypes(user, rules)).toBe(false);
         expect(mayAddServiceTypes({ ...user, admin: true }, rules)).toBe(true);
+    });
+});
+
+describe("unused types", () => {
+    it("tells a limit of 0 apart", () => {
+        expect(noUnusedTypes({ maxUnusedServiceTypes: 0 })).toBe(true);
+        expect(noUnusedTypes({ maxUnusedServiceTypes: 1 })).toBe(false);
+        expect(noUnusedTypes({})).toBe(false);
+    });
+
+    it("limits users other than admins", () => {
+        const rules = { maxUnusedServiceTypes: 4 };
+        expect(unusedTypesLimit({ admin: false }, rules)).toBe(4);
+        expect(unusedTypesLimit(null, rules)).toBe(4);
+        expect(unusedTypesLimit({ admin: true }, rules)).toBeUndefined();
+        expect(unusedTypesLimit({ admin: false }, {})).toBeUndefined();
     });
 });

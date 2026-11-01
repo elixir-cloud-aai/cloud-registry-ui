@@ -1,4 +1,5 @@
 import type { RegistrationRules } from "@/lib/registration-rules";
+import { noUnusedTypes } from "@/lib/service-types";
 
 /** A rule of the registry, as the service info page shows it */
 type RuleRow = { label: string; value: string };
@@ -21,11 +22,11 @@ function limitText(limit: number | undefined, none: string) {
  * `moderated` if users may have no unused types, as the registry then
  * refuses every new type of theirs, also of services
  */
-function typesText({
-    serviceTypes,
-    maxUnusedServiceTypes,
-}: Pick<RegistrationRules, "serviceTypes" | "maxUnusedServiceTypes">) {
-    if (serviceTypes === "controlled" || maxUnusedServiceTypes === 0)
+function typesText(
+    rules: Pick<RegistrationRules, "serviceTypes" | "maxUnusedServiceTypes">,
+) {
+    const { serviceTypes } = rules;
+    if (serviceTypes === "controlled" || noUnusedTypes(rules))
         return "Admins only";
     if (serviceTypes === "moderated")
         return "Logged-in users; types of users other than admins are pending until an admin approves them";

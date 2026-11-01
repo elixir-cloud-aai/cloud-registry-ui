@@ -100,7 +100,7 @@ test.describe("service type limits", () => {
 
         await expect(
             page.getByText(
-                "This service type is already registered. If it isn't listed, it is pending until an admin approves it.",
+                "This service type is already registered. If you can't find it, it may be pending until an admin approves it.",
             ),
         ).toBeVisible();
         dropConflicts(problems);

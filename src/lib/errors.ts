@@ -112,7 +112,7 @@ const serviceTypeConflicts = {
     "unused-types-limit":
         "You have added as many service types that no service has as this registry allows. Register services with them, or ask an admin to remove those you don't need, before you add others.",
     "service-type-registered":
-        "This service type is already registered. If it isn't listed, it is pending until an admin approves it.",
+        "This service type is already registered. If you can't find it, it may be pending until an admin approves it.",
     "service-type-in-use":
         "Services have this service type, so it can't be removed. Change the type of these services, or delete them, first.",
 } satisfies Partial<Record<ConflictCode, string>>;
@@ -125,12 +125,13 @@ const serviceTypeConflicts = {
  * `service-type-in-use`)
  */
 function serviceTypeConflict(err: unknown) {
-    const code = (
-        Object.keys(
-            serviceTypeConflicts,
-        ) as (keyof typeof serviceTypeConflicts)[]
-    ).find((val) => isConflictOf(err, val, () => false));
-    return code === undefined ? undefined : serviceTypeConflicts[code];
+    const code =
+        isConflict(err) && err instanceof Error && "code" in err
+            ? err.code
+            : undefined;
+    return typeof code === "string" && Object.hasOwn(serviceTypeConflicts, code)
+        ? serviceTypeConflicts[code as keyof typeof serviceTypeConflicts]
+        : undefined;
 }
 
 /**
