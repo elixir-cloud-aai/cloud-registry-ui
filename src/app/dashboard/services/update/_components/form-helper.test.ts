@@ -4,12 +4,18 @@ import {
     type RegistrationRules,
 } from "@/lib/registration-rules";
 import {
+    approvedTypes,
     type FormData,
     formDataSchema,
     hasServiceChanges,
+    newTypeChoice,
     normalizeFormData,
     normalizeServiceData,
+    offersNewType,
     serviceFormSchema,
+    typeErrors,
+    typeOfChoice,
+    typeOptions,
 } from "./form-helper";
 
 const rules = defaultRegistrationRules;
@@ -26,6 +32,7 @@ const valid: FormData = {
     documentationUrl: "",
     environment: "",
     createdAt: "",
+    newType: false,
 };
 
 function messages(
@@ -167,6 +174,9 @@ describe("normalizeServiceData", () => {
             documentationUrl: undefined,
             environment: undefined,
         });
+        expect(
+            normalizeServiceData({ ...valid, newType: true }),
+        ).not.toHaveProperty("newType");
     });
 
     it("sends the creation time only if an admin changed it", async () => {
@@ -225,6 +235,9 @@ describe("hasServiceChanges", () => {
         expect(
             hasServiceChanges({ ...valid, url: ` ${valid.url}` }, valid),
         ).toBe(false);
+        expect(hasServiceChanges({ ...valid, newType: true }, valid)).toBe(
+            false,
+        );
     });
 
     it("finds changes of other fields", async () => {
@@ -237,5 +250,96 @@ describe("hasServiceChanges", () => {
                 valid,
             ),
         ).toBe(true);
+    });
+});
+
+describe("typeOptions", () => {
+    const tes = { group: "org.ga4gh", artifact: "tes", version: "1.1.0" };
+    const wes = { group: "org.ga4gh", artifact: "wes", version: "1.0.0" };
+    const beacon = { group: "org.ga4gh", artifact: "beacon", version: "2.0" };
+
+    it("labels and keys the listed types, in the registry's order", async () => {
+        expect(typeOptions([wes, tes], tes)).toEqual([
+            {
+                label: "org.ga4gh · tes · 1.1.0",
+                value: JSON.stringify(["org.ga4gh", "tes", "1.1.0"]),
+            },
+            {
+                label: "org.ga4gh · wes · 1.0.0",
+                value: JSON.stringify(["org.ga4gh", "wes", "1.0.0"]),
+            },
+        ]);
+    });
+
+    it("keeps the stored type, also if it isn't listed", async () => {
+        expect(typeOptions([tes, wes], beacon).map((val) => val.label)).toEqual(
+            [
+                "org.ga4gh · beacon · 2.0",
+                "org.ga4gh · tes · 1.1.0",
+                "org.ga4gh · wes · 1.0.0",
+            ],
+        );
+        expect(typeOptions([], beacon).map((val) => val.label)).toEqual([
+            "org.ga4gh · beacon · 2.0",
+        ]);
+    });
+});
+
+describe("typeOfChoice", () => {
+    it("sets a listed type", async () => {
+        expect(
+            typeOfChoice(JSON.stringify(["org.ga4gh", "tes", "1.1.0"])),
+        ).toEqual({
+            newType: false,
+            type: { group: "org.ga4gh", artifact: "tes", version: "1.1.0" },
+        });
+    });
+
+    it("starts a new type in the default group", async () => {
+        expect(typeOfChoice(newTypeChoice)).toEqual({
+            newType: true,
+            type: { group: "org.ga4gh", artifact: "", version: "" },
+        });
+    });
+});
+
+describe("offersNewType", () => {
+    it("offers new types to users who may add them", async () => {
+        expect(offersNewType({ mayAdd: true, pending: false })).toBe(true);
+        expect(offersNewType({ mayAdd: false, pending: false })).toBe(false);
+        expect(offersNewType({ mayAdd: false, admin: true })).toBe(false);
+    });
+
+    it("offers none for pending services, except to admins", async () => {
+        expect(offersNewType({ mayAdd: true, pending: true })).toBe(false);
+        // unknown: the service may be pending
+        expect(offersNewType({ mayAdd: true })).toBe(false);
+        expect(
+            offersNewType({ mayAdd: true, pending: true, admin: true }),
+        ).toBe(true);
+        expect(offersNewType({ mayAdd: true, admin: true })).toBe(true);
+    });
+});
+
+describe("typeErrors", () => {
+    it("collects the errors of the touched fields of the type", async () => {
+        expect(
+            typeErrors({
+                "type.group": { isTouched: true, errors: ["group"] },
+                "type.artifact": { isTouched: false, errors: ["artifact"] },
+                "type.version": { isTouched: true, errors: ["version"] },
+                name: { isTouched: true, errors: ["name"] },
+            }),
+        ).toEqual(["group", "version"]);
+        expect(typeErrors({})).toEqual([]);
+    });
+});
+
+describe("approvedTypes", () => {
+    it("leaves out the pending types", async () => {
+        const tes = { group: "org.ga4gh", artifact: "tes", version: "1.1.0" };
+        const own = { group: "org.example", artifact: "x", version: "1.0" };
+        expect(approvedTypes([own, tes], [own])).toEqual([tes]);
+        expect(approvedTypes([tes], [])).toEqual([tes]);
     });
 });

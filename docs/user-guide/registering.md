@@ -77,10 +77,14 @@ cloud-registry 1.0.0rc1 have no limit.
 Owners and maintainers of a service, and admins, can edit it:
 
 1. Open the service (from the list, or its page) and select **Edit**.
-2. Change the fields. The environment is chosen from those that the
-   registry allows, as it publishes them in its service info (any text if
-   it allows any environment), and the service URL must have a scheme
-   that it allows (e.g. `https`).
+2. Change the fields. The **Service Type** is chosen from the registered
+   types, as in the form for new services; the service's current type is
+   always offered, also if it isn't listed (e.g. a pending one). If you may
+   add types, **Add new service type** shows the fields **Type Group**,
+   **Type Artifact** and **Type Version** for a new one. The environment is
+   chosen from those that the registry allows, as it publishes them in its
+   service info (any text if it allows any environment), and the service
+   URL must have a scheme that it allows (e.g. `https`).
 3. Select **Submit**. **Reset** undoes your changes.
 
 If you leave the page with unsaved changes, the app asks first.
@@ -94,7 +98,9 @@ Some changes have consequences:
   [Verifications](verifications.md)); changing it back doesn't restore it.
 - **New type:** a type that isn't registered yet is added, if you may add
   types; it may be pending until an admin approves it, and the service
-  with it (the form says so).
+  with it (the form says so). A pending service can only be changed to an
+  approved type, so the form offers no new type for it, nor if it can't
+  tell whether the service is pending (admins excepted).
 - **Service ID:** only admins can change it. The service keeps its roles
   and its verification under the new ID, but links to the old ID stop
   working.

@@ -1,11 +1,19 @@
 import type { ExternalServiceRegister } from "@elixir-cloud/cloud-registry/providers";
 import type { DeepKeys } from "@tanstack/react-form";
+import type { ServiceType } from "@/lib/cloud-registry.types";
 import { serviceIdError } from "@/lib/service-ids";
 import {
+    defaultTypeGroup,
     type ServiceSchemaRules,
     serviceFields,
     serviceSchema,
 } from "@/lib/service-schema";
+import {
+    compareTypes,
+    typeFromKey,
+    typeKey,
+    typeLabel,
+} from "@/lib/service-types";
 import { z } from "@/lib/zod";
 
 // as the registry checks timestamps (`is_date_time()` of cloud-registry)
@@ -43,13 +51,15 @@ const timestamp = (label: string) =>
  * Get the schema of the fields of the edit form
  * @param rules The registry's rules, e.g. from `useRegistrationRules()`
  * @returns The schema of a service's registration (`serviceSchema()`),
- * with the stored ID (see `serviceFormSchema()` for new ones) and the
- * creation time
+ * with the stored ID (see `serviceFormSchema()` for new ones), the
+ * creation time, and whether the type is a new one (`newType`: entered in
+ * its fields, else chosen from a list; not sent)
  */
 export function formDataSchema(rules: ServiceSchemaRules) {
     return serviceSchema(rules).extend({
         id: z.string(),
         createdAt: timestamp("Created At"),
+        newType: z.boolean(),
     });
 }
 
@@ -103,6 +113,8 @@ export function normalizeFormData(
         ...serviceFields(data),
         id: data?.id ?? "",
         createdAt: admin ? (data?.createdAt ?? "") : "",
+        // the stored type is one of the choices
+        newType: false,
     };
 }
 
@@ -110,7 +122,7 @@ export function normalizeFormData(
 // only if changed; it always sets the update time of existing services; the
 // ID is in the path, and changed by a rename
 export function normalizeServiceData(
-    { id: _id, createdAt, ...data }: FormData,
+    { id: _id, createdAt, newType: _newType, ...data }: FormData,
     initial?: FormData,
 ): ExternalServiceRegister {
     return {
@@ -138,4 +150,101 @@ export function hasServiceChanges(value: FormData, initial: FormData) {
         JSON.stringify(normalizeServiceData(value, initial)) !==
         JSON.stringify(normalizeServiceData(initial, initial))
     );
+}
+
+/** The choice of a new service type in the list of types */
+export const newTypeChoice = "new";
+
+/**
+ * Get the service types to choose from
+ * @param serviceTypes The registered types, e.g. from `GET /services/types`
+ * @param current The service's stored type, which stays a choice also if it
+ * isn't listed (e.g. pending)
+ * @returns Options of the types (values: `typeKey()`), sorted as the
+ * registry sorts them, without duplicates
+ */
+export function typeOptions(
+    serviceTypes: readonly ServiceType[],
+    current: ServiceType,
+) {
+    const types = new Map(
+        [...serviceTypes, current].map((type) => [typeKey(type), type]),
+    );
+    return [...types.values()]
+        .sort(compareTypes)
+        .map((type) => ({ label: typeLabel(type), value: typeKey(type) }));
+}
+
+/**
+ * Get the type that a choice in the list of types sets
+ * @param choice `newTypeChoice`, or the key (`typeKey()`) of a type
+ * @returns The type, empty in the default group for a new one, and whether
+ * it is new
+ */
+export function typeOfChoice(choice: string) {
+    if (choice === newTypeChoice)
+        return {
+            newType: true,
+            type: { group: defaultTypeGroup, artifact: "", version: "" },
+        };
+    return { newType: false, type: typeFromKey(choice) };
+}
+
+/**
+ * Check whether the edit form offers new service types
+ * @param options `mayAdd`: whether the user may add types
+ * (`may_add_service_types` of `GET /me`); `pending`: whether the service
+ * is pending, undefined if unknown; `admin`: whether the user acts as admin
+ * @returns Whether to offer them: pending services take only approved
+ * types from users other than admins, so these users get them only for
+ * services known not to be pending
+ */
+export function offersNewType({
+    mayAdd,
+    pending,
+    admin = false,
+}: {
+    mayAdd: boolean;
+    pending?: boolean;
+    admin?: boolean;
+}) {
+    return mayAdd && (admin || pending === false);
+}
+
+/**
+ * Get the approved service types
+ * @param serviceTypes Types from `GET /services/types`, which lists the
+ * user's pending ones too if the registry requires login for reads (the
+ * request is then sent with the token)
+ * @param pending The pending types that the user may see (`GET
+ * /approvals`)
+ * @returns The listed types that aren't pending
+ */
+export function approvedTypes(
+    serviceTypes: readonly ServiceType[],
+    pending: readonly ServiceType[],
+) {
+    const keys = new Set(pending.map(typeKey));
+    return serviceTypes.filter((type) => !keys.has(typeKey(type)));
+}
+
+/** The fields of a service type in the form */
+const typeFields = ["type.group", "type.artifact", "type.version"] as const;
+
+/** The meta data of the form's fields, as far as `typeErrors()` reads it */
+export type FieldMetas<E> = Partial<
+    Record<string, { isTouched: boolean; errors: E[] }>
+>;
+
+/**
+ * Get the errors on the fields of the service type, e.g. from the
+ * registry, to show them while the fields are hidden
+ * @param fieldMeta The meta data of the form's fields
+ * @returns The errors of the touched fields of the type
+ */
+export function typeErrors<E>(fieldMeta: FieldMetas<E>) {
+    return typeFields.flatMap((name) => {
+        const meta = fieldMeta[name];
+        return meta?.isTouched ? meta.errors : [];
+    });
 }
