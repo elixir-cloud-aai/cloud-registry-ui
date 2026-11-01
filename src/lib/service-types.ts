@@ -92,10 +92,34 @@ function mayAddServiceTypes(
     return me.admin || !noUnusedTypes(rules);
 }
 
+/**
+ * Check whether the create form offers new service types
+ * @param me The user, from `GET /me`; null or undefined if it couldn't be
+ * read
+ * @param rules The registry's rules, e.g. from `useRegistrationRules()`
+ * @returns `mayAddServiceTypes()` if `GET /me` says whether the user may
+ * add types; else (e.g. after an error, or from registries without the
+ * flag) whether the user is an admin or the rules let other users add
+ * types: not only admins (`service_types: controlled`), and not without
+ * unused types (`noUnusedTypes()`)
+ */
+function offersNewTypes(
+    me: Pick<Me, "admin" | "may_add_service_types"> | null | undefined,
+    rules: Pick<RegistrationRules, "serviceTypes" | "maxUnusedServiceTypes">,
+) {
+    if (me?.may_add_service_types !== undefined)
+        return mayAddServiceTypes(me, rules);
+    return (
+        !!me?.admin ||
+        (rules.serviceTypes !== "controlled" && !noUnusedTypes(rules))
+    );
+}
+
 export {
     compareTypes,
     mayAddServiceTypes,
     noUnusedTypes,
+    offersNewTypes,
     typeFromKey,
     typeKey,
     typeLabel,
