@@ -1,9 +1,15 @@
 /**
  * @description failed registrations in the create form, the component
  * `ECCClientElixirCloudRegistryServiceCreate` of cloud-components: the
- * error from its event `ecc-service-create-failed`, and the toast for it
+ * registry's client for the form, which checks registrations before sending
+ * them (`checkedProvider`), the error from the form's event
+ * `ecc-service-create-failed`, and the toast for it
  */
 import type { EccServiceCreateFailedEvent } from "@elixir-cloud/cloud-registry/events";
+import type {
+    CloudRegistryProvider,
+    ExternalServiceRegister,
+} from "@elixir-cloud/cloud-registry/providers";
 import type { ExternalToast } from "sonner";
 import {
     duplicateToast,
@@ -12,8 +18,50 @@ import {
     withFieldLabels,
 } from "./errors";
 import { servicesLimitToast } from "./service-limits";
+import {
+    type ServiceSchemaRules,
+    serviceFields,
+    serviceSchema,
+} from "./service-schema";
 
 type CreateFailure = EccServiceCreateFailedEvent["detail"];
+
+/**
+ * Get a registry client that checks registrations before sending them, as
+ * the registry does (`serviceSchema()`), since the create form only checks
+ * that the required fields are filled in
+ * @param provider The registry's client
+ * @param rules Get the registry's rules at the time of sending, e.g. from
+ * `useRegistrationRules()`; `unknownRegistrationRules` leave the checks of
+ * the rules to the registry
+ * @returns A client like `provider`, whose registrations
+ * (`createService()`, `createServiceWithId()`) reject invalid ones unsent,
+ * with the first problem as the error's message; the form then reports
+ * them in `ecc-service-create-failed`
+ */
+function checkedProvider<
+    P extends Pick<
+        CloudRegistryProvider,
+        "createService" | "createServiceWithId"
+    >,
+>(provider: P, rules: () => ServiceSchemaRules): P {
+    const check = (
+        service: ExternalServiceRegister,
+        send: () => Promise<string>,
+    ) => {
+        const result = serviceSchema(rules()).safeParse(serviceFields(service));
+        return result.success
+            ? send()
+            : Promise.reject(new Error(result.error.issues[0].message));
+    };
+    // the client's other methods and fields, through its prototype
+    return Object.assign(Object.create(provider), {
+        createService: (service: ExternalServiceRegister) =>
+            check(service, () => provider.createService(service)),
+        createServiceWithId: (id: string, service: ExternalServiceRegister) =>
+            check(service, () => provider.createServiceWithId(id, service)),
+    }) as P;
+}
 
 /**
  * Get the error of a failed registration
@@ -85,4 +133,4 @@ async function createFailedToast(
     };
 }
 
-export { createError, createFailedToast };
+export { checkedProvider, createError, createFailedToast };

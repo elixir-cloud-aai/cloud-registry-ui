@@ -1,7 +1,16 @@
+import type { ExternalServiceRegister } from "@elixir-cloud/cloud-registry/providers";
 import { describe, expect, it, vi } from "vitest";
 import { failure } from "@/test/errors";
 import { duplicateMessage } from "./errors";
-import { createError, createFailedToast } from "./service-create";
+import {
+    defaultRegistrationRules,
+    unknownRegistrationRules,
+} from "./registration-rules";
+import {
+    checkedProvider,
+    createError,
+    createFailedToast,
+} from "./service-create";
 import { servicesLimitMessage } from "./service-limits";
 
 describe("createError", () => {
@@ -157,5 +166,112 @@ describe("createFailedToast", () => {
         expect(toast).toEqual({
             message: "Failed to load service types: offline",
         });
+    });
+});
+
+describe("checkedProvider", () => {
+    const service: ExternalServiceRegister = {
+        name: "TES North",
+        url: "https://tes.example.org/",
+        organization: { name: "Example", url: "https://example.org/" },
+        type: { group: "org.ga4gh", artifact: "tes", version: "1.1.0" },
+        version: "1.0.0",
+        description: undefined,
+        environment: "test",
+    };
+    const registry = () => ({
+        createService: vi.fn(
+            async (_service: ExternalServiceRegister) => "created",
+        ),
+        createServiceWithId: vi.fn(
+            async (id: string, _service: ExternalServiceRegister) => id,
+        ),
+        getServiceInfo: vi.fn(async () => ({})),
+    });
+
+    it("sends valid registrations", async () => {
+        const provider = registry();
+        const checked = checkedProvider(
+            provider,
+            () => defaultRegistrationRules,
+        );
+        await expect(checked.createService(service)).resolves.toBe("created");
+        await expect(
+            checked.createServiceWithId("tes-north", service),
+        ).resolves.toBe("tes-north");
+        expect(provider.createService).toHaveBeenCalledWith(service);
+        expect(provider.createServiceWithId).toHaveBeenCalledWith(
+            "tes-north",
+            service,
+        );
+    });
+
+    it("rejects invalid ones with the first problem, unsent", async () => {
+        const provider = registry();
+        const checked = checkedProvider(
+            provider,
+            () => defaultRegistrationRules,
+        );
+        const invalid = {
+            ...service,
+            url: "http://tes.example.org/",
+            documentationUrl: "docs",
+        };
+        await expect(checked.createService(invalid)).rejects.toThrow(
+            "Service URL must be an https URL, e.g. https://example.org/.",
+        );
+        await expect(
+            checked.createServiceWithId("tes-north", {
+                ...service,
+                environment: "qa",
+            }),
+        ).rejects.toThrow(
+            "Environment must be one of: 'prod', 'test', 'dev', 'staging'.",
+        );
+        expect(provider.createService).not.toHaveBeenCalled();
+        expect(provider.createServiceWithId).not.toHaveBeenCalled();
+    });
+
+    it("follows the current rules", async () => {
+        const provider = registry();
+        let rules = defaultRegistrationRules;
+        const checked = checkedProvider(provider, () => rules);
+        const http = { ...service, url: "http://tes.example.org/" };
+        await expect(checked.createService(http)).rejects.toThrow();
+        rules = { ...defaultRegistrationRules, urlSchemes: ["https", "http"] };
+        await expect(checked.createService(http)).resolves.toBe("created");
+    });
+
+    it("leaves the rules to the registry if they are unknown", async () => {
+        const provider = registry();
+        const checked = checkedProvider(
+            provider,
+            () => unknownRegistrationRules,
+        );
+        await expect(
+            checked.createService({
+                ...service,
+                url: "http://tes.example.org/",
+                environment: "qa",
+            }),
+        ).resolves.toBe("created");
+        // checks that don't depend on the rules still apply
+        await expect(
+            checked.createService({
+                ...service,
+                description: "x".repeat(4097),
+            }),
+        ).rejects.toThrow("Description must be at most 4096 characters.");
+    });
+
+    it("passes on the client's other methods", async () => {
+        const provider = registry();
+        const checked = checkedProvider(
+            provider,
+            () => defaultRegistrationRules,
+        );
+        await checked.getServiceInfo();
+        expect(provider.getServiceInfo).toHaveBeenCalled();
+        expect(provider.createService).not.toBe(checked.createService);
     });
 });

@@ -8,12 +8,13 @@ import type {
 import { ECCClientElixirCloudRegistryServiceCreate } from "@elixir-cloud/cloud-registry/react";
 import { ClockIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { UnsavedChangesGuard } from "@/components/shared/unsaved-changes-guard";
-import { useCloudRegistry, useMe } from "@/hooks";
-import { createFailedToast } from "@/lib/service-create";
+import { useCloudRegistry, useMe, useRegistrationRules } from "@/hooks";
+import { unknownRegistrationRules } from "@/lib/registration-rules";
+import { checkedProvider, createFailedToast } from "@/lib/service-create";
 import { servicesLimit } from "@/lib/service-limits";
 
 function Page() {
@@ -24,6 +25,23 @@ function Page() {
     // the registry's limit of services per user, for its 409; read in
     // advance, as the service info is the same for all users
     const [limit, setLimit] = useState<number>();
+    // the registry's rules for the checks before sending; until they are
+    // read, the registry checks what depends on them
+    const { rules, loading: rulesLoading } = useRegistrationRules();
+    const checkRules = useRef(unknownRegistrationRules);
+    useEffect(() => {
+        checkRules.current = rulesLoading ? unknownRegistrationRules : rules;
+    }, [rules, rulesLoading]);
+    // the form only checks that the required fields are filled in, so the
+    // client checks the rest before sending (cloud-components has no hook
+    // for it); the same client for new rules, as the form reloads its types
+    // for another one
+    const provider = useMemo(
+        () =>
+            cloudRegistryProvider &&
+            checkedProvider(cloudRegistryProvider, () => checkRules.current),
+        [cloudRegistryProvider],
+    );
 
     useEffect(() => {
         let current = true;
@@ -75,7 +93,7 @@ function Page() {
         setChanged(e.detail.dirty);
     };
 
-    if (cloudRegistryProvider === null) return;
+    if (provider === null) return;
 
     if (!isLoggedIn)
         return <LoginPrompt message="Log in to register a service" />;
@@ -109,7 +127,7 @@ function Page() {
                 onEccServiceCreateFailed={onServiceCreationFailed}
                 onEccServiceCreateValidationFailed={onValidationError}
                 onEccServiceFormChanged={onFormChanged}
-                provider={cloudRegistryProvider}
+                provider={provider}
             />
         </div>
     );
