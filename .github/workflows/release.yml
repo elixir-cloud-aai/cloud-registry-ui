@@ -19,9 +19,10 @@
 # deployment. UI versions follow the registry in major and minor version
 # (see "Compatibility" in `docs/operator-guide/index.md`). Until 1.0.0,
 # all releases are GitHub pre-releases (but stable ones still update the
-# `latest` image). See "Releasing" in `CONTRIBUTING.md` for the steps and
-# the repository settings it needs. Adapted from cloud-registry's release
-# workflow.
+# `latest` image). Release commits are on `dev`, and `main` is moved
+# forward to them before they are tagged. See "Releasing" in
+# `CONTRIBUTING.md` for the steps and the repository settings it needs.
+# Adapted from cloud-registry's release workflow.
 
 name: Release
 
@@ -98,7 +99,7 @@ jobs:
                       exit 1
                   fi
                   if ! git merge-base --is-ancestor HEAD origin/main; then
-                      echo "::error::Release commit is not on 'main'"
+                      echo "::error::Release commit is not on 'main' (move 'main' to it first: git push origin <sha>:main)"
                       exit 1
                   fi
                   {
@@ -119,9 +120,9 @@ jobs:
                       exit 1
                   fi
             # The checks above don't run the tests: require a successful run of
-            # the CI workflow for a push of the release commit; runs for pull
-            # requests test merge commits, not the commit itself. Re-runs that
-            # succeeded count
+            # the CI workflow for a push of the release commit (to `dev`,
+            # before `main` moved to it); runs for pull requests test merge
+            # commits, not the commit itself. Re-runs that succeeded count
             - name: Check that CI passed for the release commit
               env:
                   GH_TOKEN: ${{ github.token }}
