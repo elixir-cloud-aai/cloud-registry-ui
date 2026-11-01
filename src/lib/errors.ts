@@ -125,11 +125,8 @@ const serviceTypeConflicts = {
  * `service-type-in-use`)
  */
 function serviceTypeConflict(err: unknown) {
-    const code =
-        isConflict(err) && err instanceof Error && "code" in err
-            ? err.code
-            : undefined;
-    return typeof code === "string" && Object.hasOwn(serviceTypeConflicts, code)
+    const code = conflictCode(err);
+    return code !== undefined && Object.hasOwn(serviceTypeConflicts, code)
         ? serviceTypeConflicts[code as keyof typeof serviceTypeConflicts]
         : undefined;
 }
@@ -152,6 +149,21 @@ function mutationError(
 }
 
 /**
+ * Get the registry's code for a conflict
+ * @param err Error of the request
+ * @returns The code, if the request failed with a conflict (409) that has
+ * one
+ */
+function conflictCode(err: unknown) {
+    return isConflict(err) &&
+        err instanceof Error &&
+        "code" in err &&
+        typeof err.code === "string"
+        ? err.code
+        : undefined;
+}
+
+/**
  * Check if a request failed with a conflict of a kind
  * @param err Error of the request
  * @param expected The registry's code for the conflict
@@ -164,10 +176,7 @@ function isConflictOf(
     legacy: (detail?: string) => boolean = () => true,
 ) {
     if (!isConflict(err)) return false;
-    const code =
-        err instanceof Error && "code" in err && typeof err.code === "string"
-            ? err.code
-            : undefined;
+    const code = conflictCode(err);
     return code === undefined ? legacy(errorDetail(err)) : code === expected;
 }
 

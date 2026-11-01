@@ -116,6 +116,8 @@ describe("serviceTypeConflict", () => {
             // registries before cloud-registry 0.5.0 send no codes
             failure(409, { detail: "d" }),
             failure(400, { detail: "d", code: "service-type-in-use" }),
+            // no keys of the prototype
+            failure(409, { detail: "d", code: "constructor" }),
         ]) {
             expect(serviceTypeConflict(err)).toBeUndefined();
             expect(mutationError(err, "f")).toBe("d");

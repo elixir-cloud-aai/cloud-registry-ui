@@ -63,8 +63,9 @@ function noUnusedTypes(
  * Get the current user's limit of unused service types
  * @param me The user, from `GET /me`; null if logged out or not loaded
  * @param rules The registry's rules, e.g. from `useRegistrationRules()`
- * @returns How many types that no service has the user may have added;
- * undefined without a limit, for admins, or if unknown
+ * @returns How many types that no service has the user may have added
+ * (the limit of users other than admins also if the user isn't known);
+ * undefined for admins, without a limit, or if the limit is unknown
  */
 function unusedTypesLimit(
     me: Pick<Me, "admin"> | null | undefined,
