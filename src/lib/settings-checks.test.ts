@@ -23,18 +23,15 @@ describe("publicSettingsChecks", () => {
         expect(publicSettingsChecks).not.toThrow();
     });
 
-    it.each([["NEXT_PUBLIC_APP_TITLE", "x".repeat(25), /APP_TITLE/]])(
-        "checks %s",
-        async (name, value, message) => {
-            vi.stubEnv(
-                "NEXT_PUBLIC_CLOUD_REGISTRY_URL",
-                "https://registry.example.org/ga4gh/registry/v1",
-            );
-            vi.stubEnv(name, value);
-            const { publicSettingsChecks } = await load();
-            expect(publicSettingsChecks).toThrow(message);
-        },
-    );
+    it("checks the branding", async () => {
+        vi.stubEnv(
+            "NEXT_PUBLIC_CLOUD_REGISTRY_URL",
+            "https://registry.example.org/ga4gh/registry/v1",
+        );
+        vi.stubEnv("NEXT_PUBLIC_APP_TITLE", "x".repeat(25));
+        const { publicSettingsChecks } = await load();
+        expect(publicSettingsChecks).toThrow(/APP_TITLE/);
+    });
 
     it.each([
         ["NEXT_PUBLIC_SERVICE_ENVIRONMENTS", "*,prod", "environments"],

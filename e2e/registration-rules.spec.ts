@@ -81,7 +81,7 @@ test.describe("registration rules", () => {
         ).toBeVisible();
     });
 
-    test("without the rules, the edit form says so and uses the defaults", async ({
+    test("without the rules, the edit form says so and leaves the checks to the registry", async ({
         page,
         browser,
         problems,
@@ -99,15 +99,21 @@ test.describe("registration rules", () => {
                 { exact: false },
             ),
         ).toBeVisible();
-        await page.getByRole("combobox", { name: "Environment" }).click();
-        await expect(page.getByRole("option")).toHaveText([
-            "Not set",
-            "prod",
-            "test",
-            "dev",
-            "staging",
-        ]);
-        await page.keyboard.press("Escape");
+        await expect(
+            page.getByRole("textbox", { name: "Environment" }),
+        ).toHaveValue("test");
+        // the registry of the stack allows http
+        const url = service.url.replace("https:", "http:");
+        await page.locator("input[name=url]").fill(url);
+        await page.getByRole("button", { name: "Submit" }).click();
+        await expect
+            .poll(
+                async () =>
+                    (await api(undefined, "GET", `/services/${service.id}`))
+                        .body?.url,
+            )
+            .toBe(url);
+        await page.waitForLoadState("networkidle");
         // the failed reads of the service info, which the page reports
         expect(
             problems.filter((val) => !val.includes(`${registry}/service-info`)),

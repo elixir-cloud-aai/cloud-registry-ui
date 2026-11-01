@@ -28,8 +28,8 @@ function Page() {
     const { me, loading: meLoading, error: meError, expired } = useMe();
     const [loginRequired, setLoginRequired] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
-    // the registry's rules for the entries; its defaults if they can't be
-    // read, as the registry checks the entries anyway
+    // the registry's rules for the entries; if they are unknown, the
+    // registry checks the entries when they are sent
     const {
         rules,
         loading: rulesLoading,
@@ -116,7 +116,7 @@ function Page() {
     useEffect(() => {
         if (rulesError)
             toast.error(
-                "Could not read the registry's rules for registrations. The form checks the registry's defaults; the registry checks its own rules when you submit.",
+                "Could not read the registry's rules for registrations. The registry checks the environment and the service URL when you submit.",
             );
     }, [rulesError]);
 

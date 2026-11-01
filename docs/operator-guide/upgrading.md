@@ -61,7 +61,9 @@ services had to be set in the app as well (`NEXT_PUBLIC_SERVICE_ENVIRONMENTS`
 and `NEXT_PUBLIC_SERVICE_URL_SCHEMES`), in line with the registry's config.
 Now, the app reads them from the registry's service info (see
 [Registry](configuration.md#registry)), so they can't differ from what the
-registry enforces. Remove the two settings from your deployment (`docker
+registry enforces (cloud-registry 0.6.0 and later publish them; with older
+registries, the edit form takes any environment and any `http` or `https`
+URL, and the registry checks them). Remove the two settings from your deployment (`docker
 run -e`, `.env`, Vercel project): if they are still set, the app ignores
 them and logs a warning when it starts ("Ignoring setting …").
 

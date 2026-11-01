@@ -6,7 +6,9 @@
  * elsewhere, and `serviceSchema()` (`service-schema.ts`) to check
  * registrations as the registry does. Each rule falls back to the
  * registry's default (`defaultRegistrationRules`) if it is missing or
- * invalid, e.g. for registries that don't publish it.
+ * invalid. Registries older than cloud-registry 0.6.0 publish no rules:
+ * they count as unknown, like a failed read, and forms then leave the
+ * checks of the rules to the registry (`unknownRegistrationRules`).
  */
 
 import { z } from "@/lib/zod";
@@ -19,9 +21,9 @@ type ServiceTypesMode = "open" | "controlled" | "moderated";
 type RegistrationRules = {
     /** Allowed environments of services, in the registry's order; empty
      * if any value is allowed */
-    environments: string[];
+    environments: readonly string[];
     /** Allowed schemes of service URLs, lowercase: `https` and `http` */
-    urlSchemes: string[];
+    urlSchemes: readonly string[];
     /** Who may add service types; undefined if unknown */
     serviceTypes?: ServiceTypesMode;
     /** How many unused types users other than admins may have added;
@@ -39,15 +41,25 @@ const maxEnvironmentLength = 256;
 
 /** The registry's defaults, for rules it doesn't publish */
 const defaultRegistrationRules: Readonly<RegistrationRules> = Object.freeze({
-    environments: ["prod", "test", "dev", "staging"],
-    urlSchemes: ["https"],
+    environments: Object.freeze(["prod", "test", "dev", "staging"]),
+    urlSchemes: Object.freeze(["https"]),
+});
+
+/** Rules that leave the checks to the registry, if its rules are unknown:
+ * any environment, and any scheme that the registry can allow */
+const unknownRegistrationRules: Readonly<RegistrationRules> = Object.freeze({
+    environments: Object.freeze([]),
+    urlSchemes: Object.freeze([...knownUrlSchemes]),
 });
 
 const limit = z.int().nonnegative().optional().catch(undefined);
 const rulesSchema = z.object({
     environments: z
         .array(z.string())
-        .transform((values) => [...new Set(values)])
+        // no empty value, nor the select's value for none (`,`)
+        .transform((values) => [
+            ...new Set(values.filter((value) => value && value !== ",")),
+        ])
         .catch(() => [...defaultRegistrationRules.environments]),
     url_schemes: z
         .array(z.string())
@@ -72,18 +84,19 @@ const rulesSchema = z.object({
  * Get the registration rules from the registry's service info
  * @param info Service info, as `GET /service-info` returns it
  * @returns The rules; the registry's defaults for those it doesn't publish
- * or that are invalid
+ * or that are invalid; undefined if it publishes none (registries older
+ * than cloud-registry 0.6.0)
  */
-function registrationRules(info: unknown): RegistrationRules {
-    const published =
-        info !== null &&
-        typeof info === "object" &&
-        "registration_rules" in info &&
-        info.registration_rules !== null &&
-        typeof info.registration_rules === "object"
-            ? info.registration_rules
-            : {};
-    const rules = rulesSchema.parse(published);
+function registrationRules(info: unknown): RegistrationRules | undefined {
+    if (
+        info === null ||
+        typeof info !== "object" ||
+        !("registration_rules" in info) ||
+        info.registration_rules === null ||
+        typeof info.registration_rules !== "object"
+    )
+        return undefined;
+    const rules = rulesSchema.parse(info.registration_rules);
     return {
         environments: rules.environments,
         urlSchemes: rules.url_schemes,
@@ -96,8 +109,8 @@ function registrationRules(info: unknown): RegistrationRules {
 /**
  * Read the registration rules from the registry
  * @param provider The registry's client, if any
- * @returns The rules; undefined without a client, or if the service info
- * can't be read
+ * @returns The rules; undefined without a client, if the service info
+ * can't be read, or if it has no rules
  */
 async function readRegistrationRules(
     provider: Pick<AuthenticatedCloudRegistryProvider, "getServiceInfo"> | null,
@@ -150,4 +163,5 @@ export {
     readRegistrationRules,
     registrationRules,
     type ServiceTypesMode,
+    unknownRegistrationRules,
 };

@@ -55,6 +55,7 @@ with older registries without them, e.g. without the switch to admin mode:
 | Several login providers (the registry namespaces user IDs by issuer, see [Login](login.md))  | 0.6.0                |
 | [Limit on registered services](../user-guide/registering.md#limit-on-registered-services)    | 1.0.0rc1             |
 | [Invitations](../user-guide/access.md#inviting-by-link)                                      | 1.0.0rc1             |
+| [Registration rules](configuration.md#registry) (environments, URL schemes)                  | 0.6.0                |
 
 The app is tested against cloud-registry 1.0.0rc1 (see the [release
 notes](../releases/1.0.0-rc1.md)).
@@ -78,8 +79,8 @@ reports that the registry has no invitations.
 
 - [Deployment](deployment.md): the Docker image, running it, HTTPS, and
   verifying released images.
-- [Configuration](configuration.md): all settings, and the registry's
-  address, URL schemes and environments.
+- [Configuration](configuration.md): all settings, the registry's
+  address, and the registry's rules for registrations that the app follows.
 - [Login](login.md): login providers, registering the app with LS Login,
   sessions, and the registry's settings for the app's tokens.
 - [Branding](branding.md): the title and logos.

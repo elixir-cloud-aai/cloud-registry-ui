@@ -13,8 +13,14 @@
  * if (!result.success) toast.error(result.error.issues[0].message);
  * ```
  *
- * The edit form extends the schema with its own fields (`formDataSchema()`
- * in `services/update/_components/form-helper.ts`).
+ * Only the rules on the fields apply (`ServiceSchemaRules`: `environments`
+ * and `urlSchemes`); a `RegistrationRules` object can be passed as it is.
+ * `serviceFields()` takes any `ServiceInput`: an `ExternalService` or
+ * `ExternalServiceRegister` of the registry's client, or a partial one.
+ * Also here: `serviceTypeSchema` and `defaultTypeGroup`, for forms of
+ * service types. The edit form extends the schema with its own fields
+ * (`formDataSchema(rules)` and `serviceFormSchema(id, rules)` in
+ * `services/update/_components/form-helper.ts`).
  */
 import {
     environmentMessage,
@@ -101,6 +107,7 @@ function environmentSchema(environments: readonly string[]) {
             // as the registry checks it, also for stored values
             .refine(
                 (value) => isAllowedEnvironment(environments, value),
+                // never shown without a list: any value is allowed then
                 environments.length ? environmentMessage(environments) : "",
             )
     );

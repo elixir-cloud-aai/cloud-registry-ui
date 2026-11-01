@@ -7,6 +7,7 @@ import {
     isAllowedEnvironment,
     readRegistrationRules,
     registrationRules,
+    unknownRegistrationRules,
 } from "./registration-rules";
 
 const defaults = {
@@ -42,15 +43,15 @@ describe("registrationRules", () => {
     it("keeps an empty list of environments, for any value", () => {
         expect(
             registrationRules({ registration_rules: { environments: [] } })
-                .environments,
+                ?.environments,
         ).toEqual([]);
     });
 
-    it("drops duplicate environments and unknown schemes", () => {
+    it("drops duplicate and empty environments and unknown schemes", () => {
         expect(
             registrationRules({
                 registration_rules: {
-                    environments: ["prod", "prod", "test"],
+                    environments: ["prod", "", "prod", ",", "test"],
                     url_schemes: ["HTTPS", "ftp", "https"],
                 },
             }),
@@ -66,6 +67,13 @@ describe("registrationRules", () => {
         [{ registration_rules: "x" }],
         [null],
         ["x"],
+    ])("has no rules for %j", (info) => {
+        // registries older than cloud-registry 0.6.0
+        expect(registrationRules(info)).toBeUndefined();
+    });
+
+    it.each([
+        [{ registration_rules: {} }],
         [
             {
                 registration_rules: {
@@ -91,14 +99,22 @@ describe("registrationRules", () => {
         expect(registrationRules(info)).toEqual(defaults);
     });
 
-    it("doesn't share the defaults' lists", () => {
-        registrationRules({}).environments.push("qa");
-        expect(registrationRules({}).environments).toEqual(
-            defaults.environments,
+    it("doesn't share the defaults' lists, which can't change", () => {
+        const rules = registrationRules({ registration_rules: {} });
+        expect(rules?.environments).not.toBe(
+            defaultRegistrationRules.environments,
         );
-        expect(defaultRegistrationRules.environments).toEqual(
-            defaults.environments,
+        expect(Object.isFrozen(defaultRegistrationRules.environments)).toBe(
+            true,
         );
+        expect(Object.isFrozen(unknownRegistrationRules.urlSchemes)).toBe(true);
+    });
+
+    it("leaves all checks to the registry if the rules are unknown", () => {
+        expect(unknownRegistrationRules).toEqual({
+            environments: [],
+            urlSchemes: ["http", "https"],
+        });
     });
 });
 
@@ -114,7 +130,12 @@ describe("readRegistrationRules", () => {
         });
     });
 
-    it("is unknown if the service info can't be read", async () => {
+    it("is unknown without rules, or if the service info can't be read", async () => {
+        expect(
+            await readRegistrationRules({
+                getServiceInfo: async () => ({ id: "x" }) as never,
+            }),
+        ).toBeUndefined();
         const provider = {
             getServiceInfo: () => Promise.reject(failure(500)),
         };

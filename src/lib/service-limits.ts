@@ -14,7 +14,7 @@ import { readRegistrationRules, registrationRules } from "./registration-rules";
  * publish it
  */
 function maxServicesPerUser(info: unknown) {
-    return registrationRules(info).maxServicesPerUser;
+    return registrationRules(info)?.maxServicesPerUser;
 }
 
 /**
