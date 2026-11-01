@@ -47,18 +47,18 @@ Serve the app over HTTPS, at the address of `LOGIN_REDIRECT_URI` (see
 
 ## Verifying images
 
-Released images are built by the release workflow on GitHub Actions, with an SBOM and the build provenance attached as attestations, a [GitHub artifact attestation](https://docs.github.com/en/actions/concepts/security/artifact-attestations) of their provenance, and a keyless [Sigstore](https://www.sigstore.dev/) signature. To check that an image was built by the release workflow for its tag, run (with the [GitHub CLI](https://cli.github.com/) or [cosign](https://docs.sigstore.dev/cosign/system_config/installation/) 3 or later), e.g. for 0.5.0:
+Released images are built by the release workflow on GitHub Actions, with an SBOM and the build provenance attached as attestations, a [GitHub artifact attestation](https://docs.github.com/en/actions/concepts/security/artifact-attestations) of their provenance, and a keyless [Sigstore](https://www.sigstore.dev/) signature. To check that an image was built by the release workflow for its tag, run (with the [GitHub CLI](https://cli.github.com/) or [cosign](https://docs.sigstore.dev/cosign/system_config/installation/) 3 or later), e.g. for 1.0.0-rc1:
 
 ```
-gh attestation verify oci://docker.io/elixircloud/cloud-registry-ui:0.5.0 \
+gh attestation verify oci://docker.io/elixircloud/cloud-registry-ui:1.0.0-rc1 \
   --repo elixir-cloud-aai/cloud-registry-ui \
   --signer-workflow elixir-cloud-aai/cloud-registry-ui/.github/workflows/release.yml \
-  --source-ref refs/tags/v0.5.0
-cosign verify docker.io/elixircloud/cloud-registry-ui:0.5.0 \
+  --source-ref refs/tags/v1.0.0-rc1
+cosign verify docker.io/elixircloud/cloud-registry-ui:1.0.0-rc1 \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  --certificate-identity https://github.com/elixir-cloud-aai/cloud-registry-ui/.github/workflows/release.yml@refs/tags/v0.5.0
+  --certificate-identity https://github.com/elixir-cloud-aai/cloud-registry-ui/.github/workflows/release.yml@refs/tags/v1.0.0-rc1
 ```
 
-Replace 0.5.0 with the version to verify. `--source-ref` and the ref in `--certificate-identity` check that the workflow ran for the release tag, not for another branch or tag; other images, e.g. ones you build yourself, aren't releases.
+Replace 1.0.0-rc1 with the version to verify. `--source-ref` and the ref in `--certificate-identity` check that the workflow ran for the release tag, not for another branch or tag; other images, e.g. ones you build yourself, aren't releases.
 
-To show an image's SBOM or provenance, run `docker buildx imagetools inspect docker.io/elixircloud/cloud-registry-ui:0.5.0 --format '{{ json .SBOM }}'` (or `.Provenance`).
+To show an image's SBOM or provenance, run `docker buildx imagetools inspect docker.io/elixircloud/cloud-registry-ui:1.0.0-rc1 --format '{{ json .SBOM }}'` (or `.Provenance`).
