@@ -9,7 +9,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { UnsavedChangesGuard } from "@/components/shared/unsaved-changes-guard";
 import { useCloudRegistry } from "@/hooks";
-import type { Verification } from "@/lib/cloud-registry.types";
+import type { ServiceType, Verification } from "@/lib/cloud-registry.types";
 import {
     duplicateMessage,
     duplicateToast,
@@ -50,7 +50,11 @@ type Props = {
     admin?: boolean;
     pending?: boolean;
     typesPending?: boolean;
-    approvedTypes?: Set<string>;
+    // the registered types to choose from (`GET /services/types`, which
+    // lists only approved ones); null if they couldn't be loaded
+    serviceTypes: readonly ServiceType[] | null;
+    // whether the user may add types (`may_add_service_types` of `GET /me`)
+    mayAddServiceTypes?: boolean;
     disabled?: boolean;
     onServiceUpdated?: (service: ExternalService) => void;
     onServiceRenamed?: (id: string) => void;
@@ -63,7 +67,8 @@ function ServiceUpdationForm({
     admin = false,
     pending,
     typesPending = false,
-    approvedTypes,
+    serviceTypes,
+    mayAddServiceTypes = true,
     disabled,
     onServiceUpdated,
     onServiceRenamed,
@@ -73,6 +78,11 @@ function ServiceUpdationForm({
     // the values to save once the new ID is confirmed
     const [renaming, setRenaming] = useState<FormData>();
     const initial = normalizeFormData(service, admin);
+    // the approved types, if known, for the note on new types
+    const approvedTypes = useMemo(
+        () => serviceTypes && new Set(serviceTypes.map(typeKey)),
+        [serviceTypes],
+    );
     const schema = useMemo(
         () =>
             serviceFormSchema(
@@ -229,7 +239,14 @@ function ServiceUpdationForm({
                     />
                 )}
                 <ServiceBasicInfoSection form={form} />
-                <ServiceTypeSection form={form} />
+                <ServiceTypeSection
+                    form={form}
+                    serviceTypes={serviceTypes}
+                    current={initial.type}
+                    // pending services take only approved types from users
+                    // other than admins
+                    allowNewType={mayAddServiceTypes && !(pending && !admin)}
+                />
                 {pending && !admin && (
                     <p className="flex items-center gap-2 text-sm text-muted-foreground">
                         <ClockIcon className="size-4 shrink-0" />
