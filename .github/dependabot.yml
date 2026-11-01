@@ -1,0 +1,61 @@
+version: 2
+# Every entry targets `ai-post-deploy`, the default branch, which takes all
+# pull requests; commit messages start with `build(deps)` (Conventional
+# Commits). Security updates always target the default branch
+updates:
+  # Dependencies in `package.json` and the lock (`bun.lock`), updated
+  # together
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: monthly
+    target-branch: ai-post-deploy
+    commit-message:
+      prefix: build
+      include: scope
+    ignore:
+      # Playwright is pinned exactly, in line with the Playwright image of
+      # the `e2e` job in `.github/workflows/ci.yml`: bump both by hand
+      - dependency-name: "@playwright/test"
+    groups:
+      node-dependencies:
+        patterns: ["*"]
+  # Packages that build the docs (`docs/requirements.txt`)
+  - package-ecosystem: pip
+    directory: /docs
+    schedule:
+      interval: monthly
+    target-branch: ai-post-deploy
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      docs-dependencies:
+        patterns: ["*"]
+  # Actions in the workflows and in the local actions (`.github/actions/`),
+  # including the pins of the shared actions of `elixir-cloud-aai/.github`
+  # (to the commits of its releases, `@<commit> # vX.Y.Z`)
+  - package-ecosystem: github-actions
+    directories: ["/", "/.github/actions/*"]
+    schedule:
+      interval: monthly
+    target-branch: ai-post-deploy
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      github-actions:
+        patterns: ["*"]
+  # Images in the `Dockerfile` (Bun); keep `bun-version` in the workflows
+  # in line with it
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: monthly
+    target-branch: ai-post-deploy
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      docker:
+        patterns: ["*"]
