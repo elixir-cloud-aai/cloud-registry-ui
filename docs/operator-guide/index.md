@@ -42,25 +42,33 @@ pages. A deployment needs:
 
 ## Compatibility
 
-UI versions follow the registry in major and minor version: UI 0.5.x works with cloud-registry 0.5.x, and UI 1.0.0-rc1 with cloud-registry 1.0.0-rc1; patch releases are independent. The first release, 0.5.0, goes with cloud-registry 0.5.x.
+UI versions follow the registry in major and minor version: UI 1.0.x works with cloud-registry 1.0.x; patch releases are independent. The first release, 1.0.0-rc1, goes with cloud-registry 1.0.0rc1. Pre-releases are spelled differently: the app follows SemVer and npm (`1.0.0-rc1`, tag `v1.0.0-rc1`), the registry PEP 440 (`1.0.0rc1`, tag `v1.0.0rc1`).
 
 Releases are published as GitHub releases and as images on Docker Hub, `elixircloud/cloud-registry-ui:<version>` (`latest` for the highest release without a pre-release suffix such as `-rc1`, 0.x releases included), built by the release workflow (`.github/workflows/release.yml`) with an SBOM and the build provenance attached, and signed (see [Verifying images](deployment.md#verifying-images)). Until 1.0.0, all releases are marked as pre-releases on GitHub.
 
-Features of newer registries need a registry of that version, e.g. [admin
-mode](admins.md#admin-mode) needs cloud-registry 0.6.0 or later. The app
-works with older registries without them, e.g. without the switch to admin
-mode.
+Features of newer registries need a registry of that version. The app works
+with older registries without them, e.g. without the switch to admin mode:
+
+| Feature                                                                                      | Needs cloud-registry |
+| -------------------------------------------------------------------------------------------- | -------------------- |
+| [Admin mode](admins.md#admin-mode)                                                           | 0.6.0                |
+| Several login providers (the registry namespaces user IDs by issuer, see [Login](login.md))  | 0.6.0                |
+| [Limit on registered services](../user-guide/registering.md#limit-on-registered-services)    | 1.0.0rc1             |
+| [Invitations](../user-guide/access.md#inviting-by-link)                                      | 1.0.0rc1             |
+
+The app is tested against cloud-registry 1.0.0rc1 (see the [release
+notes](../releases/1.0.0-rc1.md)).
 
 The limit on the services per user (see [Limit on registered
 services](../user-guide/registering.md#limit-on-registered-services)) comes
-from cloud-registry 1.0.0-rc1: the registry sets it (`custom.access_control.max_services_per_user`,
+from cloud-registry 1.0.0rc1: the registry sets it (`custom.access_control.max_services_per_user`,
 see the [registry's
 documentation](https://cloud-registry.readthedocs.io/en/latest/)), and the
 app reads it from the service info. Older registries have no limit.
 
 Invitations to services (see [Inviting by
 link](../user-guide/access.md#inviting-by-link)) need cloud-registry
-1.0.0-rc1 or later as well. Their settings, e.g. how long they are valid
+1.0.0rc1 or later as well. Their settings, e.g. how long they are valid
 and how many a service may have open, are the registry's (see the
 [registry's documentation](https://cloud-registry.readthedocs.io/en/latest/)),
 and the app has no settings for them. With older registries, the app

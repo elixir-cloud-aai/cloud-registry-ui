@@ -82,7 +82,7 @@ The limit is set by the registry (`custom.access_control.max_services_per_user`,
 (`registration_rules.max_services_per_user`). If it is 0, only admins can
 register services; an admin who is not in admin mode is told to switch to
 admin mode first (see [Admin mode](admin-mode.md)). Registries older than
-cloud-registry 1.0.0-rc1 have no limit.
+cloud-registry 1.0.0rc1 have no limit.
 
 ## Editing a service
 

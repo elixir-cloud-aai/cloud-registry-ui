@@ -19,7 +19,7 @@ again.
 
 ## 1.0.0-rc1
 
-Upgrade the registry to cloud-registry 1.0.0-rc1 together with the app
+Upgrade the registry to cloud-registry 1.0.0rc1 together with the app
 (see [Compatibility](index.md#compatibility)). It brings two features that
 the app uses once the registry has them, **without any setting to change in
 the app**:
@@ -36,7 +36,7 @@ the app**:
   registered services](../user-guide/registering.md#limit-on-registered-services)).
   Check that the default suits your users before the upgrade.
 
-With registries older than 1.0.0-rc1, the app keeps working: it reports
+With registries older than 1.0.0rc1, the app keeps working: it reports
 that the registry has no invitations, and there is no limit.
 
 ## Changes since unreleased versions
