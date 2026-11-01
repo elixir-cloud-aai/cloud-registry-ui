@@ -151,6 +151,11 @@ versions):
        runs="$(gh api "repos/elixir-cloud-aai/cloud-registry-ui/actions/workflows/ci.yml/runs?head_sha=${sha}&branch=dev&event=push&status=success&per_page=1" --jq .total_count)"
        (( runs >= 1 )) || { echo "No successful CI run for the push of ${sha} to dev"; exit 1; }
        git merge-base --is-ancestor origin/main "${sha}" || { echo "main can't be fast-forwarded to ${sha}"; exit 1; }
+       # Not in the release workflow: advisories published since the CI run
+       # (the `audit` job of `ci.yml`), in the lockfile of the commit
+       audit="$(mktemp -d)" && git show "${sha}:package.json" > "${audit}/package.json" &&
+           git show "${sha}:bun.lock" > "${audit}/bun.lock" || { echo "Cannot read the lockfile of ${sha}"; exit 1; }
+       (cd "${audit}" && bun audit --prod --audit-level=high) || { echo "High or critical advisories in the production dependencies"; exit 1; }
    ) && echo "All checks passed"
    ```
 
