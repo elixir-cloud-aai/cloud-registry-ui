@@ -98,8 +98,9 @@ Some changes have consequences:
   [Verifications](verifications.md)); changing it back doesn't restore it.
 - **New type:** a type that isn't registered yet is added, if you may add
   types; it may be pending until an admin approves it, and the service
-  with it (the form says so). A pending service can only be changed to a
-  registered type, so the form offers no new type for it (admins excepted).
+  with it (the form says so). A pending service can only be changed to an
+  approved type, so the form offers no new type for it, nor if it can't
+  tell whether the service is pending (admins excepted).
 - **Service ID:** only admins can change it. The service keeps its roles
   and its verification under the new ID, but links to the old ID stop
   working.
