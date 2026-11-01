@@ -1,4 +1,4 @@
-# Scan the image of the newest release weekly for known vulnerabilities with
+# Scan the image of the latest release weekly for known vulnerabilities with
 # Trivy (`.github/actions/scan-image`), as the `scan` job of `ci.yml` scans
 # the images of pull requests and pushes, so that vulnerabilities found after
 # a release are reported: the findings that have a fix are uploaded to code
@@ -6,11 +6,11 @@
 # the workflow artifact `trivy-report-release-image` (JSON and table), and
 # the workflow fails on critical and high vulnerabilities that have a fix
 # (fixed by a new release). Accepted findings are listed in
-# `.trivyignore.yaml`. The newest release is the newest published GitHub
-# release, pre-releases included (until 1.0.0, all releases are
-# pre-releases, and `latest` isn't set before the first stable one); its
-# image is tagged with the version (`X.Y.Z`, without the `v` of the Git
-# tag). Without a release, the run only says so. Scheduled runs use this
+# `.trivyignore.yaml`. The release scanned is the GitHub release marked as
+# latest or, as long as there is none (until 1.0.0, all releases are
+# pre-releases), the newest published one; its image is tagged with the
+# version (`X.Y.Z`, without the `v` of the Git tag). Without a release, the
+# run only says so. Scheduled runs use this
 # workflow, the scan action and `.trivyignore.yaml` as on the default
 # branch, and file their findings under it; once that is `main`, these are
 # the copies released with the scanned image, so findings accepted on `dev`
@@ -44,25 +44,25 @@ jobs:
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   persist-credentials: false
-            # The newest published release (drafts left out); only version
-            # tags are accepted, so that the image reference stays well-formed
-            - name: Find the newest release
+            # Published releases (drafts left out) with version tags only, so
+            # that the image reference stays well-formed: the latest release
+            # if there is one, otherwise the newest (by creation date)
+            - name: Find the release to scan
               id: release
               env:
                   GH_TOKEN: ${{ github.token }}
                   IMAGE_NAME: docker.io/${{ vars.DOCKERHUB_ORG || 'elixircloud' }}/cloud-registry-ui
               run: |
-                  tag="$(gh release list --repo "${GITHUB_REPOSITORY}" --exclude-drafts \
-                      --limit 1 --json tagName --jq '.[0].tagName // ""')"
+                  # as in the `prepare` job of `release.yml`
+                  pattern='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)[1-9][0-9]*)?$'
+                  releases="$(gh release list --repo "${GITHUB_REPOSITORY}" --exclude-drafts \
+                      --limit 100 --json tagName,isLatest)"
+                  tag="$(jq -r --arg pattern "${pattern}" \
+                      '[.[] | select(.tagName | test($pattern))] | (map(select(.isLatest)) + .)[0].tagName // ""' \
+                      <<< "${releases}")"
                   if [[ -z "${tag}" ]]; then
                       echo "::notice::No release yet, nothing to scan"
                       exit 0
-                  fi
-                  # as in `release.yml`
-                  pattern='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)[1-9][0-9]*)?$'
-                  if [[ ! "${tag}" =~ ${pattern} ]]; then
-                      echo "::error::The newest release has no version tag: '${tag}'"
-                      exit 1
                   fi
                   echo "Scanning ${IMAGE_NAME}:${tag#v}"
                   echo "image=${IMAGE_NAME}:${tag#v}" >> "$GITHUB_OUTPUT"

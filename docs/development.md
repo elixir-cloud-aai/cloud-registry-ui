@@ -107,6 +107,28 @@ dev dependency that brings the copy. If no fixed version exists, ignoring
 the advisory (`--ignore <CVE>` in the job) leaves a deliberate gap in the
 check: agree on it in a pull request that says why.
 
+## Image scan
+
+The `scan` job of CI scans the Docker image built by the `image` job with
+[Trivy](https://trivy.dev/) (`.github/actions/scan-image`), with the flags
+of the release scan: it fails on critical and high vulnerabilities that
+have a fix, and uploads them to code scanning. The workflow `Scan`
+(`.github/workflows/scan.yml`) scans the image of the latest release every
+Monday in the same way, with a full report as a workflow artifact. Fix a
+finding by updating the base image of the `Dockerfile` (the Bun image), or
+accept it in `.trivyignore.yaml`, with a reason and an expiry date. To scan
+locally as CI does:
+
+```
+docker build -t cloud-registry-ui:scan .
+docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+    -v "$PWD/.trivyignore.yaml:/trivyignore.yaml:ro" aquasec/trivy:0.75.0 \
+    image --ignorefile /trivyignore.yaml --ignore-unfixed \
+    --severity CRITICAL,HIGH --exit-code 1 cloud-registry-ui:scan
+```
+
+See "Releasing" in `CONTRIBUTING.md` for what the scans mean for releases.
+
 ## Docs
 
 The docs (`docs/`) are built with [MkDocs](https://www.mkdocs.org/) and the

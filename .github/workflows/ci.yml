@@ -3,9 +3,9 @@
 # production dependencies for known vulnerabilities, the Docker image and
 # its scan for known vulnerabilities (Trivy), the end-to-end tests against a
 # registry and a mock login provider, and the docs. The gate `passed` ("CI
-# passed") is the only required check and needs every other job to succeed. No `paths:` filters, so that the
-# gate always reports; to skip a job with `if:`, allow that skip in the
-# gate. Lint isn't checked yet: the code has Biome errors to fix first
+# passed") is the only required check and needs every other job to succeed.
+# No `paths:` filters, so that the gate always reports; to skip a job with
+# `if:`, allow that skip in the gate. Lint isn't checked yet: the code has Biome errors to fix first
 
 name: CI
 on:
@@ -168,7 +168,7 @@ jobs:
                   docker logs app
                   echo "::error::The container didn't serve the login page"
                   exit 1
-            # for `scan`, which scans exactly this image
+            # handed to `scan`, so that exactly the checked image is scanned
             - name: Save the image
               run: docker save cloud-registry-ui:ci -o "${RUNNER_TEMP}/image.tar"
             - name: Upload the image
@@ -176,7 +176,7 @@ jobs:
               with:
                   name: image
                   path: ${{ runner.temp }}/image.tar
-                  retention-days: 1
+                  retention-days: 7
                   if-no-files-found: error
 
     # Scans the image of `image` with Trivy (`.github/actions/scan-image`),
@@ -186,7 +186,7 @@ jobs:
     # scanning (not for pull requests from forks, whose token can't write
     # them), and the job fails on critical and high vulnerabilities that have
     # a fix. Accepted findings are listed, with a reason and an expiry date,
-    # in `.trivyignore.yaml`. The image of the newest release is scanned
+    # in `.trivyignore.yaml`. The image of the latest release is scanned
     # weekly (`scan.yml`)
     scan:
         name: Scan image
