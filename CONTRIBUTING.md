@@ -130,16 +130,19 @@ versions):
    (keep these commands in sync with the `prepare` job of
    `.github/workflows/release.yml`), in Bash. Run them before tagging: tags
    can't be moved or deleted, and the release workflow checks the tagged
-   commit, so a check that fails after the tag is pushed fails again on
-   re-runs, and the release then needs a new version, with its own
-   release-prep pull request.
+   commit, so a check that fails after the tag is pushed (other than a CI
+   run that hasn't finished yet) fails again on re-runs, and the release
+   then needs a new version, with its own release-prep pull request. The
+   commands expect `origin` to be `elixir-cloud-aai/cloud-registry-ui`
+   (replace it with the name of your remote for it otherwise).
 
    ```bash
    version=X.Y.Z  # e.g. 1.0.0-rc1
-   sha=<sha>
    git fetch origin
-   git switch --detach "${sha}"
+   sha="$(git rev-parse --verify "<sha>^{commit}")"  # the full SHA
    (
+       git switch --detach "${sha}" || exit 1
+       git merge-base --is-ancestor "${sha}" origin/dev || { echo "${sha} is not on dev"; exit 1; }
        pattern='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)[1-9][0-9]*)?$'
        [[ "v${version}" =~ ${pattern} ]] || { echo "Not a release version: v${version}"; exit 1; }
        [[ "$(jq -r .version package.json)" == "${version}" ]] || { echo "Wrong version in package.json"; exit 1; }
