@@ -110,7 +110,8 @@ function providersJson(): unknown {
 }
 
 /**
- * Check for the settings of earlier versions
+ * Check for the settings of earlier versions: warn of them (by name, never
+ * their values) if they are set next to `LOGIN_PROVIDERS`
  * @throws Error naming them if they are set without `LOGIN_PROVIDERS`
  */
 function legacyLoginSettings() {
@@ -118,6 +119,10 @@ function legacyLoginSettings() {
     if (!process.env.LOGIN_PROVIDERS && legacy.length)
         throw new Error(
             `Missing setting LOGIN_PROVIDERS: the app no longer reads ${legacy.join(", ")}; replace them with LOGIN_PROVIDERS and LOGIN_REDIRECT_URI (see "Upgrading" in the operator guide: https://cloud-registry-ui.readthedocs.io/en/latest/operator-guide/upgrading/)`,
+        );
+    for (const name of legacy)
+        console.warn(
+            `Ignoring setting ${name}: the app reads LOGIN_PROVIDERS and LOGIN_REDIRECT_URI instead. Remove the setting.`,
         );
 }
 
@@ -129,14 +134,15 @@ function legacyLoginSettings() {
  * @throws Error naming each invalid or missing setting
  */
 function loginSettingsAtBuild() {
-    legacyLoginSettings();
     const sensitive = ["LOGIN_PROVIDERS", "LOGIN_REDIRECT_URI"].filter(
         (name) => process.env[name] === sensitivePlaceholder,
     );
+    // `loginSettings()` checks for the old settings too
     if (!sensitive.length) {
         loginSettings();
         return;
     }
+    legacyLoginSettings();
     console.warn(
         `Can't check ${sensitive.join(", ")} when building: sensitive variables have no value here; they are checked when the app starts`,
     );
@@ -220,6 +226,13 @@ function oidcEndpoints(provider: LoginProvider): Promise<OidcEndpoints> {
                 ].every((val) => URL.canParse(val))
             )
                 throw new Error(`Malformed endpoint URLs at ${url}`);
+            // the registry compares the tokens' `iss` with its trusted
+            // issuers exactly, trailing slash included
+            console.info(
+                logSafe(
+                    `Login provider ${provider.id}: issuer ${issuer} (list it exactly so in the registry's security.auth.issuers)`,
+                ),
+            );
             return {
                 issuer,
                 authorization_endpoint,

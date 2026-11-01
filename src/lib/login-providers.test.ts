@@ -99,9 +99,29 @@ describe("loginSettings", () => {
         expect(loginSettings).toThrow(message);
     });
 
-    it("ignores old variables next to LOGIN_PROVIDERS", async () => {
-        const { loginSettings } = await load({ OIDC_CLIENT_ID: "c" });
+    it("ignores old variables next to LOGIN_PROVIDERS, with a warning", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        const { loginSettings } = await load({
+            LS_LOGIN_URL: "https://login.example.org",
+            OIDC_CLIENT_SECRET: "old-secret",
+        });
         expect(loginSettings).not.toThrow();
+        expect(warn).toHaveBeenCalledTimes(2);
+        for (const name of ["LS_LOGIN_URL", "OIDC_CLIENT_SECRET"])
+            expect(warn).toHaveBeenCalledWith(
+                `Ignoring setting ${name}: the app reads LOGIN_PROVIDERS and LOGIN_REDIRECT_URI instead. Remove the setting.`,
+            );
+        // never the values
+        expect(warn.mock.calls.join(" ")).not.toMatch(
+            /old-secret|login\.example/,
+        );
+    });
+
+    it("warns of nothing without old variables", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        const { loginSettings } = await load();
+        loginSettings();
+        expect(warn).not.toHaveBeenCalled();
     });
 });
 
@@ -113,6 +133,14 @@ describe("loginSettingsAtBuild", () => {
         expect(
             (await load({ LOGIN_PROVIDERS: "" })).loginSettingsAtBuild,
         ).toThrow(/at least one/);
+    });
+
+    it("warns of old variables once", async () => {
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        expect(
+            (await load({ OIDC_CLIENT_ID: "c" })).loginSettingsAtBuild,
+        ).not.toThrow();
+        expect(warn).toHaveBeenCalledOnce();
     });
 
     it("only checks that sensitive settings are set", async () => {
@@ -162,6 +190,7 @@ describe("oidcEndpoints", () => {
     };
 
     it("discovers and caches the endpoints", async () => {
+        const info = vi.spyOn(console, "info").mockImplementation(() => {});
         const { oidcEndpoints, loginSettings } = await load();
         const get = vi
             .spyOn(axios, "get")
@@ -174,6 +203,11 @@ describe("oidcEndpoints", () => {
         });
         await oidcEndpoints(ls);
         expect(get).toHaveBeenCalledOnce();
+        // once, with the issuer as the registry must spell it
+        expect(info).toHaveBeenCalledOnce();
+        expect(info).toHaveBeenCalledWith(
+            "Login provider ls-login: issuer https://login.example.org/oidc/ (list it exactly so in the registry's security.auth.issuers)",
+        );
         expect(get).toHaveBeenCalledWith(
             "https://login.example.org/oidc/.well-known/openid-configuration",
             { timeout: 10000 },
