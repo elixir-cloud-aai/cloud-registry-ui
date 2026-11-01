@@ -91,7 +91,7 @@ Notes:
   registry (see [Compatibility](../operator-guide/index.md#compatibility)).
 - **Registries without invitations:** the section reports that the registry
   has none, and you grant roles as above. Invitations need cloud-registry
-  1.0.0-rc1 or later.
+  1.0.0rc1 or later.
 
 The person who got the link follows [Accepting an
 invitation](invitations.md).
