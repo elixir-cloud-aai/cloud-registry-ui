@@ -56,7 +56,9 @@ hours. Afterwards, pages show **Log in again**; changes you haven't saved
 can't be sent until you log in again.
 
 To log out, open the menu at the bottom of the sidebar (your name) and
-select **Log out**.
+select **Log out**. This logs you out of the app only: you stay logged in
+at your login provider, so logging in again may not ask for your
+password. On a shared computer, log out at your login provider too.
 
 ### Your user ID
 
