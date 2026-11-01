@@ -3,6 +3,7 @@ import {
     compareTypes,
     mayAddServiceTypes,
     noUnusedTypes,
+    offersNewTypes,
     typeFromKey,
     typeKey,
     typeLabel,
@@ -59,6 +60,39 @@ describe("mayAddServiceTypes", () => {
         const rules = { maxUnusedServiceTypes: 0 };
         expect(mayAddServiceTypes(user, rules)).toBe(false);
         expect(mayAddServiceTypes({ ...user, admin: true }, rules)).toBe(true);
+    });
+});
+
+describe("offersNewTypes", () => {
+    const user = { admin: false, may_add_service_types: true };
+
+    it("follows GET /me if it says", () => {
+        expect(offersNewTypes(user, {})).toBe(true);
+        expect(offersNewTypes(user, { maxUnusedServiceTypes: 0 })).toBe(false);
+        expect(
+            offersNewTypes({ ...user, may_add_service_types: false }, {}),
+        ).toBe(false);
+    });
+
+    it("follows the rules otherwise", () => {
+        for (const me of [null, undefined, { admin: false }]) {
+            expect(offersNewTypes(me, {})).toBe(true);
+            expect(offersNewTypes(me, { serviceTypes: "moderated" })).toBe(
+                true,
+            );
+            expect(offersNewTypes(me, { serviceTypes: "controlled" })).toBe(
+                false,
+            );
+            expect(offersNewTypes(me, { maxUnusedServiceTypes: 0 })).toBe(
+                false,
+            );
+        }
+        expect(
+            offersNewTypes(
+                { admin: true },
+                { serviceTypes: "controlled", maxUnusedServiceTypes: 0 },
+            ),
+        ).toBe(true);
     });
 });
 

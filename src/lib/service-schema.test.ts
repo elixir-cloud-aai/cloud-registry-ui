@@ -35,6 +35,20 @@ describe("serviceSchema", () => {
         expect(messages({ environment: "prod" })).toBeUndefined();
     });
 
+    it("counts lengths in characters, as the registry does", () => {
+        // two UTF-16 code units each
+        expect(messages({ description: "😀".repeat(4096) })).toBeUndefined();
+        expect(messages({ description: "😀".repeat(4097) })).toEqual([
+            "Description must be at most 4096 characters.",
+        ]);
+        expect(messages({ name: "😀".repeat(1024) })).toBeUndefined();
+        expect(
+            messages({
+                type: { ...valid.type, version: "😀".repeat(257) },
+            }),
+        ).toEqual(["Type version must be at most 256 characters."]);
+    });
+
     it("follows the registry's URL schemes", () => {
         const rules = { environments: [], urlSchemes: ["http", "https"] };
         expect(messages({ url: "http://tes.example.org" }, rules)).toBe(

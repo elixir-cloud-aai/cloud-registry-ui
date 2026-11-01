@@ -6,6 +6,7 @@ import {
     fillCreateForm,
     login,
     newService,
+    publishRules,
     registry,
     test,
     uniqueId,
@@ -32,26 +33,19 @@ async function expectNoAdminFields(page: Page) {
 }
 
 test.describe("registering services", () => {
+    // remove the routes of `publishRules()`, which the page may still use
+    // when a test ends
+    test.afterEach(async ({ page }) => {
+        await page.unrouteAll({ behavior: "ignoreErrors" });
+    });
+
     test("users choose a registered type and an allowed environment", async ({
         page,
         browser,
     }) => {
         await addTesType(browser);
         // a registry that allows two environments, one without a label
-        await page.route(`${registry}/service-info`, async (route) => {
-            const response = await route.fetch();
-            const info = await response.json();
-            await route.fulfill({
-                response,
-                json: {
-                    ...info,
-                    registration_rules: {
-                        ...info.registration_rules,
-                        environments: ["test", "qa"],
-                    },
-                },
-            });
-        });
+        await publishRules(page, { environments: ["test", "qa"] });
         const token = await login(page, "owner");
         await page.goto("/dashboard/services/create");
 
@@ -88,6 +82,57 @@ test.describe("registering services", () => {
         );
     });
 
+    test("invalid entries are reported before sending", async ({
+        page,
+        browser,
+    }) => {
+        await addTesType(browser);
+        // a registry that allows https only (the stack allows http, too)
+        await publishRules(page, { url_schemes: ["https"] });
+        let registrations = 0;
+        page.on("request", (request) => {
+            if (
+                request.method() === "POST" &&
+                request.url() === `${registry}/services`
+            )
+                registrations++;
+        });
+        await login(page, "owner");
+        let rulesRead = 0;
+        page.on("response", (response) => {
+            if (response.url() === `${registry}/service-info`) rulesRead++;
+        });
+        await page.goto("/dashboard/services/create");
+        // the page and the form have read the rules
+        await expect.poll(() => rulesRead).toBeGreaterThanOrEqual(2);
+
+        const service = newService("Checked");
+        await fillCreateForm(page, {
+            ...service,
+            url: service.url.replace("https:", "http:"),
+        });
+        await page.getByRole("button", { name: "Create Service" }).click();
+        await expect(
+            page.getByText(
+                "Service URL must be an https URL, e.g. https://example.org/.",
+            ),
+        ).toBeVisible();
+        expect(registrations).toBe(0);
+
+        // the entries stay, to be corrected
+        await page
+            .getByRole("textbox", {
+                name: "https://api.example.com/v1",
+                exact: true,
+            })
+            .fill(service.url);
+        await page.getByRole("button", { name: "Create Service" }).click();
+        await expect(
+            page.getByText(`Registered ${service.name}`),
+        ).toBeVisible();
+        expect(registrations).toBe(1);
+    });
+
     test("users who may add types can add a new one", async ({ page }) => {
         await login(page, "owner");
         await page.goto("/dashboard/services/create");
@@ -100,6 +145,33 @@ test.describe("registering services", () => {
         await expect(
             page.getByRole("textbox", { name: "beacon, wes, trs, etc." }),
         ).toBeVisible();
+    });
+
+    test("users choose a registered type if they may add no unused types", async ({
+        page,
+        browser,
+    }) => {
+        await addTesType(browser);
+        // `GET /me` still says that they may add types
+        await publishRules(page, { max_unused_service_types: 0 });
+        await login(page, "owner");
+        // the form follows the user and the rules once they are loaded
+        const loaded = Promise.all([
+            page.waitForResponse(`${registry}/me`),
+            page.waitForResponse(`${registry}/service-info`),
+        ]);
+        await page.goto("/dashboard/services/create");
+        await loaded;
+        await expect(page.getByText(pendingNote)).toHaveCount(0);
+        await page
+            .getByRole("button", { name: "Select a service type" })
+            .click();
+        await expect(
+            page.getByRole("option", { name: "org.ga4gh · tes · 1.1.0" }),
+        ).toBeVisible();
+        await expect(
+            page.getByRole("option", { name: "Add new service type" }),
+        ).toHaveCount(0);
     });
 
     test("users who may not add types choose a registered one", async ({

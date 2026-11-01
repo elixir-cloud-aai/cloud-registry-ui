@@ -38,24 +38,50 @@ mode](admin-mode.md)) also see **Advanced Configuration**, where they can
 choose the ID (**Custom Service ID**) and set the dates (**Created At**,
 **Updated At**); for other users, the registry sets them.
 
-The registry checks the entries: e.g. a service with the same URL and type
-as a registered one is refused as a duplicate, and the message links to that
-service if you may see it. If it refuses a registration, the message says
-why; correct the entry and try again.
+Before sending, the app checks the entries as the registry does, and
+shows the first problem it finds, e.g. "Service URL must be an https URL,
+e.g. https://example.org/."; nothing is sent until you correct it. It
+checks that:
+
+- the required fields are filled in;
+- the service, organization and documentation URLs are `http` or `https`
+  URLs, without spaces (except around the service URL) or user names (e.g.
+  `user@`), and the contact URL is one of these or a `mailto:` URL (an
+  email address needs `mailto:`);
+- the service URL has a scheme that the registry allows, and the
+  environment is one that it allows, as it publishes them in its service
+  info;
+- no field is longer than the registry allows: 2048 characters for URLs,
+  1024 for names, 4096 for the description and 256 for the version, the
+  environment and the parts of the type (see the registry's [API
+  docs](https://cloud-registry.readthedocs.io/en/latest/api/#registrations)).
+
+If the app can't read the registry's rules (e.g. registries older than
+cloud-registry 0.6.0, or while they are loading), it leaves the schemes and
+environments to the registry.
+
+The registry checks the entries again: e.g. a service with the same URL and
+type as a registered one is refused as a duplicate, and the message links
+to that service if you may see it. If it refuses a registration, the
+message says why; correct the entry and try again.
 
 A new type is added with the service. In some deployments, new types of
 users other than admins are pending until an admin approves them, and so are
 the services that have them (see [Pending entries](pending.md)); the form
 says so above its fields. If you may not add types, the form offers only the
-registered ones.
+registered ones; so it does for users other than admins if the registry
+lets them have no unused types (limit 0, see [Service
+types](browsing.md#service-types)).
 
 ### Known limitations
 
 The form comes from [Cloud
-Components](https://github.com/elixir-cloud-aai/cloud-components). It checks
-only that the required fields are filled in; other mistakes, e.g. an invalid
-URL, are reported by the registry after sending
-([cloud-components#453](https://github.com/elixir-cloud-aai/cloud-components/issues/453)).
+Components](https://github.com/elixir-cloud-aai/cloud-components). It shows
+problems only when you select **Create Service**, one at a time, as a
+message, and doesn't mark the field; problems that only the registry finds
+(e.g. a host name that isn't valid) are shown as the registry words them.
+Checks while typing, and marking the fields with problems, are planned
+([#132](https://github.com/elixir-cloud-aai/cloud-registry-ui/issues/132)).
 
 ## Limit on registered services
 

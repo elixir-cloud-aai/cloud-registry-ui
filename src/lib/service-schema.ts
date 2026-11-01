@@ -41,6 +41,17 @@ const contactUrl = z.url({ protocol: /^(https?|mailto)$/ });
 const hasNoUserInfoOrSpaces = (value: string) =>
     !/\s|^https?:\/\/[^/?#]*@/i.test(value);
 
+/**
+ * Check the length of a string as the registry does
+ * @param max Maximum length, in characters (code points, not UTF-16 code
+ * units as `z.string().max()` counts them)
+ * @returns The check; it counts the characters only where needed, as they
+ * are between half the code units and all of them
+ */
+const atMost = (max: number) => (value: string) =>
+    value.length <= max ||
+    (value.length <= 2 * max && [...value].length <= max);
+
 /** The group of new service types, unless another one is given */
 const defaultTypeGroup = "org.ga4gh";
 
@@ -50,17 +61,17 @@ const serviceTypeSchema = z.object({
         .string()
         .trim()
         .min(1, "Type group is required.")
-        .max(256, "Type group must be at most 256 characters."),
+        .refine(atMost(256), "Type group must be at most 256 characters."),
     artifact: z
         .string()
         .trim()
         .min(1, "Type artifact is required.")
-        .max(256, "Type artifact must be at most 256 characters."),
+        .refine(atMost(256), "Type artifact must be at most 256 characters."),
     version: z
         .string()
         .trim()
         .min(1, "Type version is required.")
-        .max(256, "Type version must be at most 256 characters."),
+        .refine(atMost(256), "Type version must be at most 256 characters."),
 });
 
 /**
@@ -72,7 +83,7 @@ function serviceUrlSchema(schemes: readonly string[]) {
     const example = schemes.includes("https") ? "https" : schemes[0];
     return z
         .string()
-        .max(2048, "Service URL must be at most 2048 characters.")
+        .refine(atMost(2048), "Service URL must be at most 2048 characters.")
         .refine(
             (value) =>
                 httpUrl.safeParse(value).success &&
@@ -125,19 +136,25 @@ function serviceSchema(rules: ServiceSchemaRules) {
         name: z
             .string()
             .min(1, "Service name is required.")
-            .max(1024, "Service name must be at most 1024 characters."),
+            .refine(
+                atMost(1024),
+                "Service name must be at most 1024 characters.",
+            ),
         url: serviceUrlSchema(rules.urlSchemes),
         organization: z.object({
             name: z
                 .string()
                 .min(1, "Organization name is required.")
-                .max(
-                    1024,
+                .refine(
+                    atMost(1024),
                     "Organization name must be at most 1024 characters.",
                 ),
             url: z
                 .string()
-                .max(2048, "Organization URL must be at most 2048 characters.")
+                .refine(
+                    atMost(2048),
+                    "Organization URL must be at most 2048 characters.",
+                )
                 .refine(
                     (value) =>
                         httpUrl.safeParse(value).success &&
@@ -149,13 +166,22 @@ function serviceSchema(rules: ServiceSchemaRules) {
         version: z
             .string()
             .min(1, "Service version is required.")
-            .max(256, "Service version must be at most 256 characters."),
+            .refine(
+                atMost(256),
+                "Service version must be at most 256 characters.",
+            ),
         description: z
             .string()
-            .max(4096, "Description must be at most 4096 characters."),
+            .refine(
+                atMost(4096),
+                "Description must be at most 4096 characters.",
+            ),
         contactUrl: z
             .string()
-            .max(2048, "Contact URL must be at most 2048 characters.")
+            .refine(
+                atMost(2048),
+                "Contact URL must be at most 2048 characters.",
+            )
             .refine((value) => !z.email().safeParse(value).success, {
                 message:
                     "Contact URL needs mailto: for email addresses, e.g. mailto:support@example.org.",
@@ -170,7 +196,10 @@ function serviceSchema(rules: ServiceSchemaRules) {
             ),
         documentationUrl: z
             .string()
-            .max(2048, "Documentation URL must be at most 2048 characters.")
+            .refine(
+                atMost(2048),
+                "Documentation URL must be at most 2048 characters.",
+            )
             .refine(
                 (value) =>
                     value === "" ||

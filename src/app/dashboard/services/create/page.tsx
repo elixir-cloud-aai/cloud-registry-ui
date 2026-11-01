@@ -8,32 +8,41 @@ import type {
 import { ECCClientElixirCloudRegistryServiceCreate } from "@elixir-cloud/cloud-registry/react";
 import { ClockIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { UnsavedChangesGuard } from "@/components/shared/unsaved-changes-guard";
-import { useCloudRegistry, useMe } from "@/hooks";
-import { createFailedToast } from "@/lib/service-create";
+import { useCloudRegistry, useMe, useRegistrationRules } from "@/hooks";
+import { unknownRegistrationRules } from "@/lib/registration-rules";
+import { checkedProvider, createFailedToast } from "@/lib/service-create";
 import { servicesLimit } from "@/lib/service-limits";
+import { offersNewTypes } from "@/lib/service-types";
 
 function Page() {
     const router = useRouter();
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const { me, loading, error, expired } = useMe();
     const [changed, setChanged] = useState(false);
-    // the registry's limit of services per user, for its 409; read in
-    // advance, as the service info is the same for all users
-    const [limit, setLimit] = useState<number>();
-
+    // the registry's rules, read in advance, as the service info is the
+    // same for all users: for the checks before sending (until they are
+    // read, the registry checks what depends on them) and the limit of
+    // services per user, for its 409
+    const { rules, loading: rulesLoading } = useRegistrationRules();
+    const limit = rulesLoading ? undefined : rules.maxServicesPerUser;
+    const checkRules = useRef(unknownRegistrationRules);
     useEffect(() => {
-        let current = true;
-        servicesLimit(cloudRegistryProvider).then((val) => {
-            if (current) setLimit(val);
-        });
-        return () => {
-            current = false;
-        };
-    }, [cloudRegistryProvider]);
+        checkRules.current = rulesLoading ? unknownRegistrationRules : rules;
+    }, [rules, rulesLoading]);
+    // the form only checks that the required fields are filled in, so the
+    // client checks the rest before sending (cloud-components has no hook
+    // for it); the same client for new rules, as the form reloads its types
+    // for another one
+    const provider = useMemo(
+        () =>
+            cloudRegistryProvider &&
+            checkedProvider(cloudRegistryProvider, () => checkRules.current),
+        [cloudRegistryProvider],
+    );
 
     useEffect(() => {
         if (error && !expired)
@@ -75,7 +84,7 @@ function Page() {
         setChanged(e.detail.dirty);
     };
 
-    if (cloudRegistryProvider === null) return;
+    if (provider === null) return;
 
     if (!isLoggedIn)
         return <LoginPrompt message="Log in to register a service" />;
@@ -87,10 +96,9 @@ function Page() {
 
     // the form shows before `GET /me` has loaded, and follows later changes
     // of `admin`, `allowNewType` and the provider.
-    // The registry decides who may add types: while `GET /me` loads, only
-    // listed types are offered; without its answer (e.g. after an error, or
-    // from registries without the flag), new ones are, too
-    const allowNewType = !loading && me?.may_add_service_types !== false;
+    // The registry decides who may add types (`offersNewTypes()`): while
+    // `GET /me` and the rules load, only listed types are offered
+    const allowNewType = !loading && !rulesLoading && offersNewTypes(me, rules);
 
     return (
         <div className="max-w-5xl mx-auto mt-5 md:mt-8">
@@ -109,7 +117,7 @@ function Page() {
                 onEccServiceCreateFailed={onServiceCreationFailed}
                 onEccServiceCreateValidationFailed={onValidationError}
                 onEccServiceFormChanged={onFormChanged}
-                provider={cloudRegistryProvider}
+                provider={provider}
             />
         </div>
     );
