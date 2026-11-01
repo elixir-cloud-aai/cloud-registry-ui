@@ -36,8 +36,9 @@ function Page() {
         error: rulesError,
     } = useRegistrationRules();
     // the registered types to choose from, approved ones only (GET
-    // /services/types lists no pending ones to requests without a user);
-    // null if they couldn't be loaded
+    // /services/types lists no pending ones to requests without a user):
+    // undefined while loading (the page waits), null if they couldn't be
+    // loaded (the form then offers the stored type, and new ones)
     const [serviceTypes, setServiceTypes] = useState<ServiceType[] | null>();
 
     // pending services are only listed in GET /approvals, e.g. after a

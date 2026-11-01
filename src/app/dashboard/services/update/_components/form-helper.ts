@@ -189,3 +189,44 @@ export function typeOfChoice(choice: string) {
         };
     return { newType: false, type: typeFromKey(choice) };
 }
+
+/**
+ * Check whether the edit form offers new service types
+ * @param options `mayAdd`: whether the user may add types
+ * (`may_add_service_types` of `GET /me`); `pending`: whether the service
+ * is pending; `admin`: whether the user acts as admin
+ * @returns Whether to offer them: pending services take only approved
+ * types from users other than admins
+ */
+export function offersNewType({
+    mayAdd,
+    pending = false,
+    admin = false,
+}: {
+    mayAdd: boolean;
+    pending?: boolean;
+    admin?: boolean;
+}) {
+    return mayAdd && (admin || !pending);
+}
+
+/** The fields of a service type in the form */
+const typeFields = ["type.group", "type.artifact", "type.version"] as const;
+
+/** The meta data of the form's fields, as far as `typeErrors()` reads it */
+export type FieldMetas<E> = Partial<
+    Record<string, { isTouched: boolean; errors: E[] }>
+>;
+
+/**
+ * Get the errors on the fields of the service type, e.g. from the
+ * registry, to show them while the fields are hidden
+ * @param fieldMeta The meta data of the form's fields
+ * @returns The errors of the touched fields of the type
+ */
+export function typeErrors<E>(fieldMeta: FieldMetas<E>) {
+    return typeFields.flatMap((name) => {
+        const meta = fieldMeta[name];
+        return meta?.isTouched ? meta.errors : [];
+    });
+}

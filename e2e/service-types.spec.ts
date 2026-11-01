@@ -11,6 +11,7 @@ import {
     uniqueId,
 } from "./fixtures";
 
+// the note of the edit form (`updation-form.tsx`) on new types
 const pendingNote =
     "A service type that isn't registered yet is pending until an admin approves it";
 
@@ -184,5 +185,55 @@ test.describe("service types", () => {
         ).toHaveCount(0);
         await page.keyboard.press("Escape");
         await page.waitForLoadState("networkidle");
+    });
+
+    test("without the registered types, the edit form keeps the stored one", async ({
+        page,
+        browser,
+        problems,
+    }) => {
+        const service = await registerService(browser, "owner", "No types");
+        await page.route(`${registry}/services/types`, (route) =>
+            route.fulfill({ status: 503, body: "" }),
+        );
+        await login(page, "owner");
+
+        await openTypeList(page, service.id);
+        await expect(
+            page.getByRole("option", {
+                name: "org.ga4gh · tes · 1.1.0",
+                selected: true,
+            }),
+        ).toBeVisible();
+        await expect(
+            page.getByRole("option", { name: "Add new service type" }),
+        ).toBeVisible();
+        await page.keyboard.press("Escape");
+        await expect(
+            page.getByText("Could not load the registered service types."),
+        ).toBeVisible();
+
+        const renamed = `${service.name} renamed`;
+        await page.locator("input[name=name]").fill(renamed);
+        await page.getByRole("button", { name: "Submit" }).click();
+        await expect
+            .poll(
+                async () =>
+                    (await api(undefined, "GET", `/services/${service.id}`))
+                        .body?.name,
+            )
+            .toBe(renamed);
+        // the page is reloaded after the change: requests cut off by
+        // leaving it fail, and the app logs them
+        await page.waitForLoadState("networkidle");
+        // the failed reads of the types, which the page reports
+        expect(
+            problems.filter(
+                (val) =>
+                    !val.includes(`${registry}/services/types`) &&
+                    !val.includes("Failed to load the service types"),
+            ),
+        ).toEqual([]);
+        problems.length = 0;
     });
 });

@@ -10,7 +10,9 @@ import {
     newTypeChoice,
     normalizeFormData,
     normalizeServiceData,
+    offersNewType,
     serviceFormSchema,
+    typeErrors,
     typeOfChoice,
     typeOptions,
 } from "./form-helper";
@@ -297,5 +299,34 @@ describe("typeOfChoice", () => {
             newType: true,
             type: { group: "org.ga4gh", artifact: "", version: "" },
         });
+    });
+});
+
+describe("offersNewType", () => {
+    it("offers new types to users who may add them", async () => {
+        expect(offersNewType({ mayAdd: true })).toBe(true);
+        expect(offersNewType({ mayAdd: false })).toBe(false);
+        expect(offersNewType({ mayAdd: false, admin: true })).toBe(false);
+    });
+
+    it("offers none for pending services, except to admins", async () => {
+        expect(offersNewType({ mayAdd: true, pending: true })).toBe(false);
+        expect(
+            offersNewType({ mayAdd: true, pending: true, admin: true }),
+        ).toBe(true);
+    });
+});
+
+describe("typeErrors", () => {
+    it("collects the errors of the touched fields of the type", async () => {
+        expect(
+            typeErrors({
+                "type.group": { isTouched: true, errors: ["group"] },
+                "type.artifact": { isTouched: false, errors: ["artifact"] },
+                "type.version": { isTouched: true, errors: ["version"] },
+                name: { isTouched: true, errors: ["name"] },
+            }),
+        ).toEqual(["group", "version"]);
+        expect(typeErrors({})).toEqual([]);
     });
 });

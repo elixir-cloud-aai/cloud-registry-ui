@@ -18,8 +18,10 @@ import { typeKey } from "@/lib/service-types";
 import type { ServiceUpdationFormType } from "@/types/service-update-form";
 import { TextField } from "../_fields";
 import {
+    type FieldMetas,
     type FormData,
     newTypeChoice,
+    typeErrors,
     typeOfChoice,
     typeOptions,
 } from "../form-helper";
@@ -36,17 +38,10 @@ type Props = {
     allowNewType: boolean;
 };
 
-const typeFields = ["type.group", "type.artifact", "type.version"] as const;
-
 // the parts of the form's state that the section reads
 type FormState = {
     values: FormData;
-    fieldMeta: Partial<
-        Record<
-            string,
-            { isTouched: boolean; errors: ({ message?: string } | undefined)[] }
-        >
-    >;
+    fieldMeta: FieldMetas<{ message?: string } | undefined>;
 };
 
 // the type, how it is chosen, and the errors on its fields (e.g. from the
@@ -54,10 +49,7 @@ type FormState = {
 const typeState = (state: FormState) => ({
     newType: state.values.newType,
     type: state.values.type,
-    errors: typeFields.flatMap((name) => {
-        const meta = state.fieldMeta[name];
-        return meta?.isTouched ? meta.errors : [];
-    }),
+    errors: typeErrors(state.fieldMeta),
 });
 
 // the type is chosen from the registered ones, as in the create form; a

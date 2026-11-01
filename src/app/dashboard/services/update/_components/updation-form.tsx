@@ -38,6 +38,7 @@ import {
     hasServiceChanges,
     normalizeFormData,
     normalizeServiceData,
+    offersNewType,
     serviceFormSchema,
 } from "./form-helper";
 import ServiceRenameDialog from "./rename-dialog";
@@ -243,9 +244,11 @@ function ServiceUpdationForm({
                     form={form}
                     serviceTypes={serviceTypes}
                     current={initial.type}
-                    // pending services take only approved types from users
-                    // other than admins
-                    allowNewType={mayAddServiceTypes && !(pending && !admin)}
+                    allowNewType={offersNewType({
+                        mayAdd: mayAddServiceTypes,
+                        pending,
+                        admin,
+                    })}
                 />
                 {pending && !admin && (
                     <p className="flex items-center gap-2 text-sm text-muted-foreground">
