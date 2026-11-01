@@ -234,6 +234,48 @@ function newService(name: string) {
 }
 
 /**
+ * Register the service type of `newService()`, if it isn't yet
+ * @param browser Browser
+ */
+async function addTesType(browser: Browser) {
+    // 409 if it exists already
+    await api(
+        await tokenOf(browser, "admin"),
+        "POST",
+        "/services/types",
+        tesType,
+    );
+}
+
+/**
+ * Fill in the create form (`/dashboard/services/create`) with a service of
+ * `newService()`, choosing its type from the registered ones (see
+ * `addTesType()`); the environment stays empty
+ * @param page Page with the form
+ * @param service The service
+ */
+async function fillCreateForm(
+    page: Page,
+    service: ReturnType<typeof newService>,
+) {
+    const fields: [string, string][] = [
+        ["Enter a descriptive name for your service", service.name],
+        ["https://api.example.com/v1", service.url],
+        ["Enter your organization name", service.organization.name],
+        ["https://example.com", service.organization.url],
+        ["1.0.0", service.version],
+    ];
+    for (const [name, value] of fields)
+        await page.getByRole("textbox", { name, exact: true }).fill(value);
+    // named by its placeholder once the types are loaded
+    await page.getByRole("button", { name: "Select a service type" }).click();
+    const { group, artifact, version } = service.type;
+    await page
+        .getByRole("option", { name: `${group} · ${artifact} · ${version}` })
+        .click();
+}
+
+/**
  * Register a service as a user, with its type
  * @param browser Browser
  * @param user Owner of the new service
@@ -241,9 +283,7 @@ function newService(name: string) {
  * @returns The service and its ID
  */
 async function registerService(browser: Browser, user: User, name: string) {
-    const admin = await tokenOf(browser, "admin");
-    // 409 if it exists already
-    await api(admin, "POST", "/services/types", tesType);
+    await addTesType(browser);
     const service = newService(name);
     const created = await api(
         await tokenOf(browser, user),
@@ -256,8 +296,10 @@ async function registerService(browser: Browser, user: User, name: string) {
 }
 
 export {
+    addTesType,
     api,
     expect,
+    fillCreateForm,
     login,
     newService,
     registerService,
