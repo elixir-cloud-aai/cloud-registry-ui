@@ -66,6 +66,8 @@ jobs:
                   # Full history and all tags, to check that the release commit
                   # is on `main`
                   fetch-depth: 0
+            # "Releasing" in `CONTRIBUTING.md` runs the checks of this job that
+            # need no tag before tagging: keep them in sync.
             # Guards against accidental releases, e.g., of unmerged commits;
             # the `release` environment's protection rules (required reviewer)
             # are what actually control publishing

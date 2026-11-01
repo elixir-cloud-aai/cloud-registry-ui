@@ -11,6 +11,7 @@ We welcome contributions of all kinds—bug fixes, new features, documentation, 
 - [Getting Started](#getting-started)
 - [Development Workflow](#development-workflow)
 - [Pull Request Process](#pull-request-process)
+- [Releasing](#releasing)
 - [Reporting Issues](#reporting-issues)
 - [Style Guidelines](#style-guidelines)
 
@@ -36,8 +37,9 @@ Click the **Fork** button on GitHub.
 ### 2. Clone Your Fork
 
 ```bash
-git clone https://github.com/elixir-cloud-aai/cloud-registry-ui.git
+git clone https://github.com/<your-username>/cloud-registry-ui.git
 cd cloud-registry-ui
+git remote add upstream https://github.com/elixir-cloud-aai/cloud-registry-ui.git
 ```
 
 ### 3. Install Dependencies
@@ -58,10 +60,11 @@ bun run dev
 
 ### Create a Branch
 
-Always create a new branch for your work:
+Always create a new branch for your work, from `dev`, the default branch:
 
 ```bash
-git checkout -b feature/short-description
+git fetch upstream
+git checkout -b feat/short-description upstream/dev
 ```
 
 Branch naming examples:
@@ -82,7 +85,7 @@ Please refer to [this article] for more information.(https://github.com/elixir-c
 
 ```bash
 git fetch upstream
-git rebase upstream/dev
+git merge upstream/dev
 ```
 
 2. Push your changes to the forked repo:
@@ -118,29 +121,47 @@ versions):
    number of lines they committed, then by the number of their commits.
    Each version, also each pre-release (e.g., `X.Y.Z-rc1`), needs its own
    such change. Merge it.
-2. Wait until CI has passed for the push of that commit (`<sha>`) to `dev`:
-   the release workflow requires a successful CI run for a push of the
-   tagged commit (runs for pull requests test merge commits, not the commit
+2. Wait until CI has passed for the push to `dev` of the commit that the
+   merge created on `dev` (`<sha>`, not the head of the pull request): the
+   release workflow requires a successful CI run for a push of the tagged
+   commit (runs for pull requests test merge commits, not the commit
    itself).
-3. Run the release workflow's checks that need no tag, as it runs them, then
-   move `main` to the commit, and tag it with a signed, annotated tag
-   `vX.Y.Z` (or `vX.Y.Z-alphaN`, `vX.Y.Z-betaN` or `vX.Y.Z-rcN` for a
-   pre-release):
+3. Run the release workflow's checks that need no tag, as it runs them
+   (keep these commands in sync with the `prepare` job of
+   `.github/workflows/release.yml`), in Bash. Run them before tagging: tags
+   can't be moved or deleted, and the release workflow checks the tagged
+   commit, so a check that fails after the tag is pushed fails again on
+   re-runs, and the release then needs a new version, with its own
+   release-prep pull request.
 
    ```bash
+   version=X.Y.Z  # e.g. 1.0.0-rc1
+   sha=<sha>
    git fetch origin
-   git switch --detach <sha>
-   [[ vX.Y.Z =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)[1-9][0-9]*)?$ ]]
-   [[ "$(jq -r .version package.json)" == X.Y.Z ]]
-   [[ "$(yq -r .version CITATION.cff)" == X.Y.Z ]]
-   gh api "repos/elixir-cloud-aai/cloud-registry-ui/actions/workflows/ci.yml/runs?head_sha=<sha>&event=push&status=success&per_page=1" --jq .total_count  # at least 1
-   git push origin <sha>:main  # fails unless it is a fast-forward
-   git tag -s vX.Y.Z <sha> -m vX.Y.Z
-   git push origin vX.Y.Z
+   git switch --detach "${sha}"
+   (
+       pattern='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)[1-9][0-9]*)?$'
+       [[ "v${version}" =~ ${pattern} ]] || { echo "Not a release version: v${version}"; exit 1; }
+       [[ "$(jq -r .version package.json)" == "${version}" ]] || { echo "Wrong version in package.json"; exit 1; }
+       [[ "$(yq -r .version CITATION.cff)" == "${version}" ]] || { echo "Wrong version in CITATION.cff"; exit 1; }
+       runs="$(gh api "repos/elixir-cloud-aai/cloud-registry-ui/actions/workflows/ci.yml/runs?head_sha=${sha}&event=push&status=success&per_page=1" --jq .total_count)"
+       (( runs >= 1 )) || { echo "No successful CI run for the push of ${sha}"; exit 1; }
+       git merge-base --is-ancestor origin/main "${sha}" || { echo "main can't be fast-forwarded to ${sha}"; exit 1; }
+   ) && echo "All checks passed"
+   ```
+
+   Only if all checks passed, move `main` to the commit, and tag it with a
+   signed, annotated tag `vX.Y.Z` (or `vX.Y.Z-alphaN`, `vX.Y.Z-betaN` or
+   `vX.Y.Z-rcN` for a pre-release):
+
+   ```bash
+   git push origin "${sha}:main"  # fails unless it is a fast-forward
+   git tag -s "v${version}" "${sha}" -m "v${version}"
+   git push origin "v${version}"
    ```
 
    Moving `main` also deploys it to Vercel production
-   (`.github/workflows/deploy-prod.yml`).
+   (`.github/workflows/deploy-prod.yml`), also for pre-releases.
 4. Approve the jobs of the release workflow (`.github/workflows/release.yml`)
    in the `release` environment, after checking that the run is for the tag
    you pushed. It checks that GitHub verified the tag's signature, that its
@@ -150,7 +171,8 @@ versions):
    release with the generated notes; add the curated sections to the notes
    afterwards. If a job fails, use "Re-run failed jobs", not "Re-run all
    jobs": once the image is tagged, a new attempt of all jobs stops at the
-   existing tag and can't finish the release.
+   existing tag and can't finish the release. If `prepare` fails because CI
+   hasn't finished for the commit, re-run the workflow once it passed.
 
 The repository needs, once: an environment `release` with a required
 reviewer, deployments limited to `v*` tags, and the Docker Hub secrets
@@ -159,8 +181,9 @@ reviewer, deployments limited to `v*` tags, and the Docker Hub secrets
 public, before the first release), only in that environment, not as
 repository secrets; optionally the variable `DOCKERHUB_ORG` for another
 Docker Hub organization; a ruleset for `dev` that requires the check `CI
-passed` (the gate job of `ci.yml`); `main` protected against
-non-fast-forward pushes; a ruleset that lets only maintainers create `v*`
+passed` (the gate job of `ci.yml`); a ruleset for `main` that lets only
+maintainers update it (every push to `main` deploys to Vercel production)
+and protects it against non-fast-forward pushes; a ruleset that lets only maintainers create `v*`
 tags and keeps them from being moved or deleted; and immutable releases.
 Tags and published releases and images can't be changed: if a release
 fails after its tag was pushed and re-running its failed jobs doesn't help,
