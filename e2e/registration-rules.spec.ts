@@ -116,7 +116,11 @@ test.describe("registration rules", () => {
         await page.waitForLoadState("networkidle");
         // the failed reads of the service info, which the page reports
         expect(
-            problems.filter((val) => !val.includes(`${registry}/service-info`)),
+            problems.filter(
+                (val) =>
+                    !val.includes(`${registry}/service-info`) &&
+                    !val.includes("Failed to load the registration rules"),
+            ),
         ).toEqual([]);
         problems.length = 0;
     });

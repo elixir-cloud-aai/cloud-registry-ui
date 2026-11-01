@@ -38,6 +38,9 @@ type RegistrationRules = {
 const knownUrlSchemes = ["http", "https"];
 // as long as the API allows (`maxLength` of `environment`)
 const maxEnvironmentLength = 256;
+// how long to wait for the service info, so that a stalled registry
+// doesn't hold up the forms; the registry checks the entries anyway
+const serviceInfoTimeout = 10_000;
 
 /** The registry's defaults, for rules it doesn't publish */
 const defaultRegistrationRules: Readonly<RegistrationRules> = Object.freeze({
@@ -93,7 +96,8 @@ function registrationRules(info: unknown): RegistrationRules | undefined {
         typeof info !== "object" ||
         !("registration_rules" in info) ||
         info.registration_rules === null ||
-        typeof info.registration_rules !== "object"
+        typeof info.registration_rules !== "object" ||
+        Array.isArray(info.registration_rules)
     )
         return undefined;
     const rules = rulesSchema.parse(info.registration_rules);
@@ -109,17 +113,32 @@ function registrationRules(info: unknown): RegistrationRules | undefined {
 /**
  * Read the registration rules from the registry
  * @param provider The registry's client, if any
+ * @param timeout How long to wait for the service info, in milliseconds
  * @returns The rules; undefined without a client, if the service info
- * can't be read, or if it has no rules
+ * can't be read in time (logged), or if it has no rules
  */
 async function readRegistrationRules(
     provider: Pick<AuthenticatedCloudRegistryProvider, "getServiceInfo"> | null,
+    timeout = serviceInfoTimeout,
 ) {
     if (!provider) return undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-        return registrationRules(await provider.getServiceInfo());
-    } catch {
+        const info = await Promise.race([
+            provider.getServiceInfo(),
+            new Promise<never>((_, reject) => {
+                timer = setTimeout(
+                    () => reject(new Error("timed out")),
+                    timeout,
+                );
+            }),
+        ]);
+        return registrationRules(info);
+    } catch (err) {
+        console.error("Failed to load the registration rules:", err);
         return undefined;
+    } finally {
+        clearTimeout(timer);
     }
 }
 

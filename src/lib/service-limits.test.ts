@@ -36,6 +36,7 @@ describe("servicesLimit", () => {
     });
 
     it("is unknown if the service info can't be read", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {});
         const provider = {
             getServiceInfo: () => Promise.reject(failure(500)),
         };

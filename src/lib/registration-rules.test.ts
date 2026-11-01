@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { failure } from "@/test/errors";
 import {
     defaultRegistrationRules,
@@ -65,6 +65,7 @@ describe("registrationRules", () => {
         [{}],
         [{ registration_rules: null }],
         [{ registration_rules: "x" }],
+        [{ registration_rules: [] }],
         [null],
         ["x"],
     ])("has no rules for %j", (info) => {
@@ -136,10 +137,19 @@ describe("readRegistrationRules", () => {
                 getServiceInfo: async () => ({ id: "x" }) as never,
             }),
         ).toBeUndefined();
+        const error = vi.spyOn(console, "error").mockImplementation(() => {});
         const provider = {
             getServiceInfo: () => Promise.reject(failure(500)),
         };
         expect(await readRegistrationRules(provider)).toBeUndefined();
+        expect(error).toHaveBeenCalledOnce();
+        expect(
+            await readRegistrationRules(
+                { getServiceInfo: () => new Promise<never>(() => {}) },
+                1,
+            ),
+        ).toBeUndefined();
+        expect(String(error.mock.calls[1][1])).toMatch(/timed out/);
         expect(await readRegistrationRules(null)).toBeUndefined();
     });
 });
