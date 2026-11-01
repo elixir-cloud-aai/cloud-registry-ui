@@ -63,9 +63,10 @@ Now, the app reads them from the registry's service info (see
 [Registry](configuration.md#registry)), so they can't differ from what the
 registry enforces (cloud-registry 0.6.0 and later publish them; with older
 registries, the edit form takes any environment and any `http` or `https`
-URL, and the registry checks them). Remove the two settings from your deployment (`docker
-run -e`, `.env`, Vercel project): if they are still set, the app ignores
-them and logs a warning when it starts ("Ignoring setting …").
+URL, and the registry checks them). Remove the two settings from your
+deployment (`docker run -e`, `.env`, Vercel project): if they are still
+set, the app ignores them and logs a warning when it starts ("Ignoring
+setting …").
 
 ### Login providers instead of `LS_LOGIN_URL` and `OIDC_*`
 

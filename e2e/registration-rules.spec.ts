@@ -95,7 +95,7 @@ test.describe("registration rules", () => {
         await page.goto(`/dashboard/services/update/${service.id}`);
         await expect(
             page.getByText(
-                "Could not read the registry's rules for registrations.",
+                "The registry's rules for registrations are unknown",
                 { exact: false },
             ),
         ).toBeVisible();

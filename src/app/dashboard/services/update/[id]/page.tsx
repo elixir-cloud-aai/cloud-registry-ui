@@ -115,8 +115,8 @@ function Page() {
 
     useEffect(() => {
         if (rulesError)
-            toast.error(
-                "Could not read the registry's rules for registrations. The registry checks the environment and the service URL when you submit.",
+            toast.warning(
+                "The registry's rules for registrations are unknown (it publishes none, or they couldn't be read): the registry checks the environment and the service URL when you submit.",
             );
     }, [rulesError]);
 
