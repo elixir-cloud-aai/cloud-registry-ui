@@ -84,7 +84,10 @@ requesting the same scopes. Users who are logged in stay logged in. The app
 stops with a message if it finds the old variables without
 `LOGIN_PROVIDERS`. On Vercel, change the project's environment variables
 before deploying this version: the build fails if the old ones are set
-without `LOGIN_PROVIDERS`.
+without `LOGIN_PROVIDERS`. Old variables that are still set next to
+`LOGIN_PROVIDERS` are ignored, with a warning that names each of them (not
+their values) when the app starts: remove them, so that no stale client
+secret (`OIDC_CLIENT_SECRET`) stays in the deployment.
 
 ### Admin mode
 

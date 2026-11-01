@@ -75,7 +75,7 @@ Branch naming examples:
 
 ### Commit Guidelines
 
-Please refer to [this article] for more information.(https://github.com/elixir-cloud-aai/elixir-cloud-aai/blob/dev/resources/contributing_guidelines.md#commit-messages).
+Please refer to [this article](https://github.com/elixir-cloud-aai/elixir-cloud-aai/blob/dev/resources/contributing_guidelines.md#commit-messages) for more information.
 
 
 
