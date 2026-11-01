@@ -155,7 +155,13 @@ test.describe("registering services", () => {
         // `GET /me` still says that they may add types
         await publishRules(page, { max_unused_service_types: 0 });
         await login(page, "owner");
+        // the form follows the user and the rules once they are loaded
+        const loaded = Promise.all([
+            page.waitForResponse(`${registry}/me`),
+            page.waitForResponse(`${registry}/service-info`),
+        ]);
         await page.goto("/dashboard/services/create");
+        await loaded;
         await expect(page.getByText(pendingNote)).toHaveCount(0);
         await page
             .getByRole("button", { name: "Select a service type" })
