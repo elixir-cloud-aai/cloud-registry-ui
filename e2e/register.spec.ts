@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import {
     addTesType,
     api,
@@ -12,6 +13,23 @@ import {
 
 const pendingNote =
     "New service types are pending until an admin approves them, and so are the services that have them.";
+
+/**
+ * Check that the form offers no admin-only fields: neither the section
+ * nor the custom ID and the dates
+ * @param page Page with the form
+ */
+async function expectNoAdminFields(page: Page) {
+    await expect(page.getByText("Advanced Configuration")).toHaveCount(0);
+    await expect(
+        page.getByRole("textbox", {
+            name: "org.example.my-service (optional)",
+        }),
+    ).toHaveCount(0);
+    await expect(
+        page.getByRole("textbox", { name: "2019-06-04T12:58:19Z (optional)" }),
+    ).toHaveCount(0);
+}
 
 test.describe("registering services", () => {
     test("users choose a registered type and an allowed environment", async ({
@@ -40,7 +58,7 @@ test.describe("registering services", () => {
         // new types of users are pending in the registry of the tests
         await expect(page.getByText(pendingNote)).toBeVisible();
         // only admins choose IDs and dates
-        await expect(page.getByText("Advanced Configuration")).toHaveCount(0);
+        await expectNoAdminFields(page);
 
         const service = newService("Registered");
         await fillCreateForm(page, service);
@@ -121,7 +139,7 @@ test.describe("registering services", () => {
         const userMode = page.getByRole("button", { name: "User mode" });
         await expect(userMode).toBeVisible();
         // in user mode, admins register services like other users
-        await expect(page.getByText("Advanced Configuration")).toHaveCount(0);
+        await expectNoAdminFields(page);
 
         await userMode.click();
         await expect(
