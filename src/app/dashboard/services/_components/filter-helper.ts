@@ -83,7 +83,7 @@ function matchesSearch(service: ExternalService, search: string) {
  * @param me The user, if logged in
  * @returns The IDs of the services
  */
-export function myServices(me: Me | null) {
+export function myServices(me: Pick<Me, "services"> | null) {
     return new Set(me?.services.map((val) => val.service_id));
 }
 
@@ -94,7 +94,7 @@ export function filterServices(
     filters: ServiceFilters,
     verifications: Map<string, ServiceVerification>,
     pending: Set<string>,
-    mine: Set<string> = new Set(),
+    mine: Set<string>,
 ) {
     return services.filter(
         (service) =>

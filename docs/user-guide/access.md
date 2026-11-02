@@ -16,6 +16,10 @@ You become the owner of the services you register. Owners can give other
 users, or groups, a role on their services: e.g. a colleague who updates
 the service, or the team that runs it.
 
+**My services** above the list of services shows only the services on
+which you have a role, yourself or through a group (see [Searching and
+filtering](browsing.md#searching-and-filtering)).
+
 Which groups make users admins, and which groups exist, depends on the
 deployment and its login provider; your deployment's documentation says
 whom to ask.

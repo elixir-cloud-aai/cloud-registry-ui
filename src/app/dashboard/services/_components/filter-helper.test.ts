@@ -160,7 +160,7 @@ describe("filterServices", () => {
 });
 
 describe("myServices", () => {
-    const me = (services: Me["services"]) => ({ services }) as Me;
+    const me = (services: Me["services"]) => ({ services });
 
     it("lists the services with a role, direct or through a group", () => {
         expect(

@@ -195,10 +195,11 @@ test.describe("services", () => {
 
     test("guests get no filter for their services", async ({ page }) => {
         await page.goto("/dashboard/services");
-        await expect(page.getByLabel("Search services")).toBeVisible();
+        // the list has loaded
+        await page.waitForLoadState("networkidle");
+        await expect(page.getByLabel("Search services")).toBeEnabled();
         await expect(
             page.getByRole("button", { name: "Show my services only" }),
         ).toHaveCount(0);
-        await page.waitForLoadState("networkidle");
     });
 });
