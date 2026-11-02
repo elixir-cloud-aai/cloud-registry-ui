@@ -52,7 +52,7 @@ function ServiceTypeCard({
         <Card role="group" aria-label={label} className="w-72 max-w-full">
             <CardHeader>
                 <CardTitle>
-                    <dl className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-2 gap-y-1">
+                    <dl className="grid grid-cols-[max-content_minmax(0,1fr)] items-start gap-x-2 gap-y-1">
                         {typeFields(serviceType).map(
                             ({ label: field, value }) => (
                                 <div key={field} className="contents">

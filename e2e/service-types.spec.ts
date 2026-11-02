@@ -357,14 +357,10 @@ test.describe("service types", () => {
         ]);
         // short values stay on one line, e.g. the version doesn't wrap as
         // "2.0." and "0"
-        const lines = await values.last().evaluate((el) => {
-            const range = document.createRange();
-            range.selectNodeContents(el);
-            const tops = [...range.getClientRects()].map((rect) =>
-                Math.round(rect.top),
-            );
-            return new Set(tops).size;
-        });
-        expect(lines).toBe(1);
+        // (the label "Version:" is one line; terms and values are as high
+        // as their text)
+        const term = await page.getByRole("term").last().boundingBox();
+        const version = await values.last().boundingBox();
+        expect(version?.height).toBeLessThan((term?.height ?? 0) * 1.5);
     });
 });
