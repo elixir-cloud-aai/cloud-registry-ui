@@ -41,16 +41,17 @@ the details, also on a phone.
 ![Details of a service](../images/service-details.png){ width="512" }
 
 The buttons below the details depend on your rights (see [Access and
-permissions](access.md)). **Share** and **Manage access** are on the left,
-the actions on the service itself on the right; if they don't fit in one
-row, the actions on the right move to a row of their own:
+permissions](access.md)). They come in two groups, which share a row
+where they fit, and otherwise each take a row of their own:
 
-- **Share** copies a link to the service's own page, e.g. to send it to
-  others. If the browser can't copy it, the link is shown below the buttons.
-- **Edit**, **Delete** and **Manage access** for owners, maintainers and
-  admins (see [Registering and editing
+- On the left, **Share** copies a link to the service's own page, e.g. to
+  send it to others; if the browser can't copy it, the link is shown below
+  the buttons. **Manage access** is there for owners and admins (see
+  [Access and permissions](access.md)).
+- On the right, the actions on the service itself: **Approve** and
+  **Verify** for admins in admin mode, **Edit** for owners, maintainers and
+  admins, and **Delete** for owners and admins (see [Registering and editing
   services](registering.md#editing-a-service)).
-- **Verify** and **Approve** for admins in admin mode.
 
 Each service also has its own page, which shows the same details:
 `/dashboard/services/view/<ID>` of the app. If a service doesn't exist, or
