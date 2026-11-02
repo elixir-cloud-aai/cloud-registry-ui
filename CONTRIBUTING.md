@@ -96,6 +96,13 @@ git push origin your-branch-name
 
 3. Open a Pull Request on GitHub, into `dev`
 
+Pull requests are squash-merged, so the title becomes the commit message on
+`dev`: it must follow [Conventional
+Commits](https://www.conventionalcommits.org/)
+(`<type>[(scope)]: <description>`, e.g. `fix: keep the filter after a
+reload`) and have at most 50 characters. The CI job "PR title" checks this, also when you edit
+the title.
+
 If your change affects what users or operators see or do (e.g. labels,
 pages, settings), update the docs in `docs/` with it, and take the
 screenshots again if they change (see "Screenshots" in
