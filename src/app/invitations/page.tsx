@@ -104,7 +104,7 @@ function Page() {
         content = (
             <>
                 <CardHeader>
-                    <CardTitle>Invitation accepted</CardTitle>
+                    <CardTitle>Invitation Accepted</CardTitle>
                     <CardDescription>
                         You are now {accepted.role} of {accepted.service_id}.
                     </CardDescription>
@@ -123,7 +123,7 @@ function Page() {
     else if (token === null)
         content = (
             <CardHeader>
-                <CardTitle>No invitation to accept</CardTitle>
+                <CardTitle>No Invitation to Accept</CardTitle>
                 <CardDescription>
                     {failure ??
                         "Open the whole link that you were sent; it ends with the invitation's code."}
@@ -145,7 +145,7 @@ function Page() {
         content = (
             <>
                 <CardHeader>
-                    <CardTitle>Accept the invitation</CardTitle>
+                    <CardTitle>Accept the Invitation</CardTitle>
                     <CardDescription>
                         You were invited to a service. Accepting gives{" "}
                         {user?.name || user?.email || "your account"} the role

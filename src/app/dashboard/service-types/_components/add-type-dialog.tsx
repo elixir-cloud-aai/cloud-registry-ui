@@ -80,13 +80,13 @@ function ServiceTypeAddDialog({
             <DialogTrigger asChild>
                 <Button>
                     <PlusIcon />
-                    Add service type
+                    Add Service Type
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle className="text-lg font-bold">
-                        Add service type
+                        Add Service Type
                     </DialogTitle>
                     <DialogDescription>
                         {addTypeDescription(pending, limit)}

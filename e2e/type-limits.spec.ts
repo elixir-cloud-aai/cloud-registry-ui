@@ -54,7 +54,13 @@ test.describe("service type limits", () => {
         await login(page, "admin", { adminMode: true });
         await page.goto("/dashboard/service-types");
 
-        await page.getByRole("button", { name: "Add service type" }).click();
+        await page.getByRole("button", { name: "Add Service Type" }).click();
+        await expect(
+            page.getByRole("heading", {
+                name: "Add Service Type",
+                exact: true,
+            }),
+        ).toBeVisible();
         // no limit for admins
         await expect(
             page

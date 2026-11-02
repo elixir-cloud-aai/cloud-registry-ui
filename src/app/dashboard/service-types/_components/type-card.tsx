@@ -65,7 +65,7 @@ function ServiceTypeCard({
                             <AlertDialogContent>
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>
-                                        Remove service type?
+                                        Remove Service Type?
                                     </AlertDialogTitle>
                                     <AlertDialogDescription>
                                         Services can no longer be registered
