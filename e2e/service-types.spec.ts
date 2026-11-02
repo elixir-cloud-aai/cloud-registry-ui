@@ -324,4 +324,43 @@ test.describe("service types", () => {
         await page.keyboard.press("Escape");
         await page.waitForLoadState("networkidle");
     });
+
+    test("the tiles show group, artifact and version line by line", async ({
+        page,
+    }) => {
+        const type = {
+            group: "org.example.with.a.rather.long.group",
+            artifact: "e2e-artifact-with-a-rather-long-name",
+            version: "2.0.0",
+        };
+        await page.route(`${registry}/services/types`, (route) =>
+            route.fulfill({ json: [type] }),
+        );
+        await page.goto("/dashboard/service-types");
+
+        // the joined type names the tile
+        await expect(
+            page.getByRole("group", {
+                name: `${type.group} · ${type.artifact} · ${type.version}`,
+            }),
+        ).toBeVisible();
+        await expect(page.getByRole("term")).toHaveText([
+            "Group:",
+            "Artifact:",
+            "Version:",
+        ]);
+        const values = page.getByRole("definition");
+        await expect(values).toHaveText([
+            type.group,
+            type.artifact,
+            type.version,
+        ]);
+        // short values stay on one line, e.g. the version doesn't wrap as
+        // "2.0." and "0"
+        // (the label "Version:" is one line; terms and values are as high
+        // as their text)
+        const term = await page.getByRole("term").last().boundingBox();
+        const version = await values.last().boundingBox();
+        expect(version?.height).toBeLessThan((term?.height ?? 0) * 1.5);
+    });
 });

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { addTypeDescription, defaultType, typeLimitNote } from "./type-helper";
+import {
+    addTypeDescription,
+    breakParts,
+    defaultType,
+    typeFields,
+    typeLimitNote,
+} from "./type-helper";
 
 describe("defaultType", () => {
     it("starts in the GA4GH group", () => {
@@ -56,5 +62,45 @@ describe("typeLimitNote", () => {
             typeLimitNote({ ...user, may_add_service_types: false }, none),
         ).toBe(undefined);
         expect(typeLimitNote(null, none)).toBe(undefined);
+    });
+});
+
+describe("typeFields", () => {
+    it("lists group, artifact and version on their own", () => {
+        expect(
+            typeFields({
+                group: "org.ga4gh",
+                artifact: "beacon",
+                version: "2.0.0",
+            }),
+        ).toEqual([
+            { label: "Group", value: "org.ga4gh" },
+            { label: "Artifact", value: "beacon" },
+            { label: "Version", value: "2.0.0" },
+        ]);
+    });
+});
+
+describe("breakParts", () => {
+    it("splits after dots, hyphens, underscores and slashes", () => {
+        expect(breakParts("org.ga4gh")).toEqual(["org.", "ga4gh"]);
+        expect(breakParts("my-long_artifact/name")).toEqual([
+            "my-",
+            "long_",
+            "artifact/",
+            "name",
+        ]);
+        expect(breakParts("2.0.0-rc.1")).toEqual([
+            "2.",
+            "0.",
+            "0-",
+            "rc.",
+            "1",
+        ]);
+    });
+
+    it("keeps values without separators whole", () => {
+        expect(breakParts("beacon")).toEqual(["beacon"]);
+        expect(breakParts("")).toEqual([""]);
     });
 });
