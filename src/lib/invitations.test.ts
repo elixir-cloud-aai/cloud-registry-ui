@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { failure } from "@/test/errors";
+import type { Invitation } from "./cloud-registry.types";
 import {
     acceptanceLabel,
     acceptInvitationError,
@@ -9,10 +10,13 @@ import {
     invitationToken,
     keepPendingToken,
     listInvitationsError,
+    liveLinks,
     pendingToken,
     readInvitation,
+    renewRevokeError,
     revokeInvitationError,
     sessionStore,
+    splitInvitations,
 } from "./invitations";
 
 const token = "a".repeat(43);
@@ -269,5 +273,69 @@ describe("messages", () => {
         ],
     ])("words failed acceptances (%#)", (err, message, final) => {
         expect(acceptInvitationError(err)).toEqual({ message, final });
+    });
+});
+
+describe("invitation lists", () => {
+    const invitation = (id: string, accepted = false): Invitation => ({
+        id,
+        service_id: "s",
+        role: "maintainer",
+        created_by: "u",
+        created_at: "2026-11-01T00:00:00Z",
+        expires_at: "2026-11-08T00:00:00Z",
+        ...(accepted && {
+            accepted: { user_id: "v", accepted_at: "2026-11-02T00:00:00Z" },
+        }),
+    });
+    const link = (id: string) => ({
+        id,
+        link: `https://app.example.org/invitations#${id}`,
+        role: "maintainer" as const,
+        expiresAt: "2026-11-08T00:00:00Z",
+    });
+
+    it("splits open and accepted invitations, in order", () => {
+        expect(
+            splitInvitations([
+                invitation("a", true),
+                invitation("b"),
+                invitation("c"),
+                invitation("d", true),
+            ]),
+        ).toEqual({
+            open: [invitation("b"), invitation("c")],
+            accepted: [invitation("a", true), invitation("d", true)],
+        });
+        expect(splitInvitations([])).toEqual({ open: [], accepted: [] });
+    });
+
+    it("keeps the links of open invitations, newest first", () => {
+        const links = [link("a"), link("b"), link("c")];
+        // `b` was accepted, `c` revoked or expired
+        expect(
+            liveLinks(links, [invitation("a"), invitation("b", true)]),
+        ).toEqual([link("a")]);
+        expect(
+            liveLinks(links, [invitation("a"), invitation("c")]).map(
+                (val) => val.id,
+            ),
+        ).toEqual(["c", "a"]);
+        // all, while the list can't be loaded
+        expect(liveLinks(links, null).map((val) => val.id)).toEqual([
+            "c",
+            "b",
+            "a",
+        ]);
+        expect(liveLinks([], [invitation("a")])).toEqual([]);
+    });
+
+    it("words failed revocations of renewed invitations", () => {
+        expect(renewRevokeError(failure(500))).toBe(
+            "Created the new link, but the old one still works: Cannot revoke the invitation currently.",
+        );
+        expect(renewRevokeError(failure(404))).toBe(
+            "Created the new link; the old invitation had expired or was revoked already.",
+        );
     });
 });
