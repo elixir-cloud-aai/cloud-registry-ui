@@ -76,7 +76,7 @@ function ApproveTypeButton({
             </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Approve service type?</AlertDialogTitle>
+                    <AlertDialogTitle>Approve Service Type?</AlertDialogTitle>
                     {/* long service types break instead of sticking out */}
                     <AlertDialogDescription className="wrap-anywhere">
                         {label} and all services that have it are then listed

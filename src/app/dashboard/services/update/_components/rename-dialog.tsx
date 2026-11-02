@@ -28,7 +28,7 @@ function ServiceRenameDialog({ oldId, newId, onConfirm, onCancel }: Props) {
         >
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Change service ID</AlertDialogTitle>
+                    <AlertDialogTitle>Change Service ID</AlertDialogTitle>
                     <AlertDialogDescription>
                         Change the ID from{" "}
                         <span className="font-mono break-all">{oldId}</span> to{" "}
