@@ -20,7 +20,7 @@ import AppSidebarLogo from "./app-sidebar-logo";
 const titleHeight = 40;
 const oneLineHeight = 1.4;
 const twoLineHeight = 1.2;
-const oneLineMaxSize = 24;
+const oneLineMaxSize = 22;
 
 function AppSidebarHeader() {
     const lineHeight = appTitleLines.length > 1 ? twoLineHeight : oneLineHeight;
