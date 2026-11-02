@@ -46,12 +46,12 @@ where they fit, and otherwise each take a row of their own:
 
 - On the left, **Share** copies a link to the service's own page, e.g. to
   send it to others; if the browser can't copy it, the link is shown below
-  the buttons. **Manage access** is there for owners and admins (see
-  [Access and permissions](access.md)).
-- On the right, the actions on the service itself: **Approve** and
-  **Verify** for admins in admin mode, **Edit** for owners, maintainers and
-  admins, and **Delete** for owners and admins (see [Registering and editing
-  services](registering.md#editing-a-service)).
+  the buttons. **Manage access** is there for owners and admins.
+- On the right, the actions on the service itself: **Approve** (see
+  [Pending entries](pending.md)) and **Verify** (see
+  [Verifications](verifications.md)) for admins in admin mode, **Edit** for
+  owners, maintainers and admins, and **Delete** for owners and admins (see
+  [Registering and editing services](registering.md#editing-a-service)).
 
 Each service also has its own page, which shows the same details:
 `/dashboard/services/view/<ID>` of the app. If a service doesn't exist, or

@@ -20,7 +20,8 @@ function scrollsSideways(locator: Locator) {
 
 /**
  * Check that the service details fit their container: no sideways scrolling
- * and all actions inside it
+ * and all actions inside it; for an admin in admin mode viewing a pending
+ * service, who gets all actions but Verify
  * @param page Page with the details
  * @param container The dialog or the card around the details
  */
