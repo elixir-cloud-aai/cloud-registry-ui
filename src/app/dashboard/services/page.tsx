@@ -2,6 +2,7 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { LogIn, PlusIcon } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
@@ -46,6 +47,7 @@ function Page() {
     const [search, setSearch] = useState("");
     const [filters, setFilters] = useState<ServiceFilters>(defaultFilters);
     const [registering, setRegistering] = useState(false);
+    const searchParams = useSearchParams();
 
     const filtered = isFiltered(search, filters);
     const verified = verifiedServices(services, verifications);
@@ -126,14 +128,15 @@ function Page() {
     }, [cloudRegistryProvider]);
 
     // links to the create form (`?register`, e.g. from
-    // `/dashboard/services/create`) open it, and leave the plain URL
+    // `/dashboard/services/create`) open it, also on this page, and leave
+    // the plain URL
     useEffect(() => {
-        const url = new URL(window.location.href);
-        if (!url.searchParams.has("register")) return;
+        if (!searchParams.has("register")) return;
         setRegistering(true);
+        const url = new URL(window.location.href);
         url.searchParams.delete("register");
         window.history.replaceState(null, "", url);
-    }, []);
+    }, [searchParams]);
 
     return (
         <div className="space-y-6">

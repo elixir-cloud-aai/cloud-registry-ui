@@ -346,6 +346,44 @@ test.describe("registering services", () => {
         expect(await leaving()).toBe(true);
     });
 
+    test("the form stays open while it sends", async ({ page, browser }) => {
+        await addTesType(browser);
+        // the registry answers once the test lets it
+        let answer = () => {};
+        const answered = new Promise<void>((resolve) => {
+            answer = resolve;
+        });
+        await page.route(`${registry}/services`, async (route) => {
+            if (route.request().method() !== "POST") return route.fallback();
+            await answered;
+            return route.continue();
+        });
+        await login(page, "owner");
+        const form = await openCreateForm(page);
+        const service = newService("Sending");
+        await fillCreateForm(page, service);
+        const sent = page.waitForRequest(
+            (request) =>
+                request.method() === "POST" &&
+                request.url() === `${registry}/services`,
+        );
+        await page.getByRole("button", { name: "Create Service" }).click();
+        await sent;
+
+        // neither closed nor discarded while the registry hasn't answered
+        await page.keyboard.press("Escape");
+        await form.getByRole("button", { name: "Close", exact: true }).click();
+        await expect(form).toBeVisible();
+        await expect(
+            page.getByRole("alertdialog", { name: "Unsaved changes" }),
+        ).toHaveCount(0);
+        answer();
+        await expect(
+            page.getByText(`Registered ${service.name}`),
+        ).toBeVisible();
+        await expect(form).toBeHidden();
+    });
+
     test("links to the create page open the form", async ({ page }) => {
         // guests are asked to log in, and come back to the form
         await page.goto("/dashboard/services/create");

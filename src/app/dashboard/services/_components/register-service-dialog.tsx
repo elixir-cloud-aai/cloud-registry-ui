@@ -5,6 +5,7 @@ import type {
     EccServiceCreateValidationFailedEvent,
     EccServiceFormChangedEvent,
 } from "@elixir-cloud/cloud-registry/events";
+import type { ExternalServiceRegister } from "@elixir-cloud/cloud-registry/providers";
 import { ECCClientElixirCloudRegistryServiceCreate } from "@elixir-cloud/cloud-registry/react";
 import { ClockIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -48,12 +49,14 @@ type Props = {
 
 type FormProps = {
     onChange: (dirty: boolean) => void;
+    /** While a registration is being sent */
+    onSending: (sending: boolean) => void;
     onRegistered: () => void;
 };
 
 /** The create form of cloud-components, with the checks before sending,
  * or a login prompt for users who are not (or no longer) logged in */
-function RegisterServiceForm({ onChange, onRegistered }: FormProps) {
+function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
     const router = useRouter();
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const { me, loading, error, expired } = useMe();
@@ -71,12 +74,27 @@ function RegisterServiceForm({ onChange, onRegistered }: FormProps) {
     // client checks the rest before sending (cloud-components has no hook
     // for it); the same client for new rules, as the form reloads its types
     // for another one
-    const provider = useMemo(
-        () =>
-            cloudRegistryProvider &&
-            checkedProvider(cloudRegistryProvider, () => checkRules.current),
-        [cloudRegistryProvider],
-    );
+    // which also tells while it sends, so that the modal stays open until
+    // the registry has answered (requests can't be cancelled)
+    const provider = useMemo(() => {
+        if (!cloudRegistryProvider) return cloudRegistryProvider;
+        const checked = checkedProvider(
+            cloudRegistryProvider,
+            () => checkRules.current,
+        );
+        const sending = (send: () => Promise<string>) => {
+            onSending(true);
+            return send().finally(() => onSending(false));
+        };
+        return Object.assign(Object.create(checked), {
+            createService: (service: ExternalServiceRegister) =>
+                sending(() => checked.createService(service)),
+            createServiceWithId: (
+                id: string,
+                service: ExternalServiceRegister,
+            ) => sending(() => checked.createServiceWithId(id, service)),
+        }) as typeof checked;
+    }, [cloudRegistryProvider, onSending]);
 
     useEffect(() => {
         if (error && !expired)
@@ -171,6 +189,7 @@ function RegisterServiceForm({ onChange, onRegistered }: FormProps) {
 function RegisterServiceDialog({ open, onOpenChange, onRegistered }: Props) {
     const [changed, setChanged] = useState(false);
     const [confirmClose, setConfirmClose] = useState(false);
+    const [sending, setSending] = useState(false);
     // each opening gets a new form: a form closed while it was sending
     // still reports (cloud-components' listeners outlive it), and must
     // neither change nor close the current one
@@ -192,7 +211,8 @@ function RegisterServiceDialog({ open, onOpenChange, onRegistered }: Props) {
                 open={open}
                 // opened by the page only: Radix asks only to close it
                 onOpenChange={(val) => {
-                    if (val) return;
+                    // nor while the registration is being sent
+                    if (val || sending) return;
                     if (changed) setConfirmClose(true);
                     else close();
                 }}
@@ -211,6 +231,7 @@ function RegisterServiceDialog({ open, onOpenChange, onRegistered }: Props) {
                     </DialogHeader>
                     <RegisterServiceForm
                         key={form}
+                        onSending={setSending}
                         onChange={(dirty) => {
                             if (form === current.current) setChanged(dirty);
                         }}
