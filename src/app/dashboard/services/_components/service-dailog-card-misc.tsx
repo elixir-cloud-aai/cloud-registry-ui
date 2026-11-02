@@ -8,8 +8,7 @@ import { breakSegments } from "./break-helper";
  */
 function Breakable({ value }: { value: string }) {
     return breakSegments(value).map((segment, index) => (
-        // the segments don't change order
-        // biome-ignore lint/suspicious/noArrayIndexKey: see above
+        // biome-ignore lint/suspicious/noArrayIndexKey: the segments of a value keep their order
         <Fragment key={index}>
             {segment}
             <wbr />

@@ -34,8 +34,22 @@ async function expectFits(page: Page, container: Locator) {
     ];
     for (const action of actions) await expect(action).toBeVisible();
     expect(await scrollsSideways(container)).toBe(false);
-    // the raw metadata wraps, too
-    expect(await scrollsSideways(container.locator("pre"))).toBe(false);
+    // nothing inside scrolls sideways (e.g. the body or the raw metadata)
+    // or sticks out of the container, where it would be clipped; elements
+    // hidden to the eye (e.g. labels for screen readers) are 1 px wide
+    expect(
+        await container.evaluate((root) => {
+            const right = root.getBoundingClientRect().right + 0.5;
+            return Array.from(root.querySelectorAll("*"))
+                .filter(
+                    (el) =>
+                        el.clientWidth > 1 &&
+                        (el.scrollWidth > el.clientWidth + 1 ||
+                            el.getBoundingClientRect().right > right),
+                )
+                .map((el) => el.outerHTML.slice(0, 160));
+        }),
+    ).toEqual([]);
     expect(
         await page.evaluate(
             () =>
@@ -56,7 +70,9 @@ async function expectFits(page: Page, container: Locator) {
 }
 
 /**
- * Register a pending service, as its type is new, with a long name and URL
+ * Register a pending service, as its type is new, with long values: name,
+ * URL, a group of the type longer than a phone is wide, and an organization
+ * name without delimiters
  * @param browser Browser
  * @returns The service and its ID
  */
@@ -64,9 +80,13 @@ async function registerPending(browser: Browser) {
     const id = uniqueId();
     const service = {
         ...newService("A rather long name of a pending service (test)"),
+        organization: {
+            name: "Averylongorganizationnamewithoutanyspacesordelimitersatall",
+            url: "https://example.org",
+        },
         url: `https://a-rather-long-host-name-${id}.example.org/ga4gh/registry/v1/services/some/very/long/path`,
         type: {
-            group: "org.example.a.rather.long.group",
+            group: "org.example.institute.department.registry.group.of.services",
             artifact: `e2e-${id}`,
             version: "1.0.0",
         },

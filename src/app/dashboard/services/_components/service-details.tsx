@@ -182,8 +182,8 @@ function ServiceDetails({
     return (
         <>
             {/* the classes of DialogHeader, the same in the dialog and on the
-                page; the text keeps clear of the close button of the dialog */}
-            <div className="flex flex-col gap-1.5 px-4 py-4 pr-14 border-b">
+                page; in the dialog, the text keeps clear of its close button */}
+            <div className="flex flex-col gap-1.5 px-4 py-4 in-data-[slot=dialog-content]:pr-14 border-b">
                 <Title className="text-lg font-bold leading-none">
                     Service Details
                 </Title>
@@ -199,8 +199,11 @@ function ServiceDetails({
                 )}
             </div>
 
+            {/* the text of the banner may shrink below its longest word, e.g.
+                a long service type, which then breaks instead of widening
+                the dialog */}
             {pending && (
-                <div className="px-6 pt-5">
+                <div className="px-6 pt-5 [&_p]:min-w-0">
                     <PendingBanner
                         serviceType={service.type}
                         admin={me?.admin}
