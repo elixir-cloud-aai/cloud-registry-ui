@@ -132,6 +132,20 @@ test.describe("service details", () => {
                 );
                 await expect(dialog).toContainText(service.url);
                 await expectFits(page, dialog);
+                // the confirmation of an approval fits, too
+                await dialog.getByRole("button", { name: "Approve" }).click();
+                const confirm = page.getByRole("alertdialog");
+                await expect(confirm).toContainText(service.type.group);
+                expect(await scrollsSideways(confirm)).toBe(false);
+                expect(
+                    await confirm.evaluate((root) => {
+                        const right = root.getBoundingClientRect().right + 0.5;
+                        return Array.from(root.querySelectorAll("*")).filter(
+                            (el) => el.getBoundingClientRect().right > right,
+                        ).length;
+                    }),
+                ).toBe(0);
+                await confirm.getByRole("button", { name: "Cancel" }).click();
                 await page.keyboard.press("Escape");
                 // requests cut off by leaving the page fail, and the app
                 // logs them
