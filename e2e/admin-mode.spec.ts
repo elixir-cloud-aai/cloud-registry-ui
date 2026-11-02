@@ -118,8 +118,32 @@ test.describe("admin mode", () => {
             ]) {
                 await page.goto(path);
                 await page.waitForLoadState("networkidle");
-                await expect(page.getByText(subtitle)).toBeVisible();
-                await expect(page.getByText(/ADMIN/)).toHaveCount(0);
+                // the whole subtitle, without a prefix
+                await expect(
+                    page.getByText(subtitle, { exact: true }),
+                ).toBeVisible();
+                // no text names admin mode, in any case, but the switch
+                const marks = await page.evaluate(() => {
+                    const walker = document.createTreeWalker(
+                        document.body,
+                        NodeFilter.SHOW_TEXT,
+                    );
+                    const found: string[] = [];
+                    for (let node = walker.nextNode(); node; ) {
+                        const text = node.textContent ?? "";
+                        const parent = node.parentElement;
+                        // visible text only, e.g. not the data in scripts
+                        if (
+                            /admin/i.test(text) &&
+                            parent?.checkVisibility() &&
+                            !parent.closest("button, script, style")
+                        )
+                            found.push(text);
+                        node = walker.nextNode();
+                    }
+                    return found;
+                });
+                expect(marks).toEqual([]);
                 const adminMode = page.getByRole("button", {
                     name: "Admin mode",
                 });

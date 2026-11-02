@@ -1,5 +1,11 @@
-import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { expect, test } from "./fixtures";
+
+// SHA-256 of the ELIXIR On-Cloud mark, day version, as the maintainer
+// provides it (logo_elixir_on_cloud_mark.png); not taken from the app, so
+// that another icon in `src/app/icon.png` fails the test
+const markDigest =
+    "0d69b6f5818314702278aef56ad212855c61da57061cc59b04c5d61d2571abaa";
 
 test.describe("branding", () => {
     test("the sidebar title is at most 22 px", async ({ page }) => {
@@ -27,12 +33,10 @@ test.describe("branding", () => {
         const response = await page.request.get(href as string);
         expect(response.status()).toBe(200);
         expect(response.headers()["content-type"]).toBe("image/png");
-        expect(
-            Buffer.compare(
-                await response.body(),
-                readFileSync("src/app/icon.png"),
-            ),
-        ).toBe(0);
+        const digest = createHash("sha256")
+            .update(await response.body())
+            .digest("hex");
+        expect(digest).toBe(markDigest);
         // the old logo is gone
         const old = await page.request.get("/favicon.ico");
         expect(old.status()).toBe(404);
