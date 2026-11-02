@@ -30,6 +30,12 @@ on:
 permissions:
     contents: read
 
+# One scan at a time, so that a run that picked an older release can't
+# upload its findings after a newer run
+concurrency:
+    group: ${{ github.workflow }}
+    cancel-in-progress: false
+
 jobs:
     scan:
         name: Scheduled scan
@@ -55,7 +61,7 @@ jobs:
                   # as in the `prepare` job of `release.yml`
                   pattern='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(alpha|beta|rc)[1-9][0-9]*)?$'
                   releases="$(gh release list --repo "${GITHUB_REPOSITORY}" --exclude-drafts \
-                      --limit 100 --json tagName,isLatest)"
+                      --limit 1000 --json tagName,isLatest)"
                   tag="$(jq -r --arg pattern "${pattern}" \
                       '[.[] | select(.tagName | test($pattern))] | (map(select(.isLatest)) + .)[0].tagName // ""' \
                       <<< "${releases}")"
