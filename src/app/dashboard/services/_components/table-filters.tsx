@@ -1,5 +1,11 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
-import { BadgeCheckIcon, ClockIcon, SearchIcon, XIcon } from "lucide-react";
+import {
+    BadgeCheckIcon,
+    ClockIcon,
+    SearchIcon,
+    UserIcon,
+    XIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -90,6 +96,8 @@ type Props = {
     filtered: boolean;
     disabled: boolean;
     showPending?: boolean;
+    /** Offer the filter for the user's services (logged-in users) */
+    showMine?: boolean;
     onSearchChange: (search: string) => void;
     onFiltersChange: (filters: ServiceFilters) => void;
 };
@@ -101,6 +109,7 @@ function ServicesTableFilters({
     filtered,
     disabled,
     showPending = false,
+    showMine = false,
     onSearchChange,
     onFiltersChange,
 }: Props) {
@@ -173,6 +182,23 @@ function ServicesTableFilters({
                 <BadgeCheckIcon />
                 Verified only
             </Toggle>
+            {showMine && (
+                <Toggle
+                    variant={"outline"}
+                    aria-label="Show my services only"
+                    pressed={!!filters.mine}
+                    onPressedChange={(pressed) =>
+                        onFiltersChange({
+                            ...filters,
+                            mine: pressed || undefined,
+                        })
+                    }
+                    disabled={disabled}
+                >
+                    <UserIcon />
+                    My services
+                </Toggle>
+            )}
             {showPending && (
                 <Toggle
                     variant={"outline"}

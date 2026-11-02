@@ -1,12 +1,13 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { describe, expect, it } from "vitest";
-import type { ServiceVerification } from "@/lib/cloud-registry.types";
+import type { Me, ServiceVerification } from "@/lib/cloud-registry.types";
 import { typeKey } from "@/lib/service-types";
 import {
     defaultFilters,
     filterOptions,
     filterServices,
     isFiltered,
+    myServices,
 } from "./filter-helper";
 
 const tes = { group: "org.ga4gh", artifact: "tes", version: "1.1.0" };
@@ -88,7 +89,10 @@ describe("isFiltered", () => {
         expect(isFiltered("", { organization: null })).toBe(true);
         expect(isFiltered("", { verified: true })).toBe(true);
         expect(isFiltered("", { pending: true })).toBe(true);
-        expect(isFiltered("", { verified: false, pending: false })).toBe(false);
+        expect(isFiltered("", { mine: true })).toBe(true);
+        expect(
+            isFiltered("", { verified: false, pending: false, mine: false }),
+        ).toBe(false);
     });
 });
 
@@ -99,7 +103,15 @@ describe("filterServices", () => {
         filters = {},
         verified = none,
         pending = new Set<string>(),
-    ) => ids(filterServices(services, search, filters, verified, pending));
+        mine = new Set<string>(),
+    ) =>
+        ids(
+            filterServices(services, search, filters, {
+                verifications: verified,
+                pending,
+                mine,
+            }),
+        );
 
     it("searches the main fields, ignoring case", () => {
         expect(run(" kubernetes ")).toEqual(["a"]);
@@ -128,5 +140,48 @@ describe("filterServices", () => {
                 new Set(["c"]),
             ),
         ).toEqual([]);
+    });
+
+    it("filters the user's services, with the other filters", () => {
+        const mine = new Set(["a", "b"]);
+        expect(run("", { mine: true }, none, new Set(), mine)).toEqual([
+            "a",
+            "b",
+        ]);
+        expect(
+            run("", { mine: true, type: typeKey(wes) }, none, new Set(), mine),
+        ).toEqual(["b"]);
+        expect(
+            run("kubernetes", { mine: true }, none, new Set(), mine),
+        ).toEqual(["a"]);
+        // without roles, or without the filter
+        expect(run("", { mine: true })).toEqual([]);
+        expect(run("", {}, none, new Set(), mine)).toEqual([
+            "a",
+            "b",
+            "c",
+            "d",
+        ]);
+    });
+});
+
+describe("myServices", () => {
+    const me = (services: Me["services"]) => ({ services });
+
+    it("lists the services with a role, direct or through a group", () => {
+        expect(
+            myServices(
+                me([
+                    { service_id: "a", role: "owner" },
+                    { service_id: "a", role: "maintainer", group: "team" },
+                    { service_id: "c", role: "maintainer", group: "team" },
+                ]),
+            ),
+        ).toEqual(new Set(["a", "c"]));
+    });
+
+    it("lists none without a user", () => {
+        expect(myServices(null)).toEqual(new Set());
+        expect(myServices(me([]))).toEqual(new Set());
     });
 });

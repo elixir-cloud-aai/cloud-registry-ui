@@ -28,6 +28,7 @@ import {
     defaultFilters,
     filterServices,
     isFiltered,
+    myServices,
     type ServiceFilters,
 } from "./_components/filter-helper";
 
@@ -49,15 +50,17 @@ function Page() {
     const [registering, setRegistering] = useState(false);
     const searchParams = useSearchParams();
 
-    const filtered = isFiltered(search, filters);
+    // the user's services; without a user (e.g. after the session
+    // expired), the filter for them is hidden, and doesn't apply
+    const mine = myServices(me);
+    const activeFilters = { ...filters, mine: !!me && filters.mine };
+    const filtered = isFiltered(search, activeFilters);
     const verified = verifiedServices(services, verifications);
-    const filteredServices = filterServices(
-        services,
-        search,
-        filters,
-        verified,
+    const filteredServices = filterServices(services, search, activeFilters, {
+        verifications: verified,
         pending,
-    );
+        mine,
+    });
     const { page, pageCount, pageItems, start, end, setPage } = usePagination(
         filteredServices,
         pageSize,
@@ -192,6 +195,7 @@ function Page() {
                         filtered={filtered}
                         disabled={loading || services.length === 0}
                         showPending={!!me?.admin}
+                        showMine={!!me}
                         onSearchChange={handleSearchChange}
                         onFiltersChange={handleFiltersChange}
                     />

@@ -5,6 +5,8 @@ import {
     login,
     registerService,
     test,
+    tokenOf,
+    uniqueId,
     users,
     watchPage,
 } from "./fixtures";
@@ -147,5 +149,57 @@ test.describe("services", () => {
         for (const name of ["Delete", "Manage access", "Verify"])
             await expect(page.getByRole("button", { name })).toHaveCount(0);
         await expect(page.getByRole("link", { name: "Edit" })).toHaveCount(0);
+    });
+
+    test("users filter the services they are responsible for", async ({
+        page,
+        browser,
+    }) => {
+        // services of one test run, found by the search
+        const run = uniqueId();
+        const owned = await registerService(browser, "owner", `Owned ${run}`);
+        const maintained = await registerService(
+            browser,
+            "other",
+            `Maintained ${run}`,
+        );
+        const others = await registerService(browser, "other", `Other ${run}`);
+        const granted = await api(
+            await tokenOf(browser, "other"),
+            "PUT",
+            `/services/${maintained.id}/permissions/${encodeURIComponent(users.owner.sub)}`,
+            { role: "maintainer" },
+        );
+        expect(granted.status).toBeLessThan(300);
+
+        await login(page, "owner");
+        await page.getByLabel("Search services").fill(run);
+        const names = [owned, maintained, others].map((val) =>
+            page.getByText(val.name, { exact: true }),
+        );
+        for (const name of names) await expect(name).toBeVisible();
+        const mine = page.getByRole("button", {
+            name: "Show my services only",
+        });
+        await mine.click();
+        await expect(names[0]).toBeVisible();
+        await expect(names[1]).toBeVisible();
+        await expect(names[2]).toHaveCount(0);
+        // the search still applies, and Clear resets both
+        await page.getByLabel("Search services").fill(owned.name);
+        await expect(names[0]).toBeVisible();
+        await expect(names[1]).toHaveCount(0);
+        await page.getByRole("button", { name: "Clear" }).click();
+        await expect(mine).toHaveAttribute("aria-pressed", "false");
+    });
+
+    test("guests get no filter for their services", async ({ page }) => {
+        await page.goto("/dashboard/services");
+        // the list has loaded
+        await page.waitForLoadState("networkidle");
+        await expect(page.getByLabel("Search services")).toBeEnabled();
+        await expect(
+            page.getByRole("button", { name: "Show my services only" }),
+        ).toHaveCount(0);
     });
 });
