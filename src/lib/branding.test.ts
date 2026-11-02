@@ -33,7 +33,7 @@ describe("branding settings", () => {
 
     it("uses the settings", async () => {
         const branding = await load({
-            NEXT_PUBLIC_APP_TITLE: "ELIXIR Cloud Service Registry",
+            NEXT_PUBLIC_APP_TITLE: "Example Research Service Registry",
             NEXT_PUBLIC_APP_TITLE_SIZE: "20",
             NEXT_PUBLIC_APP_TITLE_FONT: "Inter",
             NEXT_PUBLIC_APP_LOGO: "/logo.svg",
@@ -42,7 +42,7 @@ describe("branding settings", () => {
             NEXT_PUBLIC_FOOTER_START_YEAR: "2024",
         });
         expect(branding.appTitleLines).toEqual([
-            "ELIXIR Cloud Service",
+            "Example Research Service",
             "Registry",
         ]);
         expect(branding.appTitleSize).toBe(20);
