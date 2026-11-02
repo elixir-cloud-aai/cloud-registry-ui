@@ -171,8 +171,15 @@ function RegisterServiceForm({ onChange, onRegistered }: FormProps) {
 function RegisterServiceDialog({ open, onOpenChange, onRegistered }: Props) {
     const [changed, setChanged] = useState(false);
     const [confirmClose, setConfirmClose] = useState(false);
+    // each opening gets a new form: a form closed while it was sending
+    // still reports (cloud-components' listeners outlive it), and must
+    // neither change nor close the current one
+    const [form, setForm] = useState(0);
+    const current = useRef(0);
 
     const close = () => {
+        current.current++;
+        setForm(current.current);
         setChanged(false);
         setConfirmClose(false);
         onOpenChange(false);
@@ -203,9 +210,13 @@ function RegisterServiceDialog({ open, onOpenChange, onRegistered }: Props) {
                         </DialogDescription>
                     </DialogHeader>
                     <RegisterServiceForm
-                        onChange={setChanged}
+                        key={form}
+                        onChange={(dirty) => {
+                            if (form === current.current) setChanged(dirty);
+                        }}
                         onRegistered={() => {
-                            close();
+                            if (form === current.current) close();
+                            // registered all the same
                             onRegistered?.();
                         }}
                     />
