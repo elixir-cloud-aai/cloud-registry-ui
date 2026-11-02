@@ -42,11 +42,19 @@ test.describe("manage access", () => {
         const dialog = page.getByRole("dialog");
         const holders = dialog.getByRole("button", { name: /^Remove / });
         // 13 holders: the owner, 11 users and a group, 8 per page
+        const labels = () =>
+            holders.evaluateAll((els) =>
+                els.map((el) => el.getAttribute("aria-label")),
+            );
         await expect(holders).toHaveCount(8);
         await expect(dialog.getByText("1–8 of 13")).toBeVisible();
+        const first = await labels();
         await dialog.getByRole("link", { name: "2" }).click();
         await expect(holders).toHaveCount(5);
         await expect(dialog.getByText("9–13 of 13")).toBeVisible();
+        // the other holders: all 13 once
+        const second = await labels();
+        expect(new Set([...first, ...second]).size).toBe(13);
 
         // users without a name show their ID alone
         const list = dialog.getByRole("table").first();

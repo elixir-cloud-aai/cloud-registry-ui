@@ -24,6 +24,7 @@ import {
     isDeadInvitation,
     listInvitationsError,
     liveLinks,
+    renewInvitationError,
     renewRevokeError,
     revokeInvitationError,
     splitInvitations,
@@ -144,7 +145,7 @@ function Invitations({
             toast.success(
                 `Created a new ${invitation.role} link; the old one no longer works`,
             );
-        }, createInvitationError);
+        }, renewInvitationError);
 
     const revoke = (invitation: Invitation) =>
         run(async (val) => {

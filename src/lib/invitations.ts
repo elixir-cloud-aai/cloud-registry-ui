@@ -184,6 +184,17 @@ function isDeadInvitation(err: unknown) {
     return hasStatus(err, 404) || isInvitationAccepted(err);
 }
 
+/**
+ * Get the message for a failed creation of the new invitation of a
+ * renewal: the old one is unchanged
+ */
+function renewInvitationError(err: unknown) {
+    // the old invitation fills a slot, too
+    if (isInvitationsLimit(err))
+        return "This service has as many invitations as allowed. Revoke this invitation, then create a new link.";
+    return createInvitationError(err);
+}
+
 /** Link of an invitation created in this dialog, whose token is known */
 type CreatedLink = {
     /** Identifier of the invitation */
@@ -283,6 +294,7 @@ export {
     liveLinks,
     pendingToken,
     readInvitation,
+    renewInvitationError,
     renewRevokeError,
     revokeInvitationError,
     sessionStore,

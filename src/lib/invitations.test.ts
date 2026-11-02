@@ -14,6 +14,7 @@ import {
     liveLinks,
     pendingToken,
     readInvitation,
+    renewInvitationError,
     renewRevokeError,
     revokeInvitationError,
     sessionStore,
@@ -338,6 +339,17 @@ describe("invitation lists", () => {
         ).toBe(true);
         expect(isDeadInvitation(failure(409))).toBe(false);
         expect(isDeadInvitation(failure(500))).toBe(false);
+    });
+
+    it("words failed renewals", () => {
+        expect(
+            renewInvitationError(failure(409, { code: "invitations-limit" })),
+        ).toBe(
+            "This service has as many invitations as allowed. Revoke this invitation, then create a new link.",
+        );
+        expect(renewInvitationError(failure(500))).toBe(
+            "Cannot create an invitation currently.",
+        );
     });
 
     it("words failed revocations of renewed invitations", () => {
