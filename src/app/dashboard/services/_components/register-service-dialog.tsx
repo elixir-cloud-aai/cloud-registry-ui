@@ -9,7 +9,7 @@ import type { ExternalServiceRegister } from "@elixir-cloud/cloud-registry/provi
 import { ECCClientElixirCloudRegistryServiceCreate } from "@elixir-cloud/cloud-registry/react";
 import { ClockIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { UnsavedChangesGuard } from "@/components/shared/unsaved-changes-guard";
@@ -189,7 +189,11 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
 function RegisterServiceDialog({ open, onOpenChange, onRegistered }: Props) {
     const [changed, setChanged] = useState(false);
     const [confirmClose, setConfirmClose] = useState(false);
-    const [sending, setSending] = useState(false);
+    // a ref, not state: Esc may come before React renders the change
+    const sending = useRef(false);
+    const onSending = useCallback((val: boolean) => {
+        sending.current = val;
+    }, []);
     // each opening gets a new form: a form closed while it was sending
     // still reports (cloud-components' listeners outlive it), and must
     // neither change nor close the current one
@@ -212,7 +216,7 @@ function RegisterServiceDialog({ open, onOpenChange, onRegistered }: Props) {
                 // opened by the page only: Radix asks only to close it
                 onOpenChange={(val) => {
                     // nor while the registration is being sent
-                    if (val || sending) return;
+                    if (val || sending.current) return;
                     if (changed) setConfirmClose(true);
                     else close();
                 }}
@@ -231,7 +235,7 @@ function RegisterServiceDialog({ open, onOpenChange, onRegistered }: Props) {
                     </DialogHeader>
                     <RegisterServiceForm
                         key={form}
-                        onSending={setSending}
+                        onSending={onSending}
                         onChange={(dirty) => {
                             if (form === current.current) setChanged(dirty);
                         }}
