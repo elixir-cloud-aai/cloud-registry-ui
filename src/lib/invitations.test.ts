@@ -337,5 +337,10 @@ describe("invitation lists", () => {
         expect(renewRevokeError(failure(404))).toBe(
             "Created the new link; the old invitation had expired or was revoked already.",
         );
+        expect(
+            renewRevokeError(failure(409, { code: "invitation-accepted" })),
+        ).toBe(
+            "Created the new link, but the old invitation was accepted meanwhile: revoke the new one if it isn't needed.",
+        );
     });
 });

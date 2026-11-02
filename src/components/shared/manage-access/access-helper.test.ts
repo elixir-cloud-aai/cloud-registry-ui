@@ -100,7 +100,8 @@ describe("role holders", () => {
     ] as const;
 
     it("pages long lists", () => {
-        expect(accessPageSize).toBeGreaterThan(1);
+        // as the user guide says
+        expect(accessPageSize).toBe(8);
     });
 
     it("names users by their display name, if known", () => {

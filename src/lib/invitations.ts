@@ -171,6 +171,8 @@ function revokeInvitationError(err: unknown) {
 function renewRevokeError(err: unknown) {
     if (hasStatus(err, 404))
         return "Created the new link; the old invitation had expired or was revoked already.";
+    if (isInvitationAccepted(err))
+        return "Created the new link, but the old invitation was accepted meanwhile: revoke the new one if it isn't needed.";
     return `Created the new link, but the old one still works: ${revokeInvitationError(err)}`;
 }
 

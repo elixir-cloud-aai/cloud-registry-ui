@@ -104,6 +104,11 @@ function Invitations({
         onChanging?.(false);
     };
 
+    // a link stops working with its invitation, also if the list can't be
+    // loaded again to tell
+    const dropLink = (id: string) =>
+        setCreated((links) => links.filter((val) => val.id !== id));
+
     const createLink = async (val: AccessProvider, linkRole: Role) => {
         const invitation = await val.createInvitation(serviceId, {
             role: linkRole,
@@ -133,6 +138,7 @@ function Invitations({
                 toast.error(renewRevokeError(err));
                 return;
             }
+            dropLink(invitation.id);
             toast.success(
                 `Created a new ${invitation.role} link; the old one no longer works`,
             );
@@ -141,6 +147,7 @@ function Invitations({
     const revoke = (invitation: Invitation) =>
         run(async (val) => {
             await val.revokeInvitation(serviceId, invitation.id);
+            dropLink(invitation.id);
             toast.success(`Revoked the ${invitation.role} invitation`);
         }, revokeInvitationError);
 
@@ -195,14 +202,14 @@ function Invitations({
                                     <Input
                                         readOnly
                                         value={val.link}
-                                        aria-label={`Invitation link for the ${val.role} role`}
+                                        aria-label={`Invitation link for the ${val.role} role, until ${when(val.expiresAt)}`}
                                         onFocus={(e) => e.target.select()}
                                     />
                                     <Button
                                         variant="outline"
                                         size="icon"
                                         onClick={() => copy(val.link)}
-                                        aria-label={`Copy invitation link for the ${val.role} role`}
+                                        aria-label={`Copy invitation link for the ${val.role} role, until ${when(val.expiresAt)}`}
                                     >
                                         <Copy />
                                     </Button>

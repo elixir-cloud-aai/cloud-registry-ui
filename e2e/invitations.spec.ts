@@ -158,7 +158,7 @@ test.describe("invitations", () => {
         await expect(linkBoxes(page).nth(1)).toHaveValue(first);
         await expect(
             dialog.getByRole("button", {
-                name: "Copy invitation link for the maintainer role",
+                name: /^Copy invitation link for the maintainer role, until /,
             }),
         ).toHaveCount(2);
         await expect(

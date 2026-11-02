@@ -44,7 +44,10 @@ function AccessList({
     onRevoke,
 }: Props) {
     const [query, setQuery] = useState("");
-    const found = filterHolders(permissions, query);
+    // a search only where the list pages; a search left over from a longer
+    // list mustn't hide holders without a box to clear it
+    const searchable = permissions.length > accessPageSize;
+    const found = filterHolders(permissions, searchable ? query : "");
     // the registry lists all roles at once: paged here
     const { page, pageCount, pageItems, start, end, setPage } = usePagination(
         found,
@@ -55,9 +58,6 @@ function AccessList({
         return (
             <p className="text-sm text-muted-foreground">No roles granted.</p>
         );
-
-    // a search only where the list pages
-    const searchable = permissions.length > accessPageSize;
 
     return (
         <div className="space-y-2">
@@ -77,7 +77,10 @@ function AccessList({
                             className="pl-8"
                         />
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p
+                        className="text-xs text-muted-foreground"
+                        aria-live="polite"
+                    >
                         {found.length === 0
                             ? `None of ${permissions.length}`
                             : `${start + 1}–${end} of ${found.length}`}
