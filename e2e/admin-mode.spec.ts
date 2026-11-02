@@ -21,7 +21,8 @@ async function openService(page: Page, id: string) {
 /**
  * Get an element's background colour as RGB, whatever the colour space in
  * which the browser reports it; the pointer moves away first, so that the
- * colour isn't the one on hover
+ * colour isn't the one on hover; the colours change with a transition, so
+ * poll checks that use it
  * @param locator Element
  * @returns Red, green and blue (0-255), or undefined if transparent
  */
@@ -46,7 +47,12 @@ async function background(locator: Locator) {
  */
 async function hasRedBackground(locator: Locator) {
     const rgb = await background(locator);
-    return !!rgb && rgb.r - rgb.g > 15 && rgb.r - rgb.b > 15;
+    return (
+        !!rgb &&
+        rgb.r - rgb.g > 15 &&
+        rgb.r - rgb.b > 15 &&
+        Math.abs(rgb.g - rgb.b) < 15
+    );
 }
 
 /**
@@ -77,7 +83,7 @@ test.describe("admin mode", () => {
         await expect(verify).toHaveCount(0);
         await expect(page.getByRole("link", { name: "Edit" })).toHaveCount(0);
 
-        expect(await hasRedBackground(userMode)).toBe(false);
+        await expect.poll(() => hasRedBackground(userMode)).toBe(false);
 
         await userMode.click();
         await expect(adminMode).toBeVisible();
@@ -85,7 +91,7 @@ test.describe("admin mode", () => {
         await expect(verify).toBeVisible();
         await expect(page.getByRole("link", { name: "Edit" })).toBeVisible();
         // the switch is the only sign of admin mode: light red
-        expect(await hasRedBackground(adminMode)).toBe(true);
+        await expect.poll(() => hasRedBackground(adminMode)).toBe(true);
 
         // kept on reloads
         await page.reload();
@@ -117,7 +123,7 @@ test.describe("admin mode", () => {
                 const adminMode = page.getByRole("button", {
                     name: "Admin mode",
                 });
-                expect(await hasRedBackground(adminMode)).toBe(true);
+                await expect.poll(() => hasRedBackground(adminMode)).toBe(true);
             }
             await page.context().clearCookies();
         }
@@ -145,8 +151,8 @@ test.describe("admin mode", () => {
         await expect(
             adminMode.locator("svg.lucide-triangle-alert"),
         ).toBeVisible();
-        expect(await hasAmberBackground(adminMode)).toBe(true);
-        expect(await hasRedBackground(adminMode)).toBe(false);
+        await expect.poll(() => hasAmberBackground(adminMode)).toBe(true);
+        await expect.poll(() => hasRedBackground(adminMode)).toBe(false);
         await adminMode.hover();
         await expect(
             page.getByRole("tooltip").filter({
