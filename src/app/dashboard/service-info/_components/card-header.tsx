@@ -47,6 +47,7 @@ function ServiceInfoCardHeader({ serviceInfo }: Props) {
                             <TooltipTrigger asChild>
                                 <a
                                     href={documentationUrl}
+                                    aria-label="Documentation URL"
                                     target="_blank"
                                     className="p-2 hover:bg-slate-100 rounded-full transition-colors"
                                     rel="noopener"
@@ -54,7 +55,7 @@ function ServiceInfoCardHeader({ serviceInfo }: Props) {
                                     <BookOpen className="w-4 h-4 text-slate-500" />
                                 </a>
                             </TooltipTrigger>
-                            <TooltipContent>Documentation Url</TooltipContent>
+                            <TooltipContent>Documentation URL</TooltipContent>
                         </Tooltip>
                     )}
                     {contactUrl && (
@@ -62,6 +63,7 @@ function ServiceInfoCardHeader({ serviceInfo }: Props) {
                             <TooltipTrigger asChild>
                                 <a
                                     href={contactUrl}
+                                    aria-label="Contact URL"
                                     target="_blank"
                                     className="p-2 hover:bg-slate-100 rounded-full transition-colors"
                                     rel="noopener"
@@ -69,7 +71,7 @@ function ServiceInfoCardHeader({ serviceInfo }: Props) {
                                     <ExternalLink className="w-4 h-4 text-slate-500" />
                                 </a>
                             </TooltipTrigger>
-                            <TooltipContent>Contact Url</TooltipContent>
+                            <TooltipContent>Contact URL</TooltipContent>
                         </Tooltip>
                     )}
                 </div>

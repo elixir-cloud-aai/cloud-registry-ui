@@ -55,4 +55,30 @@ test.describe("service info", () => {
             page.getByRole("region", { name: "Registration Rules" }),
         ).toHaveCount(0);
     });
+
+    test("labels the registry type and the links", async ({ page }) => {
+        await page.route(`${registry}/service-info`, async (route) => {
+            const response = await route.fetch();
+            await route.fulfill({
+                response,
+                json: {
+                    ...(await response.json()),
+                    documentationUrl: "https://docs.example.org/",
+                },
+            });
+        });
+        await page.goto("/dashboard/service-info");
+
+        // the order of the service type tiles, with a space after each colon
+        await expect(
+            page
+                .getByRole("list")
+                .filter({ hasText: "Spec Version:" })
+                .getByRole("listitem"),
+        ).toHaveText([/^Group: \S/, /^Artifact: \S/, /^Spec Version: \S/]);
+        const docs = page.getByRole("link", { name: "Documentation URL" });
+        await expect(docs).toHaveAttribute("href", "https://docs.example.org/");
+        await docs.hover();
+        await expect(page.getByRole("tooltip")).toHaveText("Documentation URL");
+    });
 });
