@@ -31,16 +31,19 @@ The filters combine: e.g. search for "tes" and choose the environment
 
 ### Details of a service
 
-Select a service in the list to see its details: its ID, name,
-environment and version, the description, the organization, the API
-(type), the service's URL, when it was verified, and all its metadata as
-JSON, e.g. with the contact and documentation URLs (**Copy JSON** copies
-it).
+Select a service in the list to see its details (**Service Details**): its
+ID, name, environment and version, the description, the organization, the
+API (type), the service's URL, when it was verified, and all its metadata
+as JSON, e.g. with the contact and documentation URLs (**Copy JSON** copies
+it). Long values, such as names, URLs and the JSON, wrap to the width of
+the details, also on a phone.
 
-![Details of a service](../images/service-details.png){ width="448" }
+![Details of a service](../images/service-details.png){ width="512" }
 
 The buttons below the details depend on your rights (see [Access and
-permissions](access.md)):
+permissions](access.md)). **Share** and **Manage access** are on the left,
+the actions on the service itself on the right; if they don't fit in one
+row, the actions on the right move to a row of their own:
 
 - **Share** copies a link to the service's own page, e.g. to send it to
   others. If the browser can't copy it, the link is shown below the buttons.
