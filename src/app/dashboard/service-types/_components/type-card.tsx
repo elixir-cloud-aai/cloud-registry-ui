@@ -118,7 +118,7 @@ function ServiceTypeCard({
                 )}
             </CardHeader>
             {pending && (
-                <CardFooter className="justify-between gap-2">
+                <CardFooter className="mt-auto justify-between gap-2">
                     <PendingBadge />
                     {canApprove && (
                         <ApproveTypeButton
