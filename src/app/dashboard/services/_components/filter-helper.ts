@@ -87,14 +87,19 @@ export function myServices(me: Pick<Me, "services"> | null) {
     return new Set(me?.services.map((val) => val.service_id));
 }
 
-// `mine`: the user's services (`myServices()`)
+/** What the toggles filter by, by service ID */
+export type ServiceSets = {
+    verifications: Map<string, ServiceVerification>;
+    pending: Set<string>;
+    /** The user's services (`myServices()`) */
+    mine: Set<string>;
+};
+
 export function filterServices(
     services: ExternalService[],
     search: string,
     filters: ServiceFilters,
-    verifications: Map<string, ServiceVerification>,
-    pending: Set<string>,
-    mine: Set<string>,
+    { verifications, pending, mine }: ServiceSets,
 ) {
     return services.filter(
         (service) =>

@@ -105,7 +105,13 @@ describe("filterServices", () => {
         pending = new Set<string>(),
         mine = new Set<string>(),
     ) =>
-        ids(filterServices(services, search, filters, verified, pending, mine));
+        ids(
+            filterServices(services, search, filters, {
+                verifications: verified,
+                pending,
+                mine,
+            }),
+        );
 
     it("searches the main fields, ignoring case", () => {
         expect(run(" kubernetes ")).toEqual(["a"]);
