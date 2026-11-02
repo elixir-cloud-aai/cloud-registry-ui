@@ -2,7 +2,6 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { LogIn, PlusIcon } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
@@ -23,6 +22,7 @@ import {
     ServicesTableHeader,
     ServiceTableBodySkeleton,
 } from "./_components";
+import RegisterServiceDialog from "./_components/register-service-dialog";
 import {
     defaultFilters,
     filterServices,
@@ -33,7 +33,6 @@ import {
 const pageSize = 10;
 
 function Page() {
-    const router = useRouter();
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const { me, loading: meLoading, expired, refetch: refetchMe } = useMe();
     const [services, setServices] = useState<ExternalService[]>([]);
@@ -46,6 +45,7 @@ function Page() {
     const latestRequest = useRef(0);
     const [search, setSearch] = useState("");
     const [filters, setFilters] = useState<ServiceFilters>(defaultFilters);
+    const [registering, setRegistering] = useState(false);
 
     const filtered = isFiltered(search, filters);
     const verified = verifiedServices(services, verifications);
@@ -125,9 +125,19 @@ function Page() {
         fetchServices();
     }, [cloudRegistryProvider]);
 
+    // links to the create form (`?register`, e.g. from
+    // `/dashboard/services/create`) open it, and leave the plain URL
+    useEffect(() => {
+        const url = new URL(window.location.href);
+        if (!url.searchParams.has("register")) return;
+        setRegistering(true);
+        url.searchParams.delete("register");
+        window.history.replaceState(null, "", url);
+    }, []);
+
     return (
         <div className="space-y-6">
-            <div className="flex justify-between w-full items-center">
+            <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h2 className="text-3xl font-semibold tracking-tight mt-2">
                         Services
@@ -140,13 +150,9 @@ function Page() {
                         admin="View and manage all services"
                     />
                 </div>
-                <div className="hidden md:flex flex-wrap gap-2 justify-end">
+                <div className="flex flex-wrap gap-2 justify-end">
                     {isLoggedIn && !expired && (
-                        <Button
-                            onClick={() =>
-                                router.push("/dashboard/services/create")
-                            }
-                        >
+                        <Button onClick={() => setRegistering(true)}>
                             <PlusIcon />
                             Register Service
                         </Button>
@@ -218,6 +224,15 @@ function Page() {
                     </div>
                 </div>
             )}
+            <RegisterServiceDialog
+                open={registering}
+                onOpenChange={setRegistering}
+                onRegistered={() => {
+                    fetchServices();
+                    // the user's services, e.g. for the services limit
+                    refetchMe();
+                }}
+            />
         </div>
     );
 }

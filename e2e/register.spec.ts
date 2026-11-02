@@ -6,6 +6,7 @@ import {
     fillCreateForm,
     login,
     newService,
+    openCreateForm,
     publishRules,
     registry,
     test,
@@ -47,7 +48,7 @@ test.describe("registering services", () => {
         // a registry that allows two environments, one without a label
         await publishRules(page, { environments: ["test", "qa"] });
         const token = await login(page, "owner");
-        await page.goto("/dashboard/services/create");
+        const form = await openCreateForm(page);
 
         // new types of users are pending in the registry of the tests
         await expect(page.getByText(pendingNote)).toBeVisible();
@@ -67,7 +68,12 @@ test.describe("registering services", () => {
         await expect(
             page.getByText(`Registered ${service.name}`),
         ).toBeVisible();
-        await page.waitForURL(/\/dashboard\/services$/);
+        // the modal closes, and the list shows the new service
+        await expect(form).toBeHidden();
+        await page.getByLabel("Search services").fill(service.name);
+        await expect(
+            page.getByText(service.name, { exact: true }),
+        ).toBeVisible();
         const mine = await api(token, "GET", "/me");
         const ids: string[] = mine.body.services.map(
             (val: { service_id: string }) => val.service_id,
@@ -102,8 +108,8 @@ test.describe("registering services", () => {
         page.on("response", (response) => {
             if (response.url() === `${registry}/service-info`) rulesRead++;
         });
-        await page.goto("/dashboard/services/create");
-        // the page and the form have read the rules
+        await openCreateForm(page);
+        // the modal and the form have read the rules
         await expect.poll(() => rulesRead).toBeGreaterThanOrEqual(2);
 
         const service = newService("Checked");
@@ -135,7 +141,7 @@ test.describe("registering services", () => {
 
     test("users who may add types can add a new one", async ({ page }) => {
         await login(page, "owner");
-        await page.goto("/dashboard/services/create");
+        await openCreateForm(page);
         await page
             .getByRole("button", { name: "Select a service type" })
             .click();
@@ -160,7 +166,7 @@ test.describe("registering services", () => {
             page.waitForResponse(`${registry}/me`),
             page.waitForResponse(`${registry}/service-info`),
         ]);
-        await page.goto("/dashboard/services/create");
+        await openCreateForm(page);
         await loaded;
         await expect(page.getByText(pendingNote)).toHaveCount(0);
         await page
@@ -190,7 +196,7 @@ test.describe("registering services", () => {
         await login(page, "owner");
         // the form follows the user once it is loaded
         const me = page.waitForResponse(`${registry}/me`);
-        await page.goto("/dashboard/services/create");
+        await openCreateForm(page);
         await me;
         await page
             .getByRole("button", { name: "Select a service type" })
@@ -207,16 +213,22 @@ test.describe("registering services", () => {
     test("admins in admin mode choose the ID", async ({ page, browser }) => {
         await addTesType(browser);
         await login(page, "admin");
-        await page.goto("/dashboard/services/create");
-        const userMode = page.getByRole("button", { name: "User mode" });
-        await expect(userMode).toBeVisible();
+        const form = await openCreateForm(page);
         // in user mode, admins register services like other users
+        await expect(
+            form.getByRole("button", { name: "Select a service type" }),
+        ).toBeVisible();
         await expectNoAdminFields(page);
+        await form.getByRole("button", { name: "Close", exact: true }).click();
+        await expect(form).toBeHidden();
 
-        await userMode.click();
+        // the mode is switched outside the form
+        await page.getByRole("button", { name: "User mode" }).click();
         await expect(
             page.getByRole("button", { name: "Admin mode" }),
         ).toBeVisible();
+        await page.waitForLoadState("networkidle");
+        await openCreateForm(page);
         const service = newService("Chosen ID");
         const id = `e2e-${uniqueId()}`;
         await fillCreateForm(page, service);
@@ -245,7 +257,7 @@ test.describe("registering services", () => {
         const created = await api(token, "POST", "/services", service);
         expect(created.status).toBe(201);
 
-        await page.goto("/dashboard/services/create");
+        await openCreateForm(page);
         await fillCreateForm(page, {
             ...service,
             name: `${service.name} again`,
@@ -274,18 +286,23 @@ test.describe("registering services", () => {
         problems.length = 0;
     });
 
-    test("unsaved input asks before the page is left", async ({ page }) => {
+    test("unsaved input asks before the form is closed", async ({ page }) => {
         await login(page, "owner");
-        await page.goto("/dashboard/services/create");
+        let form = await openCreateForm(page);
         const name = page.getByRole("textbox", {
             name: "Enter a descriptive name for your service",
         });
+        const unsaved = page.getByRole("alertdialog", {
+            name: "Unsaved changes",
+        });
+        const close = () =>
+            form.getByRole("button", { name: "Close", exact: true }).click();
 
-        // what users answer when the page asks before it's left
+        // what users answer when the browser asks before the page is left
         let asked = 0;
         page.on("dialog", (dialog) => {
             asked++;
-            return dialog.dismiss();
+            return dialog.accept();
         });
         // the form has loaded the user and the types
         await expect(page.getByText(pendingNote)).toBeVisible();
@@ -293,18 +310,87 @@ test.describe("registering services", () => {
             page.getByRole("button", { name: "Select a service type" }),
         ).toBeVisible();
         await name.fill("Not saved");
-        await page.getByRole("link", { name: "Services", exact: true }).click();
-        await expect(
-            page.getByRole("heading", { name: "Unsaved changes" }),
-        ).toBeVisible();
-        await page.getByRole("button", { name: "Stay" }).click();
+        await page.keyboard.press("Escape");
+        await expect(unsaved).toBeVisible();
+        await unsaved.getByRole("button", { name: "Stay" }).click();
+        await expect(form).toBeVisible();
         await expect(name).toHaveValue("Not saved");
 
+        await close();
+        await unsaved.getByRole("button", { name: "Discard" }).click();
+        await expect(form).toBeHidden();
+        // the form starts empty again
+        form = await openCreateForm(page);
+        await expect(name).toHaveValue("");
+
         // nothing to ask after Reset
+        await name.fill("Not saved");
         await page.getByRole("button", { name: "Reset" }).click();
         await expect(name).toHaveValue("");
-        await page.getByRole("link", { name: "Services", exact: true }).click();
-        await page.waitForURL(/\/dashboard\/services$/);
+        await close();
+        await expect(form).toBeHidden();
+        await expect(unsaved).toHaveCount(0);
         expect(asked).toBe(0);
+
+        // the browser asks before the page is left with unsaved input
+        await openCreateForm(page);
+        await name.fill("Not saved");
+        await page.reload();
+        expect(asked).toBe(1);
+    });
+
+    test("links to the create page open the form", async ({ page }) => {
+        // guests are asked to log in, and come back to the form
+        await page.goto("/dashboard/services/create");
+        await page.waitForURL(/\/dashboard\/services$/);
+        const form = page.getByRole("dialog", { name: "Register Service" });
+        await expect(
+            form.getByText("Log in to register a service"),
+        ).toBeVisible();
+        await expect(
+            form.getByRole("link", { name: "Log in" }),
+        ).toHaveAttribute(
+            "href",
+            "/auth/login?next=%2Fdashboard%2Fservices%2Fcreate",
+        );
+        await page.waitForLoadState("networkidle");
+
+        await login(page, "owner");
+        await page.goto("/dashboard/services/create");
+        await page.waitForURL(/\/dashboard\/services$/);
+        await expect(
+            form.getByRole("button", { name: "Select a service type" }),
+        ).toBeVisible();
+    });
+
+    test("the form fits small screens", async ({ page }) => {
+        await login(page, "owner");
+        await page.setViewportSize({ width: 360, height: 640 });
+        const form = await openCreateForm(page);
+        await expect(
+            form.getByRole("button", { name: "Select a service type" }),
+        ).toBeVisible();
+
+        // it scrolls up and down, never sideways
+        const size = await form.evaluate((el) => ({
+            scrollWidth: el.scrollWidth,
+            clientWidth: el.clientWidth,
+            scrollHeight: el.scrollHeight,
+            clientHeight: el.clientHeight,
+            right: el.getBoundingClientRect().right,
+        }));
+        expect(size.scrollWidth).toBeLessThanOrEqual(size.clientWidth);
+        expect(size.right).toBeLessThanOrEqual(360);
+        expect(size.scrollHeight).toBeGreaterThan(size.clientHeight);
+        const create = form.getByRole("button", { name: "Create Service" });
+        await create.scrollIntoViewIfNeeded();
+        await expect(create).toBeInViewport();
+        expect(
+            await page.evaluate(
+                () =>
+                    document.documentElement.scrollWidth <=
+                    document.documentElement.clientWidth,
+            ),
+        ).toBe(true);
     });
 });

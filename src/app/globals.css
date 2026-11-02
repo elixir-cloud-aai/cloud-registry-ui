@@ -128,3 +128,9 @@
         @apply font-sans;
     }
 }
+
+/* toasts stay clickable while a modal is open, which makes the rest of the
+   page inert (e.g. "View service" of the create form's errors) */
+[data-sonner-toast] {
+    pointer-events: auto;
+}

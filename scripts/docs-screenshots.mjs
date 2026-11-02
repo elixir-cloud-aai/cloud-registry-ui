@@ -346,8 +346,13 @@ try {
         throw new Error(`expected one new invitation, found ${mine.length}`);
     await access.getByRole("button", { name: mine[0], exact: true }).click();
     await expect(revoke).toHaveCount(before.length);
-    await owner.goto(`${appUrl}/dashboard/services/create`);
-    await shoot(owner, "register-service");
+    await owner.goto(`${appUrl}/dashboard/services`);
+    await owner.getByRole("button", { name: "Register Service" }).click();
+    const register = owner.getByRole("dialog", { name: "Register Service" });
+    await register.getByRole("button", { name: "Select a service type" }).waitFor();
+    await shoot(register, "register-service", 1500);
+    await owner.keyboard.press("Escape");
+    await register.waitFor({ state: "hidden" });
     await owner.goto(`${appUrl}/dashboard/services/update/tes-north`);
     await shoot(owner, "edit-service");
     await owner.goto(`${appUrl}/dashboard/services`);

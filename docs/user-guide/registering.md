@@ -6,7 +6,9 @@ permissions](access.md)).
 
 ## Registering a service
 
-1. Log in, open **Services** and select **Register Service**.
+1. Log in, open **Services** and select **Register Service**. The form
+   opens in a modal; links to `/dashboard/services/create` open it too
+   (after the login, for users who aren't logged in).
 2. Fill in the form:
     - **Service Name**: a descriptive name, e.g. "TES North".
     - **Service URL**: the base URL of the service's API, e.g.
@@ -26,17 +28,22 @@ permissions](access.md)).
     - **Contact URL** (e.g. `mailto:support@example.org`) and
       **Documentation URL**.
     - **Description**: what the service offers, and to whom.
-3. Select **Create Service**. A message confirms the registration, with a
-   link to the new service (**View service**). **Reset** empties the form.
+3. Select **Create Service**. The modal closes, and a message confirms the
+   registration, with a link to the new service (**View service**).
+   **Reset** empties the form.
 
-If you leave the page with unsaved input, the app asks first.
+If you close the modal (with its close button, <kbd>Esc</kbd> or a click
+next to it) with unsaved input, the app asks first, and so it does if you
+leave or reload the page. Errors leave the modal open, so that you can
+correct the entries.
 
 ![The form for registering services](../images/register-service.png)
 
 The registry gives the service an ID. Admins in admin mode (see [Admin
 mode](admin-mode.md)) also see **Advanced Configuration**, where they can
 choose the ID (**Custom Service ID**) and set the dates (**Created At**,
-**Updated At**); for other users, the registry sets them.
+**Updated At**); for other users, the registry sets them. Switch to admin
+mode before opening the form.
 
 Before sending, the app checks the entries as the registry does, and
 shows the first problem it finds, e.g. "Service URL must be an https URL,

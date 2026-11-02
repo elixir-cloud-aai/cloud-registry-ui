@@ -248,7 +248,25 @@ async function addTesType(browser: Browser) {
 }
 
 /**
- * Fill in the create form (`/dashboard/services/create`) with a service of
+ * Open the create form: the modal "Register Service" of the Services page
+ * @param page Page of a logged-in user
+ * (opened if the page shows another one: the login ends on it, and opening it
+ * again would cut off its requests, which the app logs as errors)
+ * @returns The modal
+ */
+async function openCreateForm(page: Page) {
+    if (new URL(page.url()).pathname !== "/dashboard/services") {
+        await page.goto("/dashboard/services");
+        await page.waitForLoadState("networkidle");
+    }
+    await page.getByRole("button", { name: "Register Service" }).click();
+    const dialog = page.getByRole("dialog", { name: "Register Service" });
+    await expect(dialog).toBeVisible();
+    return dialog;
+}
+
+/**
+ * Fill in the create form (see `openCreateForm()`) with a service of
  * `newService()`, choosing its type from the registered ones (see
  * `addTesType()`); the environment stays empty. The fields are found by
  * the placeholders of cloud-components 2.0.0-alpha.50
@@ -356,6 +374,7 @@ export {
     fillCreateForm,
     login,
     newService,
+    openCreateForm,
     publishRules,
     registerService,
     registry,
