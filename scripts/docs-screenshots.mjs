@@ -349,7 +349,10 @@ try {
     await owner.goto(`${appUrl}/dashboard/services`);
     await owner.getByRole("button", { name: "Register Service" }).click();
     const register = owner.getByRole("dialog", { name: "Register Service" });
-    await register.getByRole("button", { name: "Select a service type" }).waitFor();
+    await register
+        .getByRole("button", { name: "Select a service type" })
+        .waitFor();
+    // tall enough for the whole form, without scrolling in the modal
     await shoot(register, "register-service", 1500);
     await owner.keyboard.press("Escape");
     await register.waitFor({ state: "hidden" });

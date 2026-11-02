@@ -332,11 +332,18 @@ test.describe("registering services", () => {
         await expect(unsaved).toHaveCount(0);
         expect(asked).toBe(0);
 
-        // the browser asks before the page is left with unsaved input
+        // the browser asks before the page is left with unsaved input (the
+        // guard cancels `beforeunload`; Firefox shows no dialog to the tests)
+        const leaving = () =>
+            page.evaluate(() => {
+                const event = new Event("beforeunload", { cancelable: true });
+                window.dispatchEvent(event);
+                return event.defaultPrevented;
+            });
+        expect(await leaving()).toBe(false);
         await openCreateForm(page);
         await name.fill("Not saved");
-        await page.reload();
-        expect(asked).toBe(1);
+        expect(await leaving()).toBe(true);
     });
 
     test("links to the create page open the form", async ({ page }) => {

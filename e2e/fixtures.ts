@@ -248,10 +248,11 @@ async function addTesType(browser: Browser) {
 }
 
 /**
- * Open the create form: the modal "Register Service" of the Services page
+ * Open the create form: the modal "Register Service" of the Services page.
+ * The page is only opened if another one is shown: the login ends on it,
+ * and opening it again would cut off its requests, which the app logs as
+ * errors
  * @param page Page of a logged-in user
- * (opened if the page shows another one: the login ends on it, and opening it
- * again would cut off its requests, which the app logs as errors)
  * @returns The modal
  */
 async function openCreateForm(page: Page) {

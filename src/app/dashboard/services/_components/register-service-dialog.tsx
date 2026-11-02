@@ -87,7 +87,6 @@ function RegisterServiceForm({ onChange, onRegistered }: FormProps) {
 
     const onServiceCreated = (e: EccServiceCreatedEvent) => {
         const { serviceId, serviceData } = e.detail;
-        onChange(false);
         toast.success(`Registered ${serviceData.name} with ID - ${serviceId}`, {
             action: {
                 label: "View service",
@@ -125,6 +124,7 @@ function RegisterServiceForm({ onChange, onRegistered }: FormProps) {
             <LoginPrompt
                 message="Log in to register a service"
                 next={registerPath}
+                className="mt-4"
             />
         );
 
@@ -133,6 +133,7 @@ function RegisterServiceForm({ onChange, onRegistered }: FormProps) {
             <LoginPrompt
                 message="Your session expired. Please log in again."
                 next={registerPath}
+                className="mt-4"
             />
         );
 
@@ -182,25 +183,16 @@ function RegisterServiceDialog({ open, onOpenChange, onRegistered }: Props) {
             <UnsavedChangesGuard when={open && changed} />
             <Dialog
                 open={open}
+                // opened by the page only: Radix asks only to close it
                 onOpenChange={(val) => {
-                    if (val) onOpenChange(true);
-                    else if (changed) setConfirmClose(true);
+                    if (val) return;
+                    if (changed) setConfirmClose(true);
                     else close();
                 }}
             >
                 {/* scrolls if the form is taller than the viewport, never
-                    sideways; the form's toasts (e.g. "View service") are
-                    outside the modal, and clicks on them don't close it */}
-                <DialogContent
-                    className="sm:max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden"
-                    onInteractOutside={(e) => {
-                        if (
-                            e.target instanceof Element &&
-                            e.target.closest("[data-sonner-toaster]")
-                        )
-                            e.preventDefault();
-                    }}
-                >
+                    sideways */}
+                <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
                     <DialogHeader className="pr-10">
                         <DialogTitle className="text-lg font-bold">
                             Register Service
