@@ -3,7 +3,11 @@
  * token in the fragment, which browsers don't send to servers, the token
  * of a guest kept in the tab while they log in, and messages for failures
  */
-import type { InvitationAcceptance } from "./cloud-registry.types";
+import type {
+    Invitation,
+    InvitationAcceptance,
+    Role,
+} from "./cloud-registry.types";
 import {
     errorDetail,
     isInvitationAccepted,
@@ -161,6 +165,73 @@ function revokeInvitationError(err: unknown) {
 }
 
 /**
+ * Get the message for a failed revocation of an invitation that got a new
+ * link: the new invitation exists already
+ */
+function renewRevokeError(err: unknown) {
+    if (hasStatus(err, 404))
+        return "Created the new link; the old invitation had expired or was revoked already.";
+    if (isInvitationAccepted(err))
+        return "Created the new link, but the old invitation was accepted meanwhile: revoke the new one if it isn't needed.";
+    return `Created the new link, but the old one still works: ${revokeInvitationError(err)}`;
+}
+
+/**
+ * Tell whether a failed revocation shows that the invitation's link no
+ * longer works: it expired, was revoked, or was accepted
+ */
+function isDeadInvitation(err: unknown) {
+    return hasStatus(err, 404) || isInvitationAccepted(err);
+}
+
+/**
+ * Get the message for a failed creation of the new invitation of a
+ * renewal: the old one is unchanged
+ */
+function renewInvitationError(err: unknown) {
+    // the old invitation fills a slot, too
+    if (isInvitationsLimit(err))
+        return "This service has as many invitations as allowed. Revoke this invitation, then create a new link.";
+    return createInvitationError(err);
+}
+
+/** Link of an invitation created in this dialog, whose token is known */
+type CreatedLink = {
+    /** Identifier of the invitation */
+    id: string;
+    link: string;
+    role: Role;
+    expiresAt: string;
+};
+
+/**
+ * Split invitations into open and accepted ones
+ * @param invitations Invitations, as listed
+ * @returns Open and accepted invitations, each in the listed order
+ */
+function splitInvitations(invitations: Invitation[]) {
+    return {
+        open: invitations.filter((val) => !val.accepted),
+        accepted: invitations.filter((val) => val.accepted),
+    };
+}
+
+/**
+ * Get the links that still work: the registry stores only hashes of the
+ * tokens, so links are known only for invitations created in this dialog
+ * @param links Links created, oldest first
+ * @param invitations Invitations, as listed; null if the list can't be
+ * loaded, which keeps all links
+ * @returns Links of open invitations, newest first
+ */
+function liveLinks(links: CreatedLink[], invitations: Invitation[] | null) {
+    const open =
+        invitations &&
+        new Set(splitInvitations(invitations).open.map((val) => val.id));
+    return links.filter((val) => !open || open.has(val.id)).reverse();
+}
+
+/**
  * Get the message for a failed acceptance of an invitation
  * @param err Error of the request
  * @returns The message, and whether trying again can't help (`final`), so
@@ -208,6 +279,7 @@ function acceptInvitationError(err: unknown) {
     };
 }
 
+export type { CreatedLink };
 export {
     acceptanceLabel,
     acceptInvitationError,
@@ -216,10 +288,15 @@ export {
     invitationLink,
     invitationPath,
     invitationToken,
+    isDeadInvitation,
     keepPendingToken,
     listInvitationsError,
+    liveLinks,
     pendingToken,
     readInvitation,
+    renewInvitationError,
+    renewRevokeError,
     revokeInvitationError,
     sessionStore,
+    splitInvitations,
 };

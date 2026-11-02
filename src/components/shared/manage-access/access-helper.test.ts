@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 import { failure } from "@/test/errors";
 import {
     accessError,
+    accessPageSize,
     defaultGrant,
+    filterHolders,
     grantSchema,
     isGroup,
     listError,
     roleOptions,
+    userName,
 } from "./access-helper";
 
 const issues = (data: object) =>
@@ -86,5 +89,46 @@ describe("access helpers", () => {
         expect(accessError(failure(500))).toBe(
             "Cannot change access currently.",
         );
+    });
+});
+
+describe("role holders", () => {
+    const holders = [
+        { user_id: "bob@example.org", name: "Bob Builder", role: "owner" },
+        { user_id: "carol@example.org", role: "maintainer" },
+        { group: "urn:example:compute-team", role: "maintainer" },
+    ] as const;
+
+    it("pages long lists", () => {
+        // as the user guide says
+        expect(accessPageSize).toBe(8);
+    });
+
+    it("names users by their display name, if known", () => {
+        expect(userName(holders[0])).toBe("Bob Builder");
+        expect(userName(holders[1])).toBeUndefined();
+        expect(userName({ user_id: "u", name: "  ", role: "owner" })).toBe(
+            undefined,
+        );
+        expect(userName({ user_id: "u", name: " N ", role: "owner" })).toBe(
+            "N",
+        );
+    });
+
+    it("filters by name, user ID, group and role, ignoring case", () => {
+        const found = (query: string) =>
+            filterHolders([...holders], query).map((val) =>
+                isGroup(val) ? val.group : val.user_id,
+            );
+        expect(found("")).toHaveLength(3);
+        expect(found("  ")).toHaveLength(3);
+        expect(found("builder")).toEqual(["bob@example.org"]);
+        expect(found(" CAROL ")).toEqual(["carol@example.org"]);
+        expect(found("compute")).toEqual(["urn:example:compute-team"]);
+        expect(found("maintainer")).toEqual([
+            "carol@example.org",
+            "urn:example:compute-team",
+        ]);
+        expect(found("nobody")).toEqual([]);
     });
 });
