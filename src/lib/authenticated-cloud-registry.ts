@@ -338,8 +338,8 @@ class AuthenticatedCloudRegistryProvider
    * `getServiceInfo()`, as this request needs a timeout of its own, so that
    * a stalled service info leaves time for the probe, and is sent without a
    * token, also on a 401: it is public, and needs no CORS preflight then.
-   * Once per page load, in addition to the read of the rules by the pages
-   * that use them.
+   * Sent in addition to the read of the rules by the pages that use them,
+   * as often as `hasApprovals` has to ask.
    *
    * @returns Whether it has them; false if it can't be read in 5 seconds,
    * which leaves the answer to the probe
