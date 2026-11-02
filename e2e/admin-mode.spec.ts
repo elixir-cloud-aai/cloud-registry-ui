@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import {
     expect,
     login,
@@ -16,6 +16,25 @@ import {
 async function openService(page: Page, id: string) {
     await page.goto(`/dashboard/services/view/${id}`);
     await page.waitForLoadState("networkidle");
+}
+
+/**
+ * Check whether an element's background is reddish, whatever the colour
+ * space in which the browser reports it
+ * @param locator Element
+ * @returns Whether red outweighs green and blue clearly
+ */
+async function hasRedBackground(locator: Locator) {
+    return locator.evaluate((val) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1;
+        canvas.height = 1;
+        const context = canvas.getContext("2d") as CanvasRenderingContext2D;
+        context.fillStyle = getComputedStyle(val).backgroundColor;
+        context.fillRect(0, 0, 1, 1);
+        const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data;
+        return a > 0 && r - g > 15 && r - b > 15;
+    });
 }
 
 test.describe("admin mode", () => {
@@ -36,11 +55,15 @@ test.describe("admin mode", () => {
         await expect(verify).toHaveCount(0);
         await expect(page.getByRole("link", { name: "Edit" })).toHaveCount(0);
 
+        expect(await hasRedBackground(userMode)).toBe(false);
+
         await userMode.click();
         await expect(adminMode).toBeVisible();
         await expect(adminMode).toHaveAttribute("aria-pressed", "true");
         await expect(verify).toBeVisible();
         await expect(page.getByRole("link", { name: "Edit" })).toBeVisible();
+        // the switch is the only sign of admin mode: light red
+        expect(await hasRedBackground(adminMode)).toBe(true);
 
         // kept on reloads
         await page.reload();
@@ -50,6 +73,32 @@ test.describe("admin mode", () => {
         await adminMode.click();
         await expect(userMode).toBeVisible();
         await expect(verify).toHaveCount(0);
+    });
+
+    test("only the switch shows admin mode, in both colour schemes", async ({
+        page,
+    }) => {
+        for (const colorScheme of ["light", "dark"] as const) {
+            await page.emulateMedia({ colorScheme });
+            await login(page, "admin", { adminMode: true });
+            for (const [path, subtitle] of [
+                ["/dashboard/services", "View and manage all services"],
+                [
+                    "/dashboard/service-types",
+                    "View and manage all service types",
+                ],
+            ]) {
+                await page.goto(path);
+                await page.waitForLoadState("networkidle");
+                await expect(page.getByText(subtitle)).toBeVisible();
+                await expect(page.getByText(/ADMIN/)).toHaveCount(0);
+                const adminMode = page.getByRole("button", {
+                    name: "Admin mode",
+                });
+                expect(await hasRedBackground(adminMode)).toBe(true);
+            }
+            await page.context().clearCookies();
+        }
     });
 
     test("admins leave admin mode also without admin rights", async ({

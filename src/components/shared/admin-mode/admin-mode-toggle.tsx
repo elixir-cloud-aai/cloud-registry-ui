@@ -1,5 +1,5 @@
 "use client";
-import { ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     Tooltip,
@@ -8,12 +8,22 @@ import {
 } from "@/components/ui/tooltip";
 import { useAdminMode, useMe } from "@/hooks";
 import { adminModeState } from "@/lib/admin-mode";
+import { cn } from "@/lib/utils";
 
 const tooltips = {
     user: "Switch to admin mode",
     admin: "Switch to user mode",
     unavailable:
         "Admin rights don't apply right now. Switch to user mode, or reload the page.",
+};
+
+// admin mode is shown only by this switch: a light red while it is on, and
+// amber with a warning sign if admin rights don't apply; the colours keep a
+// contrast of at least 4.5:1 in both colour schemes
+const styles = {
+    admin: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200 dark:hover:bg-red-900 dark:hover:text-red-100",
+    unavailable:
+        "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 hover:text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100 dark:hover:bg-amber-900 dark:hover:text-amber-50",
 };
 
 export function AdminModeToggle() {
@@ -30,17 +40,16 @@ export function AdminModeToggle() {
             <TooltipTrigger asChild>
                 <Button
                     size="sm"
-                    variant={
-                        state === "unavailable"
-                            ? "destructive"
-                            : adminMode
-                              ? "default"
-                              : "outline"
-                    }
+                    variant="outline"
+                    className={cn(state !== "user" && styles[state])}
                     aria-pressed={adminMode}
                     onClick={() => setAdminMode(!adminMode)}
                 >
-                    <ArrowLeftRight />
+                    {state === "unavailable" ? (
+                        <TriangleAlert />
+                    ) : (
+                        <ArrowLeftRight />
+                    )}
                     {adminMode ? "Admin mode" : "User mode"}
                 </Button>
             </TooltipTrigger>
