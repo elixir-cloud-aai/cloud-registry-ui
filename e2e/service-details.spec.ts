@@ -19,6 +19,31 @@ function scrollsSideways(locator: Locator) {
 }
 
 /**
+ * Find what doesn't fit in a container: elements inside it that scroll
+ * sideways (e.g. a body or the raw metadata), or stick out of it on either
+ * side, where they would be clipped; elements hidden to the eye (e.g.
+ * labels for screen readers) are 1 px wide and skipped
+ * @param container The container
+ * @returns The start of the HTML of each element that doesn't fit
+ */
+function overflowing(container: Locator) {
+    return container.evaluate((root) => {
+        const { left, right } = root.getBoundingClientRect();
+        return Array.from(root.querySelectorAll("*"))
+            .filter((el) => {
+                const box = el.getBoundingClientRect();
+                return (
+                    el.clientWidth > 1 &&
+                    (el.scrollWidth > el.clientWidth + 1 ||
+                        box.left < left - 0.5 ||
+                        box.right > right + 0.5)
+                );
+            })
+            .map((el) => el.outerHTML.slice(0, 160));
+    });
+}
+
+/**
  * Check that the service details fit their container: no sideways scrolling
  * and all actions inside it; for an admin in admin mode viewing a pending
  * service, who gets all actions but Verify
@@ -35,22 +60,7 @@ async function expectFits(page: Page, container: Locator) {
     ];
     for (const action of actions) await expect(action).toBeVisible();
     expect(await scrollsSideways(container)).toBe(false);
-    // nothing inside scrolls sideways (e.g. the body or the raw metadata)
-    // or sticks out of the container, where it would be clipped; elements
-    // hidden to the eye (e.g. labels for screen readers) are 1 px wide
-    expect(
-        await container.evaluate((root) => {
-            const right = root.getBoundingClientRect().right + 0.5;
-            return Array.from(root.querySelectorAll("*"))
-                .filter(
-                    (el) =>
-                        el.clientWidth > 1 &&
-                        (el.scrollWidth > el.clientWidth + 1 ||
-                            el.getBoundingClientRect().right > right),
-                )
-                .map((el) => el.outerHTML.slice(0, 160));
-        }),
-    ).toEqual([]);
+    expect(await overflowing(container)).toEqual([]);
     expect(
         await page.evaluate(
             () =>
@@ -135,16 +145,11 @@ test.describe("service details", () => {
                 // the confirmation of an approval fits, too
                 await dialog.getByRole("button", { name: "Approve" }).click();
                 const confirm = page.getByRole("alertdialog");
-                await expect(confirm).toContainText(service.type.group);
+                await expect(
+                    confirm.getByText(service.type.group),
+                ).toBeVisible();
                 expect(await scrollsSideways(confirm)).toBe(false);
-                expect(
-                    await confirm.evaluate((root) => {
-                        const right = root.getBoundingClientRect().right + 0.5;
-                        return Array.from(root.querySelectorAll("*")).filter(
-                            (el) => el.getBoundingClientRect().right > right,
-                        ).length;
-                    }),
-                ).toBe(0);
+                expect(await overflowing(confirm)).toEqual([]);
                 await confirm.getByRole("button", { name: "Cancel" }).click();
                 await page.keyboard.press("Escape");
                 // requests cut off by leaving the page fail, and the app
