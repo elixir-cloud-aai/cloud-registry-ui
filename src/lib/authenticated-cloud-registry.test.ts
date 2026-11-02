@@ -459,7 +459,9 @@ describe("hasApprovals", () => {
 
     it.each([
         ["fails", () => new Response(null, { status: 500 })],
+        ["needs a login", unauthorized],
         ["isn't JSON", () => new Response("<html>")],
+        ["has empty rules", () => json({ registration_rules: null })],
     ])("probes if the service info %s", async (name, response) => {
         fetchMock
             .mockResolvedValueOnce(response())
@@ -506,11 +508,13 @@ describe("hasApprovals", () => {
         fetchMock
             .mockResolvedValueOnce(json({ id: "older" }))
             .mockResolvedValueOnce(unauthorized());
+        const timeout = vi.spyOn(AbortSignal, "timeout");
         const provider = new AuthenticatedCloudRegistryProvider(`${base}/5`);
         await provider.hasApprovals();
+        expect(timeout.mock.calls).toEqual([[5_000], [10_000]]);
         const [first, second] = fetchMock.mock.calls;
-        expect(first[1]?.signal).toBeInstanceOf(AbortSignal);
-        expect(second[1]?.signal).toBeInstanceOf(AbortSignal);
-        expect(second[1]?.signal).not.toBe(first[1]?.signal);
+        expect(first[1]?.signal).toBe(timeout.mock.results[0].value);
+        expect(second[1]?.signal).toBe(timeout.mock.results[1].value);
+        timeout.mockRestore();
     });
 });
