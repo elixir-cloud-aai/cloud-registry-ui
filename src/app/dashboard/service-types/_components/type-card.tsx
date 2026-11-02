@@ -1,5 +1,6 @@
 import type { ServiceType } from "@elixir-cloud/cloud-registry/providers";
 import { Trash2Icon } from "lucide-react";
+import { Fragment } from "react";
 import { ApproveTypeButton } from "@/components/shared/approve-type";
 import { PendingBadge } from "@/components/shared/pending";
 import {
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/card";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import { typeLabel } from "@/lib/service-types";
+import { breakParts, typeFields } from "./type-helper";
 
 type Props = {
     serviceType: ServiceType;
@@ -43,12 +45,38 @@ function ServiceTypeCard({
     onRemove,
     onApproved,
 }: Props) {
+    // one string for the accessible names and the dialog
     const label = typeLabel(serviceType);
 
     return (
-        <Card className="min-w-72">
+        <Card role="group" aria-label={label} className="w-72 max-w-full">
             <CardHeader>
-                <CardTitle className="break-all">{label}</CardTitle>
+                <CardTitle>
+                    <dl className="grid grid-cols-[max-content_minmax(0,1fr)] items-start gap-x-2 gap-y-1">
+                        {typeFields(serviceType).map(
+                            ({ label: field, value }) => (
+                                <div key={field} className="contents">
+                                    <dt className="font-normal text-muted-foreground">
+                                        {field}:
+                                    </dt>
+                                    {/* breaks after separators, e.g. "org.", and
+                                    inside parts only if they don't fit */}
+                                    <dd className="wrap-break-word">
+                                        {breakParts(value).map(
+                                            (part, index) => (
+                                                // biome-ignore lint/suspicious/noArrayIndexKey: the parts of one value, in a fixed order
+                                                <Fragment key={index}>
+                                                    {index > 0 && <wbr />}
+                                                    {part}
+                                                </Fragment>
+                                            ),
+                                        )}
+                                    </dd>
+                                </div>
+                            ),
+                        )}
+                    </dl>
+                </CardTitle>
                 {onRemove && (
                     <CardAction>
                         <AlertDialog>
@@ -65,7 +93,7 @@ function ServiceTypeCard({
                             <AlertDialogContent>
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>
-                                        Remove service type?
+                                        Remove Service Type?
                                     </AlertDialogTitle>
                                     <AlertDialogDescription>
                                         Services can no longer be registered
@@ -90,7 +118,7 @@ function ServiceTypeCard({
                 )}
             </CardHeader>
             {pending && (
-                <CardFooter className="justify-between gap-2">
+                <CardFooter className="mt-auto justify-between gap-2">
                     <PendingBadge />
                     {canApprove && (
                         <ApproveTypeButton

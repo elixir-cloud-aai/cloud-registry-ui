@@ -78,6 +78,39 @@ export function isGroup(
 
 export { isForbidden, isUnauthorized };
 
+/** Role holders per page of the access list */
+export const accessPageSize = 8;
+
+/**
+ * Get the display name of a user with a role
+ * @param val Role of the user
+ * @returns The name, if the registry knows it (once the user has used it)
+ */
+export function userName(val: Permission) {
+    return val.name?.trim() || undefined;
+}
+
+/**
+ * Filter users and groups with a role
+ * @param permissions Roles on the service
+ * @param query Text to find in names, user IDs, groups and roles, in any
+ * case; all match an empty one
+ * @returns The matching roles, in order
+ */
+export function filterHolders(
+    permissions: (Permission | GroupPermission)[],
+    query: string,
+) {
+    const value = query.trim().toLowerCase();
+    if (!value) return permissions;
+    return permissions.filter((val) =>
+        (isGroup(val)
+            ? [val.group, val.role]
+            : [val.user_id, val.name ?? "", val.role]
+        ).some((field) => field.toLowerCase().includes(value)),
+    );
+}
+
 /** Get the message for a failed listing of access to a service */
 export function listError(err: unknown) {
     return errorMessage(

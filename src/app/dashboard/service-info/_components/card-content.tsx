@@ -71,17 +71,17 @@ function ServiceInfoCardContent({ serviceInfo }: Props) {
                     </div>
                     <ul className="pl-6 space-y-1 text-xs">
                         <li>
-                            <span className="text-slate-400">Artifact:</span>{" "}
-                            {serviceInfo.type.artifact}
-                        </li>
-                        <li>
                             <span className="text-slate-400">Group:</span>{" "}
                             {serviceInfo.type.group}
                         </li>
                         <li>
+                            <span className="text-slate-400">Artifact:</span>{" "}
+                            {serviceInfo.type.artifact}
+                        </li>
+                        <li>
                             <span className="text-slate-400">
                                 Spec Version:
-                            </span>
+                            </span>{" "}
                             {serviceInfo.type.version}
                         </li>
                     </ul>
@@ -98,7 +98,9 @@ function ServiceInfoCardContent({ serviceInfo }: Props) {
                         <div className="pl-6 text-xs text-slate-600 space-y-0.5">
                             {serviceInfo.createdAt && (
                                 <p>
-                                    Created At:{" "}
+                                    <span className="text-slate-400">
+                                        Created At:
+                                    </span>{" "}
                                     {new Date(
                                         serviceInfo.createdAt,
                                     ).toLocaleString()}
@@ -106,7 +108,9 @@ function ServiceInfoCardContent({ serviceInfo }: Props) {
                             )}
                             {serviceInfo.updatedAt && (
                                 <p>
-                                    Updated At:{" "}
+                                    <span className="text-slate-400">
+                                        Updated At:
+                                    </span>{" "}
                                     {new Date(
                                         serviceInfo.updatedAt,
                                     ).toLocaleString()}
@@ -114,7 +118,9 @@ function ServiceInfoCardContent({ serviceInfo }: Props) {
                             )}
                             {serviceInfo.environment && (
                                 <p>
-                                    Environment:{" "}
+                                    <span className="text-slate-400">
+                                        Environment:
+                                    </span>{" "}
                                     {serviceInfo.environment.toUpperCase()}
                                 </p>
                             )}

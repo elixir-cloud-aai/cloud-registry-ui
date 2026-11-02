@@ -328,7 +328,8 @@ try {
         .evaluateAll((els) => els.map((el) => el.getAttribute("aria-label")));
     await access.getByRole("button", { name: "Create link" }).click();
     const link = await access
-        .getByRole("textbox", { name: "Invitation link" })
+        .getByRole("textbox", { name: /^Invitation link/ })
+        .first()
         .inputValue();
     await shoot(access, "manage-access-invite", 1300);
     await pages.other.goto(link);
