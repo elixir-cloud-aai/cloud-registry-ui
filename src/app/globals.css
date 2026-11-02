@@ -131,7 +131,9 @@
 
 /* the buttons of toasts stay clickable while a modal makes the rest of the
    page inert (e.g. "View service" of the create form's errors); the toasts
-   themselves let clicks through, e.g. to the buttons of the modal below */
-[data-sonner-toast] :is([data-button], [data-close-button]) {
+   themselves let clicks through, e.g. to the buttons of the modal below;
+   not those of toasts that sonner hides or removes */
+[data-sonner-toast]:not([data-visible="false"]):not([data-removed="true"])
+    :is([data-button], [data-close-button]) {
     pointer-events: auto;
 }
