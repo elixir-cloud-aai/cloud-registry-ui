@@ -25,6 +25,7 @@ import {
     canManageAccess,
     canVerifyService,
 } from "@/lib/permissions";
+import { Breakable } from "./service-dailog-card-misc";
 import VerifiedBadge from "./verified-badge";
 import ViewServiceDialogBody from "./view-service-dailog-body";
 
@@ -180,13 +181,15 @@ function ServiceDetails({
 
     return (
         <>
-            {/* the classes of DialogHeader, the same in the dialog and on the page */}
-            <div className="flex flex-col gap-1.5 px-4 py-4 border-b">
+            {/* the classes of DialogHeader, the same in the dialog and on the
+                page; the text keeps clear of the close button of the dialog */}
+            <div className="flex flex-col gap-1.5 px-4 py-4 pr-14 border-b">
                 <Title className="text-lg font-bold leading-none">
-                    Artifact Details
+                    Service Details
                 </Title>
-                <Description>
-                    Complete metadata for {service.id} deployment.
+                <Description className="wrap-break-word">
+                    Complete metadata of the service{" "}
+                    <Breakable value={service.id} />.
                 </Description>
                 {(verification || pending) && (
                     <div className="flex gap-2">
@@ -212,57 +215,67 @@ function ServiceDetails({
                 verification={verification}
             />
 
-            {/* the classes of DialogFooter, the same in the dialog and on the page */}
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end px-4 py-4 border-t">
-                {canApprove && (
-                    <ApproveTypeButton
-                        serviceType={service.type}
-                        provider={cloudRegistryProvider}
-                        onApproved={onChange}
-                    />
-                )}
-                {canVerify && (
-                    <Button
-                        size="sm"
-                        variant={"outline"}
-                        onClick={handleServiceVerify}
-                        disabled={isVerifying}
-                    >
-                        {verification ? "Unverify" : "Verify"}
+            {/* two groups of actions, the same in the dialog and on the
+                page: sharing and access on the left, the actions on the
+                service itself on the right; if both don't fit in one row,
+                the right group moves to a row of its own, and each group
+                wraps further on narrow screens */}
+            <div className="flex flex-wrap gap-2 px-4 py-4 border-t">
+                <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant={"outline"} onClick={handleShare}>
+                        <Share2 />
+                        Share
                     </Button>
-                )}
-                <Button size="sm" variant={"outline"} onClick={handleShare}>
-                    <Share2 />
-                    Share
-                </Button>
-                {manageAccess && (
-                    <Button
-                        size="sm"
-                        variant={"outline"}
-                        onClick={() => setManageOpen(true)}
-                    >
-                        <KeyRound />
-                        Manage access
-                    </Button>
-                )}
-                {canEdit && (
-                    <Button size="sm" asChild>
-                        <Link
-                            href={`/dashboard/services/update/${encodeURIComponent(service.id)}`}
+                    {manageAccess && (
+                        <Button
+                            size="sm"
+                            variant={"outline"}
+                            onClick={() => setManageOpen(true)}
                         >
-                            Edit
-                        </Link>
-                    </Button>
-                )}
-                {canDelete && (
-                    <Button
-                        size="sm"
-                        variant={"destructive"}
-                        onClick={handleServiceDelete}
-                        disabled={isDeleting}
-                    >
-                        {isDeleting ? "Deleting..." : "Delete"}
-                    </Button>
+                            <KeyRound />
+                            Manage access
+                        </Button>
+                    )}
+                </div>
+                {(canApprove || canVerify || canEdit || canDelete) && (
+                    <div className="ml-auto flex flex-wrap justify-end gap-2">
+                        {canApprove && (
+                            <ApproveTypeButton
+                                serviceType={service.type}
+                                provider={cloudRegistryProvider}
+                                onApproved={onChange}
+                            />
+                        )}
+                        {canVerify && (
+                            <Button
+                                size="sm"
+                                variant={"outline"}
+                                onClick={handleServiceVerify}
+                                disabled={isVerifying}
+                            >
+                                {verification ? "Unverify" : "Verify"}
+                            </Button>
+                        )}
+                        {canEdit && (
+                            <Button size="sm" asChild>
+                                <Link
+                                    href={`/dashboard/services/update/${encodeURIComponent(service.id)}`}
+                                >
+                                    Edit
+                                </Link>
+                            </Button>
+                        )}
+                        {canDelete && (
+                            <Button
+                                size="sm"
+                                variant={"destructive"}
+                                onClick={handleServiceDelete}
+                                disabled={isDeleting}
+                            >
+                                {isDeleting ? "Deleting..." : "Delete"}
+                            </Button>
+                        )}
+                    </div>
                 )}
             </div>
 

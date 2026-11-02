@@ -38,8 +38,10 @@ function ServiceDetailsDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            {/* scrolls if the details are taller than the viewport */}
-            <DialogContent className="max-w-lg p-0 gap-0 max-h-[90vh] overflow-y-auto">
+            {/* scrolls if the details are taller than the viewport; the
+                column may not grow wider than the dialog, so that wide
+                content wraps instead of scrolling the dialog sideways */}
+            <DialogContent className="sm:max-w-lg grid-cols-1 p-0 gap-0 max-h-[90vh] overflow-y-auto">
                 <ServiceDetails
                     service={service}
                     verification={verification}
