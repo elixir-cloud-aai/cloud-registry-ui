@@ -1,5 +1,5 @@
 # Build stage: dependencies, sources and the build; none of it is kept
-FROM oven/bun:1.3.14 AS build
+FROM oven/bun:1.4.4 AS build
 WORKDIR /app
 
 # Install deps
@@ -15,7 +15,7 @@ COPY . .
 RUN NEXT_OUTPUT=standalone bun run build
 
 # Runtime stage: only the standalone server, its static files and `public/`
-FROM oven/bun:1.3.14
+FROM oven/bun:1.4.4
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=3000
