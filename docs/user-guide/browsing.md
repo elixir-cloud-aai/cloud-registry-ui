@@ -63,7 +63,7 @@ e.g. `org.ga4gh · tes · 1.1.0`. Services are registered with one of them.
 
 If you may add service types (the registry decides who may, see the
 registration rules under [Service info](#service-info)), the page shows
-**Add service type**: enter the group (e.g. `org.ga4gh`), the artifact
+**Add Service Type**: enter the group (e.g. `org.ga4gh`), the artifact
 (e.g. `wes`) and the version (e.g. `1.1.0`), and select **Add**. In some
 deployments, new types of users other than admins are pending until an
 admin approves them; the page then says so (see [Pending
@@ -74,7 +74,7 @@ other than admins may have added; the dialog names the limit. Types count
 until services have them or an admin removes them: register services with
 your types, or ask an admin to remove those you don't need, before you add
 others. If the limit is 0, only admins can add types, also by registering
-services: the page then says so instead of offering **Add service type**
+services: the page then says so instead of offering **Add Service Type**
 (admins who may switch to admin mode are asked to switch).
 
 The page explains what went wrong if the registry refuses a type: it is

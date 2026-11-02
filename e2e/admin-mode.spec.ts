@@ -19,12 +19,14 @@ async function openService(page: Page, id: string) {
 }
 
 /**
- * Check whether an element's background is reddish, whatever the colour
- * space in which the browser reports it
+ * Get an element's background colour as RGB, whatever the colour space in
+ * which the browser reports it; the pointer moves away first, so that the
+ * colour isn't the one on hover
  * @param locator Element
- * @returns Whether red outweighs green and blue clearly
+ * @returns Red, green and blue (0-255), or undefined if transparent
  */
-async function hasRedBackground(locator: Locator) {
+async function background(locator: Locator) {
+    await locator.page().mouse.move(0, 0);
     return locator.evaluate((val) => {
         const canvas = document.createElement("canvas");
         canvas.width = 1;
@@ -33,8 +35,28 @@ async function hasRedBackground(locator: Locator) {
         context.fillStyle = getComputedStyle(val).backgroundColor;
         context.fillRect(0, 0, 1, 1);
         const [r, g, b, a] = context.getImageData(0, 0, 1, 1).data;
-        return a > 0 && r - g > 15 && r - b > 15;
+        return a > 0 ? { r, g, b } : undefined;
     });
+}
+
+/**
+ * Check whether an element's background is reddish
+ * @param locator Element
+ * @returns Whether red outweighs green and blue clearly
+ */
+async function hasRedBackground(locator: Locator) {
+    const rgb = await background(locator);
+    return !!rgb && rgb.r - rgb.g > 15 && rgb.r - rgb.b > 15;
+}
+
+/**
+ * Check whether an element's background is amber: red over green over blue
+ * @param locator Element
+ * @returns Whether it is amber rather than red
+ */
+async function hasAmberBackground(locator: Locator) {
+    const rgb = await background(locator);
+    return !!rgb && rgb.r >= rgb.g && rgb.g - rgb.b > 15;
 }
 
 test.describe("admin mode", () => {
@@ -119,6 +141,12 @@ test.describe("admin mode", () => {
         await expect(page.getByRole("button", { name: "Verify" })).toHaveCount(
             0,
         );
+        // amber with a warning sign, unlike the light red of admin mode
+        await expect(
+            adminMode.locator("svg.lucide-triangle-alert"),
+        ).toBeVisible();
+        expect(await hasAmberBackground(adminMode)).toBe(true);
+        expect(await hasRedBackground(adminMode)).toBe(false);
         await adminMode.hover();
         await expect(
             page.getByRole("tooltip").filter({

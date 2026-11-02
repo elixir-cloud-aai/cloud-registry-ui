@@ -40,7 +40,7 @@ test.describe("service type limits", () => {
             ),
         ).toBeVisible();
         await expect(
-            page.getByRole("button", { name: "Add service type" }),
+            page.getByRole("button", { name: "Add Service Type" }),
         ).toHaveCount(0);
         await expect(
             page.getByText("New service types are pending"),
@@ -79,7 +79,7 @@ test.describe("service type limits", () => {
         await login(page, "owner");
         await page.goto("/dashboard/service-types");
 
-        await page.getByRole("button", { name: "Add service type" }).click();
+        await page.getByRole("button", { name: "Add Service Type" }).click();
         await expect(page.getByRole("dialog")).toContainText(
             "You may have added up to 3 service types that no service has",
         );
@@ -94,7 +94,7 @@ test.describe("service type limits", () => {
         await login(page, "owner");
         await page.goto("/dashboard/service-types");
 
-        await page.getByRole("button", { name: "Add service type" }).click();
+        await page.getByRole("button", { name: "Add Service Type" }).click();
         const dialog = page.getByRole("dialog");
         await dialog
             .getByRole("textbox", { name: "Type Artifact" })
@@ -125,7 +125,7 @@ test.describe("service type limits", () => {
         await login(page, "owner");
         await page.goto("/dashboard/service-types");
 
-        await page.getByRole("button", { name: "Add service type" }).click();
+        await page.getByRole("button", { name: "Add Service Type" }).click();
         const dialog = page.getByRole("dialog");
         await dialog
             .getByRole("textbox", { name: "Type Artifact" })

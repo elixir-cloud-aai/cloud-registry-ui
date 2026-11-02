@@ -21,9 +21,9 @@ const tooltips = {
 // amber with a warning sign if admin rights don't apply; the colours keep a
 // contrast of at least 4.5:1 in both colour schemes
 const styles = {
-    admin: "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200 dark:hover:bg-red-900 dark:hover:text-red-100",
+    admin: "border-red-300 bg-red-100 text-red-700 hover:bg-red-200 hover:text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200 dark:hover:bg-red-900 dark:hover:text-red-100",
     unavailable:
-        "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 hover:text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100 dark:hover:bg-amber-900 dark:hover:text-amber-50",
+        "border-amber-300 bg-amber-100 text-amber-900 hover:bg-amber-200 hover:text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100 dark:hover:bg-amber-900 dark:hover:text-amber-50",
 };
 
 export function AdminModeToggle() {
