@@ -471,21 +471,38 @@ describe("hasApprovals", () => {
         expect(fetchMock.mock.calls[1][0]).toBe(`${base}/3/${name}/approvals`);
     });
 
-    it("asks again after a 404 or a failure", async () => {
+    it("probes if the service info can't be reached", async () => {
+        fetchMock
+            .mockRejectedValueOnce(new TypeError("offline"))
+            .mockResolvedValueOnce(unauthorized());
+        const provider = new AuthenticatedCloudRegistryProvider(`${base}/6`);
+        expect(await provider.hasApprovals()).toBe(true);
+        expect(fetchMock.mock.calls[1][0]).toBe(`${base}/6/approvals`);
+    });
+
+    it("asks again after a 404", async () => {
         const provider = new AuthenticatedCloudRegistryProvider(`${base}/4`);
         fetchMock
             .mockResolvedValueOnce(json({ id: "older" }))
             .mockResolvedValueOnce(new Response(null, { status: 404 }));
         expect(await provider.hasApprovals()).toBe(false);
-        fetchMock.mockRejectedValue(new TypeError("offline"));
-        await expect(provider.hasApprovals()).rejects.toThrow("offline");
-        fetchMock.mockReset();
         fetchMock.mockResolvedValueOnce(json({ registration_rules: {} }));
         expect(await provider.hasApprovals()).toBe(true);
-        expect(fetchMock).toHaveBeenCalledOnce();
+        expect(fetchMock).toHaveBeenCalledTimes(3);
     });
 
-    it("shares one timeout between the requests", async () => {
+    it("asks again after a failure", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(`${base}/7`);
+        fetchMock
+            .mockRejectedValueOnce(new TypeError("offline"))
+            .mockRejectedValueOnce(new TypeError("offline"));
+        await expect(provider.hasApprovals()).rejects.toThrow("offline");
+        fetchMock.mockResolvedValueOnce(json({ registration_rules: {} }));
+        expect(await provider.hasApprovals()).toBe(true);
+        expect(fetchMock).toHaveBeenCalledTimes(3);
+    });
+
+    it("gives each request a timeout of its own", async () => {
         fetchMock
             .mockResolvedValueOnce(json({ id: "older" }))
             .mockResolvedValueOnce(unauthorized());
@@ -493,6 +510,7 @@ describe("hasApprovals", () => {
         await provider.hasApprovals();
         const [first, second] = fetchMock.mock.calls;
         expect(first[1]?.signal).toBeInstanceOf(AbortSignal);
-        expect(second[1]?.signal).toBe(first[1]?.signal);
+        expect(second[1]?.signal).toBeInstanceOf(AbortSignal);
+        expect(second[1]?.signal).not.toBe(first[1]?.signal);
     });
 });

@@ -309,16 +309,14 @@ class AuthenticatedCloudRegistryProvider
    * @returns false if the route is missing (404), true if the rules are
    * published or for any other status (e.g. 401 or 5xx; the request with
    * the token then reports errors)
-   * @throws TypeError if the registry can't be reached, or an error if it
-   * doesn't answer within 10 seconds
+   * @throws TypeError if the registry can't be reached, or an error if the
+   * probe isn't answered within 10 seconds
    */
   async hasApprovals(): Promise<boolean> {
     let support = approvalsSupport.get(this.baseUrl);
     if (!support) {
-      // a stalled registry must not hold up the pages until a reload
-      const signal = AbortSignal.timeout(10_000);
-      support = this.publishesRules(signal)
-        .then((rules) => rules || this.probeApprovals(signal))
+      support = this.publishesRules()
+        .then((rules) => rules || this.probeApprovals())
         .then(
           (found) => {
             if (!found) approvalsSupport.delete(this.baseUrl);
@@ -336,18 +334,21 @@ class AuthenticatedCloudRegistryProvider
   }
 
   /**
-   * Check whether the service info has registration rules. Sent without a
-   * token, as it is public and needs no CORS preflight then.
+   * Check whether the service info has registration rules. Not by
+   * `getServiceInfo()`, as this request needs a timeout of its own, so that
+   * a stalled service info leaves time for the probe, and is sent without a
+   * token, also on a 401: it is public, and needs no CORS preflight then.
+   * Once per page load, in addition to the read of the rules by the pages
+   * that use them.
    *
-   * @param signal Aborts the request
-   * @returns Whether it has them; false if it can't be read, which leaves
-   * the answer to the probe
+   * @returns Whether it has them; false if it can't be read in 5 seconds,
+   * which leaves the answer to the probe
    */
-  private async publishesRules(signal: AbortSignal): Promise<boolean> {
+  private async publishesRules(): Promise<boolean> {
     try {
       const response = await fetch(this.url("/service-info"), {
         cache: "no-store",
-        signal,
+        signal: AbortSignal.timeout(5_000),
       });
       return (
         response.ok && registrationRules(await response.json()) !== undefined
@@ -366,13 +367,13 @@ class AuthenticatedCloudRegistryProvider
    * from older ones. With a token, browsers reject the preflight's 404,
    * and the request fails without a status.
    *
-   * @param signal Aborts the request
    * @returns false if the route is missing (404), true for any other status
    */
-  private async probeApprovals(signal: AbortSignal): Promise<boolean> {
+  private async probeApprovals(): Promise<boolean> {
     const response = await fetch(this.url("/approvals"), {
       cache: "no-store",
-      signal,
+      // a stalled probe must not hold up the pages until a reload
+      signal: AbortSignal.timeout(10_000),
     });
     return response.status !== 404;
   }

@@ -49,6 +49,7 @@ test.describe("pending entries", () => {
         await page.goto("/dashboard/services");
         await expect.poll(() => reads.length).toBeGreaterThan(0);
         await page.waitForLoadState("networkidle");
+        // checks the requests, as `expectedMessage` allows the probe's 401
         for (const read of reads)
             expect(read.headers().authorization).toBeTruthy();
     });
