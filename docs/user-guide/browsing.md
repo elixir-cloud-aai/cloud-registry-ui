@@ -60,8 +60,10 @@ you may not see it (e.g. while it awaits approval), the page says so.
 ## Service types
 
 **Service Types** in the sidebar lists the service types of the registry:
-the APIs that services can implement, each as group, artifact and version,
-e.g. `org.ga4gh · tes · 1.1.0`. Services are registered with one of them.
+the APIs that services can implement. Each tile shows a type's group,
+artifact and version on lines of their own; lists to pick a type from (e.g.
+in the service forms and filters) show them in one line, e.g.
+`org.ga4gh · tes · 1.1.0`. Services are registered with one of them.
 
 ![The service types, with a pending one](../images/service-types.png)
 
@@ -90,7 +92,9 @@ services still have it (change or delete these services first).
 
 The "i" icon in the top bar opens the registry's service info: the
 registry's name, ID, description, organization, version, type and
-environment, as the registry reports them.
+environment, as the registry reports them. If the registry names them, the
+icons at the top right link to its documentation (**Documentation URL**)
+and its contact (**Contact URL**).
 
 Under **Registration Rules**, it shows the rules that the registry checks
 for registrations:

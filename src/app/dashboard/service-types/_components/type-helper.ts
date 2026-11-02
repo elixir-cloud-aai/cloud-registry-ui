@@ -44,3 +44,25 @@ export function typeLimitNote(
         ? "Only admins can add service types in this registry. Switch to admin mode to add one."
         : "Only admins can add service types in this registry. Please ask an admin to add the type you need.";
 }
+
+/**
+ * Get the parts of a service type, to show them line by line
+ * @param serviceType The service type
+ * @returns The labelled group, artifact and version
+ */
+export function typeFields({ group, artifact, version }: ServiceType) {
+    return [
+        { label: "Group", value: group },
+        { label: "Artifact", value: artifact },
+        { label: "Version", value: version },
+    ];
+}
+
+/**
+ * Split a value after its separators, where long values may break
+ * @param value The value, e.g. "org.ga4gh"
+ * @returns The parts, each with its trailing separator, e.g. ["org.", "ga4gh"]
+ */
+export function breakParts(value: string) {
+    return value.split(/(?<=[./_-])/);
+}
