@@ -96,6 +96,13 @@ git push origin your-branch-name
 
 3. Open a Pull Request on GitHub, into `dev`
 
+Pull requests are squash-merged, so the title becomes the commit message on
+`dev`: it must follow [Conventional
+Commits](https://www.conventionalcommits.org/)
+(`<type>[(scope)]: <description>`, e.g. `fix: keep the filter after a
+reload`) and have at most 50 characters. The CI job "PR title" checks this, also when you edit
+the title.
+
 If your change affects what users or operators see or do (e.g. labels,
 pages, settings), update the docs in `docs/` with it, and take the
 screenshots again if they change (see "Screenshots" in
@@ -125,7 +132,13 @@ versions):
    merge created on `dev` (`<sha>`, not the head of the pull request): the
    release workflow requires a successful CI run for a push of the tagged
    commit (runs for pull requests test merge commits, not the commit
-   itself).
+   itself). CI also scans the image with the flags of the release scan
+   (the `scan` job), so that a fixable critical or high vulnerability fails
+   CI before the tag rather than the release; fix it (e.g., by bumping the
+   Bun image of the `Dockerfile`) or, with a reason and an expiry date,
+   accept it in `.trivyignore.yaml`. Vulnerabilities published between the
+   CI run and the release can still fail the release scan: tag soon after
+   CI has passed.
 3. Run the release workflow's checks that need no tag, as it runs them
    (keep these commands in sync with the `prepare` job of
    `.github/workflows/release.yml`), in Bash. Run them before tagging: tags
@@ -199,6 +212,13 @@ tags and keeps them from being moved or deleted; and immutable releases.
 Tags and published releases and images can't be changed: if a release
 fails after its tag was pushed and re-running its failed jobs doesn't help,
 release the next patch version (with its own release-prep pull request).
+
+After a release, the workflow `Scan` (`.github/workflows/scan.yml`) scans
+the image of the latest release (or, before the first stable release, of
+the newest pre-release) every Monday, and can be run by hand. It uploads
+the fixable findings to code scanning and a full report as a workflow
+artifact, and fails on fixable critical and high vulnerabilities: release a
+patch version with the fix.
 
 ## Reporting Issues
 

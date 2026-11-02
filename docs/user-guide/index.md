@@ -9,8 +9,8 @@ how to verify services and approve new service types.
     The screenshots show the app in its default branding. Deployments can
     change the title and the logos, and may offer other login providers.
     Which login provider you use, which groups grant which rights, and whom
-    to contact are described by your deployment, e.g. in the [ELIXIR Cloud
-    documentation](https://elixir-cloud-aai.github.io/) for ELIXIR On-Cloud.
+    to contact are described by your deployment, e.g. in the [ELIXIR On-Cloud
+    docs](https://docs.elixir-on.cloud/) for ELIXIR On-Cloud.
     What a deployment allows (e.g. the environments of services, or who may
     add service types) also depends on its registry, so some options
     described here may not be available to you.

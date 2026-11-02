@@ -175,7 +175,7 @@ function ManageAccessDialog({
             <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-lg font-bold">
-                        Manage access
+                        Manage Access
                     </DialogTitle>
                     <DialogDescription>
                         Owners can edit and delete {serviceId} and manage access

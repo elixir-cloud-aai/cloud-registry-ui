@@ -4,6 +4,7 @@ import {
     fillCreateForm,
     login,
     newService,
+    openCreateForm,
     registry,
     test,
 } from "./fixtures";
@@ -46,7 +47,7 @@ test.describe("services limit", () => {
 
         await addTesType(browser);
         await login(page, "owner");
-        await page.goto("/dashboard/services/create");
+        await openCreateForm(page);
         await fillCreateForm(page, newService("Limited"));
         await page.getByRole("button", { name: "Create Service" }).click();
 

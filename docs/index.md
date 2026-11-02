@@ -26,7 +26,7 @@ the registry it talks to.
 Deployment-specific information, such as the address of a deployment, its
 login provider, which groups grant which rights and whom to contact, is in
 the documentation of each deployment, not here. For the deployment of ELIXIR
-On-Cloud, see the [ELIXIR Cloud documentation](https://elixir-cloud-aai.github.io/).
+On-Cloud, see the [ELIXIR On-Cloud docs](https://docs.elixir-on.cloud/en/latest/operators/cloud-registry/).
 
 ## The registry
 

@@ -16,6 +16,10 @@ You become the owner of the services you register. Owners can give other
 users, or groups, a role on their services: e.g. a colleague who updates
 the service, or the team that runs it.
 
+**My services** above the list of services shows only the services on
+which you have a role, yourself or through a group (see [Searching and
+filtering](browsing.md#searching-and-filtering)).
+
 Which groups make users admins, and which groups exist, depends on the
 deployment and its login provider; your deployment's documentation says
 whom to ask.
@@ -26,9 +30,11 @@ Owners of a service, and admins, can see and change who has which role on
 it:
 
 1. Open the service and select **Manage access**.
-2. The list shows the users and groups with a role: users by name (once
-   they have used the registry) and user ID, groups by their name in the
-   login provider.
+2. The list shows the users and groups with a role: users by name and
+   user ID once they have used the registry (before, by user ID only),
+   groups by their name in the login provider. Long lists show 8 entries
+   per page, with a search above them that finds users and groups by name,
+   user ID, group or role.
 3. Change a role in the list, or remove it with the bin icon.
 4. To grant a role, choose **User** or **Group** under **Grant to**, enter
    the user ID or the group, choose the role and select **Grant**.
@@ -60,7 +66,7 @@ Notes:
 Instead of asking for a user ID, owners of a service, and admins, can
 invite a colleague with a link:
 
-1. Open the service, select **Manage access**, and find **Invite by link**.
+1. Open the service, select **Manage access**, and find **Invite by Link**.
 2. Choose the role the invitation is for, and select **Create link**.
 3. Copy the link (the button next to it), and send it to the person.
 
@@ -68,26 +74,32 @@ invite a colleague with a link:
 
 Notes:
 
-- **The link is shown once**, with the role and when it expires. Copy it
-  before you close the dialog; if you lose it, revoke the invitation and
-  create a new one.
+- **Links are shown only while the dialog is open**, each with its role,
+  when it expires and a copy button; the open invitations created in the
+  dialog also have a copy button in the list. The registry keeps no copy
+  of the links, so copy them before you close the dialog. Afterwards, an
+  open invitation can only get a new link: select the arrows icon (**New
+  link**) in its row, which creates an invitation for the same role and
+  revokes the old one, whose link then stops working.
 - **Share it only with the person you mean:** whoever opens the link and
   logs in gets the role, and the link works once. Send it in a private
   message, not in a channel or on a page that others can read.
 - **The list** below shows the open invitations (role, when created and
-  when they expire) and the accepted ones (who accepted, and when), each
-  only until its expiry: the registry then drops it from the list, accepted
-  or not, and the role stays. Select
-  the bin icon to revoke an open invitation; its link then stops working.
-  An accepted invitation can't be revoked: remove the user's role instead
-  (see [Managing access](#managing-access)).
+  when they expire). The accepted ones (who accepted, and when) are hidden:
+  select **Show accepted** to see them. The registry lists each invitation
+  only until its expiry, accepted or not; the role stays. Select the bin
+  icon to revoke an open invitation; its link then stops working. An
+  accepted invitation can't be revoked or removed from the list before it
+  expires (it still counts towards the limit below): remove the user's
+  role instead (see [Managing access](#managing-access)).
 - **Who is shown:** for the person who accepted, the list shows their name
   and email address as far as the registry knows them. The registry knows
   the email address only if the login provider marks it as verified;
   otherwise, only the name, or the user ID, is shown.
-- **Limits:** invitations expire, and a service can have only so many open
-  invitations at a time. If the limit is reached, revoke open invitations
-  or wait until they expire. The expiry and the limit are settings of the
+- **Limits:** invitations expire, and a service can have only so many
+  invitations at a time that haven't expired, open or accepted. If the
+  limit is reached, revoke open invitations or wait until invitations
+  expire. The expiry and the limit are settings of the
   registry (see [Compatibility](../operator-guide/index.md#compatibility)).
 - **Registries without invitations:** the section reports that the registry
   has none, and you grant roles as above. Invitations need cloud-registry

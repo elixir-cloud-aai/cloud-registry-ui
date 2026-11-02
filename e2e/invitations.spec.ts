@@ -10,6 +10,10 @@ import {
     watchPage,
 } from "./fixtures";
 
+/** The links shown in the "Manage access" dialog, newest first */
+const linkBoxes = (page: Page) =>
+    page.getByRole("dialog").getByRole("textbox", { name: /^Invitation link/ });
+
 /**
  * Create an invitation link in the "Manage access" dialog of a service
  * @param page Page of the service, logged in as an owner
@@ -19,10 +23,10 @@ async function createLink(page: Page) {
     const dialog = page.getByRole("dialog");
     if (!(await dialog.isVisible()))
         await page.getByRole("button", { name: "Manage access" }).click();
+    const before = await linkBoxes(page).count();
     await dialog.getByRole("button", { name: "Create link" }).click();
-    const link = await dialog
-        .getByRole("textbox", { name: "Invitation link" })
-        .inputValue();
+    await expect(linkBoxes(page)).toHaveCount(before + 1);
+    const link = await linkBoxes(page).first().inputValue();
     expect(link).toMatch(/\/invitations#[\w-]{43}$/);
     return link;
 }
@@ -96,9 +100,14 @@ test.describe("invitations", () => {
             await other.close();
         }
 
-        // the owner sees who accepted, and the new role
+        // the owner sees who accepted, on request, and the new role
         await page.reload();
         await page.getByRole("button", { name: "Manage access" }).click();
+        await expect(dialog.getByText("No open invitations.")).toBeVisible();
+        await expect(dialog.getByRole("row", { name: /Accepted/ })).toHaveCount(
+            0,
+        );
+        await dialog.getByRole("button", { name: "Show accepted (1)" }).click();
         await expect(
             dialog.getByRole("row", { name: /Accepted/ }),
         ).toContainText(`by ${users.other.name}`);
@@ -121,9 +130,9 @@ test.describe("invitations", () => {
         await expect(
             page.getByText("Revoked the maintainer invitation"),
         ).toBeVisible();
-        await expect(
-            dialog.getByText("No open or accepted invitations."),
-        ).toBeVisible();
+        await expect(dialog.getByText("No open invitations.")).toBeVisible();
+        // its link goes with it
+        await expect(linkBoxes(page)).toHaveCount(0);
 
         const accepted = await api(
             await tokenOf(browser, "other"),
@@ -132,6 +141,60 @@ test.describe("invitations", () => {
             { token },
         );
         expect(accepted.status).toBe(404);
+    });
+
+    test("links stay while the dialog is open, and can be renewed", async ({
+        page,
+        browser,
+    }) => {
+        const service = await registerService(browser, "owner", "Relinked");
+        await login(page, "owner");
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        const first = await createLink(page);
+        const second = await createLink(page);
+        const dialog = page.getByRole("dialog");
+        // both links, newest first, each with a copy button
+        await expect(linkBoxes(page).nth(0)).toHaveValue(second);
+        await expect(linkBoxes(page).nth(1)).toHaveValue(first);
+        await expect(
+            dialog.getByRole("button", {
+                name: /^Copy invitation link for the maintainer role, until /,
+            }),
+        ).toHaveCount(2);
+        await expect(
+            dialog.getByRole("button", { name: /^Copy link of / }),
+        ).toHaveCount(2);
+        await expect(
+            dialog.getByText(/Links are shown only while this dialog is open/),
+        ).toBeVisible();
+
+        // once the dialog was closed, the links are gone: the open
+        // invitations get new ones
+        await page.reload();
+        await page.getByRole("button", { name: "Manage access" }).click();
+        await expect(dialog.getByText("2 open invitations.")).toBeVisible();
+        await expect(linkBoxes(page)).toHaveCount(0);
+        const renew = dialog.getByRole("button", { name: /^New link for / });
+        await expect(renew).toHaveCount(2);
+        await renew.first().click();
+        await expect(
+            page.getByText(
+                "Created a new maintainer link; the old one no longer works",
+            ),
+        ).toBeVisible();
+        await expect(linkBoxes(page)).toHaveCount(1);
+        const renewed = await linkBoxes(page).first().inputValue();
+        await expect(dialog.getByText("2 open invitations.")).toBeVisible();
+        await expect(renew).toHaveCount(1);
+
+        // the first link no longer works; the renewed one does
+        const token = await tokenOf(browser, "other");
+        const accept = (link: string) =>
+            api(token, "POST", "/invitations/accept", {
+                token: link.split("#")[1],
+            });
+        expect((await accept(first)).status).toBe(404);
+        expect((await accept(renewed)).status).toBe(200);
     });
 
     test("pages without an invitation say so", async ({ page }) => {

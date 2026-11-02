@@ -76,8 +76,9 @@ function ApproveTypeButton({
             </AlertDialogTrigger>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Approve service type?</AlertDialogTitle>
-                    <AlertDialogDescription>
+                    <AlertDialogTitle>Approve Service Type?</AlertDialogTitle>
+                    {/* long service types break instead of sticking out */}
+                    <AlertDialogDescription className="wrap-anywhere">
                         {label} and all services that have it are then listed
                         for everyone. Approvals can't be undone.
                     </AlertDialogDescription>

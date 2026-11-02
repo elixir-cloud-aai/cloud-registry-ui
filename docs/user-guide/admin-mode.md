@@ -12,16 +12,17 @@ Admins see a switch in the top bar:
 
 - **User mode** (the default after logging in): you have the rights of
   other users, i.e. your roles on services.
-- **Admin mode**: you have admin rights. The page titles say "ADMIN MODE".
+- **Admin mode**: you have admin rights. The switch turns light red: it
+  is the only sign of admin mode, so check it before you change anything.
 
 ![The switch in user mode](../images/user-mode.png)
 
 Select the switch to change the mode. The mode lasts until you log out or
 close the browser; logging in again starts in user mode.
 
-If the switch turns red, your admin rights don't apply right now (e.g.
-the registry can't be reached, or you are no longer in the admin group):
-switch to user mode, or reload the page.
+If the switch turns amber and shows a warning sign, your admin rights
+don't apply right now (e.g. the registry can't be reached, or you are no
+longer in the admin group): switch to user mode, or reload the page.
 
 Deployments with registries before Cloud Registry 0.6.0, or that turned
 admin mode off, show no switch: their admins always have admin rights.

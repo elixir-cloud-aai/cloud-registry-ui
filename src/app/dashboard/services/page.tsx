@@ -2,7 +2,7 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { LogIn, PlusIcon } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
@@ -23,17 +23,18 @@ import {
     ServicesTableHeader,
     ServiceTableBodySkeleton,
 } from "./_components";
+import RegisterServiceDialog from "./_components/register-service-dialog";
 import {
     defaultFilters,
     filterServices,
     isFiltered,
+    myServices,
     type ServiceFilters,
 } from "./_components/filter-helper";
 
 const pageSize = 10;
 
 function Page() {
-    const router = useRouter();
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const { me, loading: meLoading, expired, refetch: refetchMe } = useMe();
     const [services, setServices] = useState<ExternalService[]>([]);
@@ -46,16 +47,20 @@ function Page() {
     const latestRequest = useRef(0);
     const [search, setSearch] = useState("");
     const [filters, setFilters] = useState<ServiceFilters>(defaultFilters);
+    const [registering, setRegistering] = useState(false);
+    const searchParams = useSearchParams();
 
-    const filtered = isFiltered(search, filters);
+    // the user's services; without a user (e.g. after the session
+    // expired), the filter for them is hidden, and doesn't apply
+    const mine = myServices(me);
+    const activeFilters = { ...filters, mine: !!me && filters.mine };
+    const filtered = isFiltered(search, activeFilters);
     const verified = verifiedServices(services, verifications);
-    const filteredServices = filterServices(
-        services,
-        search,
-        filters,
-        verified,
+    const filteredServices = filterServices(services, search, activeFilters, {
+        verifications: verified,
         pending,
-    );
+        mine,
+    });
     const { page, pageCount, pageItems, start, end, setPage } = usePagination(
         filteredServices,
         pageSize,
@@ -125,9 +130,20 @@ function Page() {
         fetchServices();
     }, [cloudRegistryProvider]);
 
+    // links to the create form (`?register`, e.g. from
+    // `/dashboard/services/create`) open it, also on this page, and leave
+    // the plain URL
+    useEffect(() => {
+        if (!searchParams.has("register")) return;
+        setRegistering(true);
+        const url = new URL(window.location.href);
+        url.searchParams.delete("register");
+        window.history.replaceState(null, "", url);
+    }, [searchParams]);
+
     return (
         <div className="space-y-6">
-            <div className="flex justify-between w-full items-center">
+            <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h2 className="text-3xl font-semibold tracking-tight mt-2">
                         Services
@@ -140,13 +156,9 @@ function Page() {
                         admin="View and manage all services"
                     />
                 </div>
-                <div className="hidden md:flex flex-wrap gap-2 justify-end">
+                <div className="flex flex-wrap gap-2 justify-end">
                     {isLoggedIn && !expired && (
-                        <Button
-                            onClick={() =>
-                                router.push("/dashboard/services/create")
-                            }
-                        >
+                        <Button onClick={() => setRegistering(true)}>
                             <PlusIcon />
                             Register Service
                         </Button>
@@ -183,6 +195,7 @@ function Page() {
                         filtered={filtered}
                         disabled={loading || services.length === 0}
                         showPending={!!me?.admin}
+                        showMine={!!me}
                         onSearchChange={handleSearchChange}
                         onFiltersChange={handleFiltersChange}
                     />
@@ -218,6 +231,15 @@ function Page() {
                     </div>
                 </div>
             )}
+            <RegisterServiceDialog
+                open={registering}
+                onOpenChange={setRegistering}
+                onRegistered={() => {
+                    fetchServices();
+                    // the user's services, e.g. for the services limit
+                    refetchMe();
+                }}
+            />
         </div>
     );
 }

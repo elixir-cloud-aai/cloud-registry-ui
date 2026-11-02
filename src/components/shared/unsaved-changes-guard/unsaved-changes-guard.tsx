@@ -116,7 +116,7 @@ function UnsavedChangesGuard({ when }: Props) {
         >
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>Unsaved changes</AlertDialogTitle>
+                    <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
                     <AlertDialogDescription>
                         You have unsaved changes. Leave this page?
                     </AlertDialogDescription>
