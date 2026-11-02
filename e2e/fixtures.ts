@@ -104,7 +104,8 @@ function expectedMessage(text: string, url: string) {
                     url.slice(registry.length),
                 ) &&
                 url.startsWith(registry)) ||
-            // the pending entries, for users other than admins
+            // the pending entries, for users other than admins; the probe
+            // for them without a token, for registries that publish no rules
             (["401", "403"].includes(status) &&
                 url === `${registry}/approvals`) ||
             // the user of guests

@@ -27,6 +27,7 @@ import type {
   VerificationRegister,
   VerifiedServices,
 } from "./cloud-registry.types";
+import { registrationRules } from "./registration-rules";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
@@ -294,10 +295,70 @@ class AuthenticatedCloudRegistryProvider
   }
 
   /**
-   * Probe for GET /approvals (cloud-registry 0.5.0 and later). Not a
-   * registry operation. Only support is kept, until the page is reloaded:
-   * registries without it are asked again by each page, e.g. once an
-   * upgrade has rolled out.
+   * Find out whether the registry has GET /approvals (cloud-registry 0.5.0
+   * and later). Not a registry operation. Only support is kept, until the
+   * page is reloaded: registries without it are asked again by each page,
+   * e.g. once an upgrade has rolled out.
+   *
+   * Registries that publish registration rules (0.6.0 and later, see
+   * `publishesRules`) have the route. Only for others is the route itself
+   * probed, see `probeApprovals`: registries that require a login for it
+   * answer that request with a 401, which browsers and the registry's log
+   * report as an error.
+   *
+   * @returns false if the route is missing (404), true if the rules are
+   * published or for any other status (e.g. 401 or 5xx; the request with
+   * the token then reports errors)
+   * @throws TypeError if the registry can't be reached, or an error if it
+   * doesn't answer within 10 seconds
+   */
+  async hasApprovals(): Promise<boolean> {
+    let support = approvalsSupport.get(this.baseUrl);
+    if (!support) {
+      // a stalled registry must not hold up the pages until a reload
+      const signal = AbortSignal.timeout(10_000);
+      support = this.publishesRules(signal)
+        .then((rules) => rules || this.probeApprovals(signal))
+        .then(
+          (found) => {
+            if (!found) approvalsSupport.delete(this.baseUrl);
+            return found;
+          },
+          (err: unknown) => {
+            // ask again next time, e.g. once the registry is up
+            approvalsSupport.delete(this.baseUrl);
+            throw err;
+          },
+        );
+      approvalsSupport.set(this.baseUrl, support);
+    }
+    return support;
+  }
+
+  /**
+   * Check whether the service info has registration rules. Sent without a
+   * token, as it is public and needs no CORS preflight then.
+   *
+   * @param signal Aborts the request
+   * @returns Whether it has them; false if it can't be read, which leaves
+   * the answer to the probe
+   */
+  private async publishesRules(signal: AbortSignal): Promise<boolean> {
+    try {
+      const response = await fetch(this.url("/service-info"), {
+        cache: "no-store",
+        signal,
+      });
+      return (
+        response.ok && registrationRules(await response.json()) !== undefined
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Probe for GET /approvals.
    *
    * Sent without a token on purpose, and so not by `request()`, which
    * would add it on a 401: without one, browsers send no CORS preflight
@@ -305,33 +366,15 @@ class AuthenticatedCloudRegistryProvider
    * from older ones. With a token, browsers reject the preflight's 404,
    * and the request fails without a status.
    *
+   * @param signal Aborts the request
    * @returns false if the route is missing (404), true for any other status
-   * (e.g. 401 or 5xx; the request with the token then reports errors)
-   * @throws TypeError if the registry can't be reached, or an error if it
-   * doesn't answer within 10 seconds
    */
-  async hasApprovals(): Promise<boolean> {
-    let support = approvalsSupport.get(this.baseUrl);
-    if (!support) {
-      support = fetch(this.url("/approvals"), {
-        cache: "no-store",
-        // a stalled probe must not hold up the pages until a reload
-        signal: AbortSignal.timeout(10_000),
-      }).then(
-        (response) => {
-          const found = response.status !== 404;
-          if (!found) approvalsSupport.delete(this.baseUrl);
-          return found;
-        },
-        (err: unknown) => {
-          // ask again next time, e.g. once the registry is up
-          approvalsSupport.delete(this.baseUrl);
-          throw err;
-        },
-      );
-      approvalsSupport.set(this.baseUrl, support);
-    }
-    return support;
+  private async probeApprovals(signal: AbortSignal): Promise<boolean> {
+    const response = await fetch(this.url("/approvals"), {
+      cache: "no-store",
+      signal,
+    });
+    return response.status !== 404;
   }
 
   /**
