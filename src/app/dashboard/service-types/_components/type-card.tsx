@@ -49,7 +49,7 @@ function ServiceTypeCard({
     const label = typeLabel(serviceType);
 
     return (
-        <Card className="w-72 max-w-full">
+        <Card role="group" aria-label={label} className="w-72 max-w-full">
             <CardHeader>
                 <CardTitle>
                     <dl className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-2 gap-y-1">
@@ -66,8 +66,8 @@ function ServiceTypeCard({
                                             (part, index) => (
                                                 // biome-ignore lint/suspicious/noArrayIndexKey: the parts of one value, in a fixed order
                                                 <Fragment key={index}>
+                                                    {index > 0 && <wbr />}
                                                     {part}
-                                                    <wbr />
                                                 </Fragment>
                                             ),
                                         )}

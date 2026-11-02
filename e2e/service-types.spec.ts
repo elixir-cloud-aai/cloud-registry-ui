@@ -338,6 +338,12 @@ test.describe("service types", () => {
         );
         await page.goto("/dashboard/service-types");
 
+        // the joined type names the tile
+        await expect(
+            page.getByRole("group", {
+                name: `${type.group} · ${type.artifact} · ${type.version}`,
+            }),
+        ).toBeVisible();
         await expect(page.getByRole("term")).toHaveText([
             "Group:",
             "Artifact:",
