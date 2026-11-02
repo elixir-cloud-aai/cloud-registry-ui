@@ -1,5 +1,5 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
-import type { ServiceVerification } from "@/lib/cloud-registry.types";
+import type { Me, ServiceVerification } from "@/lib/cloud-registry.types";
 import { environmentRank } from "@/lib/registration-rules";
 import { typeKey } from "@/lib/service-types";
 
@@ -11,6 +11,8 @@ export type ServiceFilters = {
     environment?: FilterValue;
     verified?: boolean;
     pending?: boolean;
+    /** Only services on which the user has a role (see `myServices()`) */
+    mine?: boolean;
 };
 
 export type SelectFilterKey = "type" | "organization" | "environment";
@@ -54,7 +56,8 @@ export function isFiltered(search: string, filters: ServiceFilters) {
         search.trim() !== "" ||
         filterKeys.some((key) => filters[key] !== undefined) ||
         !!filters.verified ||
-        !!filters.pending
+        !!filters.pending ||
+        !!filters.mine
     );
 }
 
@@ -73,18 +76,32 @@ function matchesSearch(service: ExternalService, search: string) {
     ].some((val) => val?.toLowerCase().includes(query));
 }
 
+/**
+ * Get the services that the user is responsible for: those on which they
+ * have a role (owner or maintainer), granted to them or to one of their
+ * groups, as `GET /me` lists them
+ * @param me The user, if logged in
+ * @returns The IDs of the services
+ */
+export function myServices(me: Me | null) {
+    return new Set(me?.services.map((val) => val.service_id));
+}
+
+// `mine`: the user's services (`myServices()`)
 export function filterServices(
     services: ExternalService[],
     search: string,
     filters: ServiceFilters,
     verifications: Map<string, ServiceVerification>,
     pending: Set<string>,
+    mine: Set<string> = new Set(),
 ) {
     return services.filter(
         (service) =>
             matchesSearch(service, search) &&
             (!filters.verified || verifications.has(service.id)) &&
             (!filters.pending || pending.has(service.id)) &&
+            (!filters.mine || mine.has(service.id)) &&
             filterKeys.every(
                 (key) =>
                     filters[key] === undefined ||

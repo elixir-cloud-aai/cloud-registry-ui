@@ -28,6 +28,7 @@ import {
     defaultFilters,
     filterServices,
     isFiltered,
+    myServices,
     type ServiceFilters,
 } from "./_components/filter-helper";
 
@@ -57,6 +58,7 @@ function Page() {
         filters,
         verified,
         pending,
+        myServices(me),
     );
     const { page, pageCount, pageItems, start, end, setPage } = usePagination(
         filteredServices,
@@ -192,6 +194,7 @@ function Page() {
                         filtered={filtered}
                         disabled={loading || services.length === 0}
                         showPending={!!me?.admin}
+                        showMine={!!me}
                         onSearchChange={handleSearchChange}
                         onFiltersChange={handleFiltersChange}
                     />

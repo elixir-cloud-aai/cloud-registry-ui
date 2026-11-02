@@ -21,6 +21,10 @@ Above the list:
 - **All types**, **All organizations** and **All environments** show only
   services with the chosen value; **Not set** shows those without one.
 - **Verified only** shows only verified services.
+- **My services** (logged-in users) shows only the services you are
+  responsible for: those on which you have a role, owner or maintainer,
+  granted to you or to one of your groups (see [Access and
+  permissions](access.md)).
 - **Pending only** (admins) shows only pending services.
 - **Clear** resets the search and all filters.
 
