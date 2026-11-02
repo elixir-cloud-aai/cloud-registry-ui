@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { failure } from "@/test/errors";
+import type { Invitation } from "./cloud-registry.types";
 import {
     acceptanceLabel,
     acceptInvitationError,
@@ -7,12 +8,17 @@ import {
     dropPendingToken,
     invitationLink,
     invitationToken,
+    isDeadInvitation,
     keepPendingToken,
     listInvitationsError,
+    liveLinks,
     pendingToken,
     readInvitation,
+    renewInvitationError,
+    renewRevokeError,
     revokeInvitationError,
     sessionStore,
+    splitInvitations,
 } from "./invitations";
 
 const token = "a".repeat(43);
@@ -269,5 +275,94 @@ describe("messages", () => {
         ],
     ])("words failed acceptances (%#)", (err, message, final) => {
         expect(acceptInvitationError(err)).toEqual({ message, final });
+    });
+});
+
+describe("invitation lists", () => {
+    const invitation = (id: string, accepted = false): Invitation => ({
+        id,
+        service_id: "s",
+        role: "maintainer",
+        created_by: "u",
+        created_at: "2026-11-01T00:00:00Z",
+        expires_at: "2026-11-08T00:00:00Z",
+        ...(accepted && {
+            accepted: { user_id: "v", accepted_at: "2026-11-02T00:00:00Z" },
+        }),
+    });
+    const link = (id: string) => ({
+        id,
+        link: `https://app.example.org/invitations#${id}`,
+        role: "maintainer" as const,
+        expiresAt: "2026-11-08T00:00:00Z",
+    });
+
+    it("splits open and accepted invitations, in order", () => {
+        expect(
+            splitInvitations([
+                invitation("a", true),
+                invitation("b"),
+                invitation("c"),
+                invitation("d", true),
+            ]),
+        ).toEqual({
+            open: [invitation("b"), invitation("c")],
+            accepted: [invitation("a", true), invitation("d", true)],
+        });
+        expect(splitInvitations([])).toEqual({ open: [], accepted: [] });
+    });
+
+    it("keeps the links of open invitations, newest first", () => {
+        const links = [link("a"), link("b"), link("c")];
+        // `b` was accepted, `c` revoked or expired
+        expect(
+            liveLinks(links, [invitation("a"), invitation("b", true)]),
+        ).toEqual([link("a")]);
+        expect(
+            liveLinks(links, [invitation("a"), invitation("c")]).map(
+                (val) => val.id,
+            ),
+        ).toEqual(["c", "a"]);
+        // all, while the list can't be loaded
+        expect(liveLinks(links, null).map((val) => val.id)).toEqual([
+            "c",
+            "b",
+            "a",
+        ]);
+        expect(liveLinks([], [invitation("a")])).toEqual([]);
+    });
+
+    it("tells revocations that show the link is dead", () => {
+        expect(isDeadInvitation(failure(404))).toBe(true);
+        expect(
+            isDeadInvitation(failure(409, { code: "invitation-accepted" })),
+        ).toBe(true);
+        expect(isDeadInvitation(failure(409))).toBe(false);
+        expect(isDeadInvitation(failure(500))).toBe(false);
+    });
+
+    it("words failed renewals", () => {
+        expect(
+            renewInvitationError(failure(409, { code: "invitations-limit" })),
+        ).toBe(
+            "This service has as many invitations as allowed. Revoke this invitation, then create a new link.",
+        );
+        expect(renewInvitationError(failure(500))).toBe(
+            "Cannot create an invitation currently.",
+        );
+    });
+
+    it("words failed revocations of renewed invitations", () => {
+        expect(renewRevokeError(failure(500))).toBe(
+            "Created the new link, but the old one still works: Cannot revoke the invitation currently.",
+        );
+        expect(renewRevokeError(failure(404))).toBe(
+            "Created the new link; the old invitation had expired or was revoked already.",
+        );
+        expect(
+            renewRevokeError(failure(409, { code: "invitation-accepted" })),
+        ).toBe(
+            "Created the new link, but the old invitation was accepted meanwhile: revoke the new one if it isn't needed.",
+        );
     });
 });
