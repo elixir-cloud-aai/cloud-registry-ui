@@ -176,6 +176,14 @@ function renewRevokeError(err: unknown) {
     return `Created the new link, but the old one still works: ${revokeInvitationError(err)}`;
 }
 
+/**
+ * Tell whether a failed revocation shows that the invitation's link no
+ * longer works: it expired, was revoked, or was accepted
+ */
+function isDeadInvitation(err: unknown) {
+    return hasStatus(err, 404) || isInvitationAccepted(err);
+}
+
 /** Link of an invitation created in this dialog, whose token is known */
 type CreatedLink = {
     /** Identifier of the invitation */
@@ -269,6 +277,7 @@ export {
     invitationLink,
     invitationPath,
     invitationToken,
+    isDeadInvitation,
     keepPendingToken,
     listInvitationsError,
     liveLinks,

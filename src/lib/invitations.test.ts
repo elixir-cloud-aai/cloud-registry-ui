@@ -8,6 +8,7 @@ import {
     dropPendingToken,
     invitationLink,
     invitationToken,
+    isDeadInvitation,
     keepPendingToken,
     listInvitationsError,
     liveLinks,
@@ -328,6 +329,15 @@ describe("invitation lists", () => {
             "a",
         ]);
         expect(liveLinks([], [invitation("a")])).toEqual([]);
+    });
+
+    it("tells revocations that show the link is dead", () => {
+        expect(isDeadInvitation(failure(404))).toBe(true);
+        expect(
+            isDeadInvitation(failure(409, { code: "invitation-accepted" })),
+        ).toBe(true);
+        expect(isDeadInvitation(failure(409))).toBe(false);
+        expect(isDeadInvitation(failure(500))).toBe(false);
     });
 
     it("words failed revocations of renewed invitations", () => {

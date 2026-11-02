@@ -21,6 +21,7 @@ import {
     type CreatedLink,
     createInvitationError,
     invitationLink,
+    isDeadInvitation,
     listInvitationsError,
     liveLinks,
     renewRevokeError,
@@ -135,6 +136,7 @@ function Invitations({
             try {
                 await val.revokeInvitation(serviceId, invitation.id);
             } catch (err) {
+                if (isDeadInvitation(err)) dropLink(invitation.id);
                 toast.error(renewRevokeError(err));
                 return;
             }
@@ -146,7 +148,12 @@ function Invitations({
 
     const revoke = (invitation: Invitation) =>
         run(async (val) => {
-            await val.revokeInvitation(serviceId, invitation.id);
+            try {
+                await val.revokeInvitation(serviceId, invitation.id);
+            } catch (err) {
+                if (isDeadInvitation(err)) dropLink(invitation.id);
+                throw err;
+            }
             dropLink(invitation.id);
             toast.success(`Revoked the ${invitation.role} invitation`);
         }, revokeInvitationError);
