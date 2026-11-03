@@ -55,6 +55,16 @@ function canApproveServiceType(me: Me | null) {
 }
 
 /**
+ * Check if the user may see and change whether the registry is listed among
+ * its own services
+ * @param me Current user, if logged in
+ * @returns True for admins
+ */
+function canChangeSelfListing(me: Me | null) {
+    return !!me?.admin;
+}
+
+/**
  * Check if the user may manage access to a service
  * @param me Current user, if logged in
  * @param serviceId Service identifier
@@ -105,6 +115,7 @@ function isConflict(err: unknown) {
 
 export {
     canApproveServiceType,
+    canChangeSelfListing,
     canDeleteService,
     canEditService,
     canManageAccess,

@@ -3,6 +3,7 @@ import { failure } from "@/test/errors";
 import type { Me } from "./cloud-registry.types";
 import {
     canApproveServiceType,
+    canChangeSelfListing,
     canDeleteService,
     canEditService,
     canManageAccess,
@@ -42,12 +43,14 @@ describe("service permissions", () => {
         expect(canDeleteService(owner, "s2")).toBe(false);
     });
 
-    it("lets only admins verify and approve", () => {
+    it("lets only admins verify, approve and list the registry", () => {
         expect(canVerifyService(admin)).toBe(true);
         expect(canApproveServiceType(admin)).toBe(true);
+        expect(canChangeSelfListing(admin)).toBe(true);
         for (const user of [owner, null]) {
             expect(canVerifyService(user)).toBe(false);
             expect(canApproveServiceType(user)).toBe(false);
+            expect(canChangeSelfListing(user)).toBe(false);
         }
     });
 });

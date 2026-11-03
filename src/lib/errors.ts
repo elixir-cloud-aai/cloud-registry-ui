@@ -280,6 +280,39 @@ function duplicateToast(
     };
 }
 
+/**
+ * Get the toast for a refused change of the registry's listing among its own
+ * services (`PUT` and `DELETE /service-info/listing`). The registry says why
+ * in its detail, e.g. that its environment isn't allowed
+ * @param err Error of the request
+ * @param fallback Message if the registry gives no reason
+ * @returns The toast
+ */
+function selfListingError(
+    err: unknown,
+    fallback: string,
+): ExternalToast & { message: string } {
+    const duplicate = duplicateToast(err);
+    if (duplicate)
+        return {
+            ...duplicate,
+            message: errorMessage(err, duplicateMessage),
+            description:
+                "The registry's entry doesn't take it over: delete that service first.",
+        };
+    if (hasStatus(err, 404))
+        return {
+            message: "The registry's entry was removed by another request.",
+        };
+    return {
+        message: mutationError(
+            err,
+            fallback,
+            "Only admins can add or remove the registry.",
+        ),
+    };
+}
+
 export {
     duplicateMessage,
     duplicateToast,
@@ -296,6 +329,7 @@ export {
     isVerificationMismatch,
     mutationError,
     renameError,
+    selfListingError,
     serviceTypeConflict,
     withFieldLabels,
 };

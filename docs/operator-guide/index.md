@@ -59,6 +59,7 @@ The other rows say which version brought a feature:
 | [Invitations](../user-guide/access.md#inviting-by-link)                                      | 1.0.0rc1             |
 | [Labels and expired invitations](../user-guide/access.md#inviting-by-link)                   | newer than 1.0.0rc1  |
 | [Changing roles of users](../user-guide/access.md#managing-access), required                 | newer than 1.0.0rc1  |
+| [Listing the registry itself](admins.md#listing-the-registry-itself)                         | 1.0.0rc2             |
 | [Registration rules](configuration.md#registry) (environments, URL schemes)                  | 0.6.0                |
 
 **From 1.0.0-rc2, the app must ship together with a registry that has the new
@@ -80,8 +81,9 @@ No order of apps and registry pods is safe during a rolling update: see
 [Upgrading](upgrading.md#100-rc2) and the [registry's upgrade
 guide](https://cloud-registry.readthedocs.io/en/latest/upgrading/#from-100rc1).
 
-No release of cloud-registry has these paths, labels and expired invitations
-yet, so the end-to-end tests run against its development version.
+No release of cloud-registry has these paths, labels, expired invitations and
+the listing of the registry itself yet, so the end-to-end tests run against its
+development version.
 
 The app's release 1.0.0-rc1 was tested against cloud-registry 1.0.0rc1 (see the
 [release notes](../releases/1.0.0-rc1.md)).

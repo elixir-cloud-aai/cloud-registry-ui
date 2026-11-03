@@ -15,6 +15,7 @@ import {
     isVerificationMismatch,
     mutationError,
     renameError,
+    selfListingError,
     serviceTypeConflict,
     withFieldLabels,
 } from "./errors";
@@ -260,5 +261,93 @@ describe("duplicates", () => {
             "noopener",
         );
         vi.unstubAllGlobals();
+    });
+});
+
+describe("selfListingError", () => {
+    const fallback = "Cannot add the registry currently.";
+
+    it("shows why the registry refused", () => {
+        const detail = "The environment 'x' isn't allowed.";
+        expect(selfListingError(failure(400, { detail }), fallback)).toEqual({
+            message: detail,
+        });
+    });
+
+    it.each(["service-id-taken", "pending-service", "conflict"])(
+        "shows the registry's detail for %s",
+        (code) => {
+            expect(
+                selfListingError(
+                    failure(409, { code, detail: "The detail." }),
+                    fallback,
+                ),
+            ).toEqual({ message: "The detail." });
+        },
+    );
+
+    it("says to try again if the entry is busy", () => {
+        expect(
+            selfListingError(
+                failure(409, { code: "service-busy", detail: "Busy." }),
+                fallback,
+            ).message,
+        ).toContain("try again");
+    });
+
+    it("links the service with the same URL and API type", () => {
+        const open = vi.fn();
+        vi.stubGlobal("window", { open });
+        const toast = selfListingError(
+            failure(409, {
+                code: "duplicate-service",
+                detail: "It is registered.",
+                serviceId: "a/b",
+            }),
+            fallback,
+        );
+        expect(toast.message).toBe("It is registered.");
+        expect(toast.description).toBe(
+            "The registry's entry doesn't take it over: delete that service first.",
+        );
+        const action = toast.action as unknown as { onClick: () => void };
+        action.onClick();
+        expect(open).toHaveBeenCalledWith(
+            "/dashboard/services/view/a%2Fb",
+            "_blank",
+            "noopener",
+        );
+        vi.unstubAllGlobals();
+    });
+
+    it("needs no service to name a duplicate", () => {
+        expect(
+            selfListingError(
+                failure(409, { code: "duplicate-service" }),
+                fallback,
+            ),
+        ).toEqual({
+            message: duplicateMessage,
+            description:
+                "The registry's entry doesn't take it over: delete that service first.",
+        });
+    });
+
+    it("says if the entry was removed meanwhile", () => {
+        expect(selfListingError(failure(404), fallback)).toEqual({
+            message: "The registry's entry was removed by another request.",
+        });
+    });
+
+    it("explains logins and roles, and falls back", () => {
+        expect(selfListingError(failure(401), fallback).message).toContain(
+            "session expired",
+        );
+        expect(selfListingError(failure(403), fallback)).toEqual({
+            message: "Only admins can add or remove the registry.",
+        });
+        expect(selfListingError(new TypeError("x"), fallback)).toEqual({
+            message: fallback,
+        });
     });
 });

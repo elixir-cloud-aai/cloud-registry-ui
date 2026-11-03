@@ -1,9 +1,10 @@
 # Admins and admin mode
 
 Admins can do everything in the registry: edit and delete any service,
-verify services, approve and remove service types, and choose and change
-service IDs (see [Admin mode](../user-guide/admin-mode.md) in the user
-guide). The app has no admin settings of its own: it asks the registry
+verify services, approve and remove service types, choose and change
+service IDs, and list the registry among its own services (see [Admin
+mode](../user-guide/admin-mode.md) in the user guide). The app has no admin
+settings of its own: it asks the registry
 (`GET /me`) whether the user is an admin, and shows the controls
 accordingly. The registry enforces the same rules.
 
@@ -40,3 +41,29 @@ Registries without admin mode (before 0.6.0, or with
 `security.access_control.opt_in_roles: []`) show no toggle: their admins
 are always admins. See the registry's [admin
 mode](https://cloud-registry.readthedocs.io/en/latest/access-control/#admin-mode).
+
+## Listing the registry itself
+
+Admins can list the registry among its own services from the service info page
+(see [Listing the registry
+itself](../user-guide/admin-mode.md#listing-the-registry-itself) in the user
+guide). The app has no settings for it. In admin mode only, it calls `GET`,
+`PUT` and `DELETE /service-info/listing` of the registry (cloud-registry
+1.0.0rc2 and later), so the registry must allow these methods from the app's
+origin (FOCA's `security.cors`; its default allows them).
+
+The registry builds the entry from its settings, so these decide whether it can
+be listed, and how:
+
+- the entry's URL is the public URL of the registry (`server.public_url`) with
+  the base path of its API: set any path prefix of a reverse proxy there;
+- the scheme of the public URL must be allowed for services
+  (`custom.endpoints.services.url_schemes`), by default `https` only;
+- the environment of the service info (`service_info.service.environment`) must
+  be allowed (`custom.endpoints.services.environments`);
+- the ID of the service info (`service_info.service.id`) can't be used for
+  services if it is empty, `.`, `..` or `types`, or has slashes.
+
+Otherwise, the registry refuses, and the page shows its reason. See the
+registry's [listing of the registry
+itself](https://cloud-registry.readthedocs.io/en/latest/api/#listing-the-registry-itself).

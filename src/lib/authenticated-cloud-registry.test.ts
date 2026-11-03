@@ -561,6 +561,94 @@ describe("user IDs and groups with a leading slash", () => {
     });
 });
 
+describe("listing of the registry", () => {
+    const provider = () =>
+        new AuthenticatedCloudRegistryProvider({
+            baseUrl: base,
+            token: "t",
+            roles: ["admin"],
+        });
+    const operations: [
+        string,
+        (p: AuthenticatedCloudRegistryProvider) => Promise<unknown>,
+    ][] = [
+        ["GET", (p) => p.getSelfListing()],
+        ["PUT", (p) => p.addSelfListing()],
+        ["DELETE", (p) => p.removeSelfListing()],
+    ];
+
+    it.each(operations)("%s asks as an admin", async (method, call) => {
+        fetchMock.mockResolvedValue(json({ listed: false }));
+        await call(provider());
+        const [url, init] = fetchMock.mock.calls[0];
+        expect(url).toBe(`${base}/service-info/listing`);
+        expect(init?.method).toBe(method);
+        const headers = new Headers(init?.headers);
+        expect(headers.get("Authorization")).toBe("Bearer t");
+        expect(headers.get("X-Request-Roles")).toBe("admin");
+    });
+
+    it("needs a login", async () => {
+        const guest = new AuthenticatedCloudRegistryProvider(base);
+        await expect(guest.getSelfListing()).rejects.toThrow(
+            "Authentication is required",
+        );
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it.each(operations)("%s reads a listed registry", async (_, call) => {
+        fetchMock.mockResolvedValue(
+            json({ listed: true, service_id: "org.example.registry" }, 201),
+        );
+        await expect(call(provider())).resolves.toEqual({
+            listed: true,
+            serviceId: "org.example.registry",
+        });
+    });
+
+    it.each(operations)("%s reads a registry not listed", async (_, call) => {
+        fetchMock.mockResolvedValue(json({ listed: false }));
+        await expect(call(provider())).resolves.toEqual({ listed: false });
+    });
+
+    it("leaves out an identifier that is no text", async () => {
+        fetchMock.mockResolvedValue(json({ listed: true, service_id: 1 }));
+        await expect(provider().getSelfListing()).resolves.toEqual({
+            listed: true,
+        });
+    });
+
+    it.each([
+        ["no state", json({})],
+        ["another type of state", json({ listed: "yes" })],
+        ["no JSON", new Response("<html></html>", { status: 200 })],
+    ])("fails with %s", async (_, response) => {
+        fetchMock.mockResolvedValue(response);
+        await expect(provider().getSelfListing()).rejects.toThrow(
+            "The registry's answer doesn't say whether it is listed.",
+        );
+    });
+
+    it("keeps the code and the service of a conflict", async () => {
+        fetchMock.mockResolvedValue(
+            json(
+                {
+                    detail: "Registered.",
+                    code: "duplicate-service",
+                    serviceId: "other",
+                },
+                409,
+            ),
+        );
+        await expect(provider().addSelfListing()).rejects.toMatchObject({
+            status: 409,
+            detail: "Registered.",
+            code: "duplicate-service",
+            serviceId: "other",
+        });
+    });
+});
+
 describe("servicesPath", () => {
     it.each([
         [base, "/ga4gh/registry/v1/services"],

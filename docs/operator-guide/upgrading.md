@@ -39,6 +39,12 @@ scale the registry to 0 replicas for the upgrade, unless nobody changes roles
 during it. After a rolling update, look for wrongly granted roles as the guide
 describes.
 
+In admin mode, the service info page can list the registry among its own
+services (see [Listing the registry
+itself](admins.md#listing-the-registry-itself)). This needs cloud-registry
+1.0.0rc2; with a development version from before it, the page says that it can't
+tell whether the registry is listed, and the rest of the app works.
+
 If the app ran with an older registry, it can't repair the result: it reports
 an error for such a grant, but the wrong role stays stored, and a downgrade
 leaves the real user's role as it was. With that registry, **Remove** on `bob`

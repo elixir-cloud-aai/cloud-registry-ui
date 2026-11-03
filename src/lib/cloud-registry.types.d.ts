@@ -183,6 +183,18 @@ export interface Approvals {
   services: ExternalService[];
 }
 
+/**
+ * GET, PUT and DELETE /service-info/listing
+ *
+ * Whether the registry is listed among its own services, as the client keeps
+ * it (the fields of the API are read in `AuthenticatedCloudRegistryProvider`).
+ */
+export interface SelfListing {
+  listed: boolean;
+  /** Identifier of the registry's entry, if it is listed. */
+  serviceId?: ServiceId;
+}
+
 /** API error response. */
 export interface ApiError {
   title?: string;
