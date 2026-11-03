@@ -446,6 +446,32 @@ describe("operations", () => {
     });
 });
 
+describe("user IDs and groups with a leading slash", () => {
+    // the path would have a double slash, which the registry redirects to
+    // that of another user or group
+    it.each<
+        [string, (p: AuthenticatedCloudRegistryProvider) => Promise<unknown>]
+    >([
+        [
+            "grantServicePermission",
+            (p) => p.grantServicePermission("a", "/u", { role: "owner" }),
+        ],
+        [
+            "revokeServicePermission",
+            (p) => p.revokeServicePermission("a", "/u"),
+        ],
+        [
+            "grantGroupPermission",
+            (p) => p.grantGroupPermission("a", "/g", { role: "owner" }),
+        ],
+        ["revokeGroupPermission", (p) => p.revokeGroupPermission("a", "/g")],
+    ])("%s refuses them without a request", async (_, call) => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        await expect(call(provider)).rejects.toThrow("Invalid ID");
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+});
+
 describe("servicesPath", () => {
     it.each([
         [base, "/ga4gh/registry/v1/services"],

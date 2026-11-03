@@ -42,7 +42,7 @@ pages. A deployment needs:
 
 ## Compatibility
 
-UI versions follow the registry in major and minor version: UI 1.0.x works with cloud-registry 1.0.x; patch releases are independent. The first release, 1.0.0-rc1, goes with cloud-registry 1.0.0rc1. Pre-releases are spelled differently: the app follows SemVer and npm (`1.0.0-rc1`, tag `v1.0.0-rc1`), the registry PEP 440 (`1.0.0rc1`, tag `v1.0.0rc1`).
+UI versions follow the registry in major and minor version: UI 1.0.x works with cloud-registry 1.0.x; patch releases are independent. Pre-releases may need a newer pre-release of the registry, as 1.0.0-rc2 does (see below). The first release, 1.0.0-rc1, goes with cloud-registry 1.0.0rc1. Pre-releases are spelled differently: the app follows SemVer and npm (`1.0.0-rc1`, tag `v1.0.0-rc1`), the registry PEP 440 (`1.0.0rc1`, tag `v1.0.0rc1`).
 
 Releases are published as GitHub releases and as images on Docker Hub, `elixircloud/cloud-registry-ui:<version>` (`latest` for the highest release without a pre-release suffix such as `-rc1`, 0.x releases included), built by the release workflow (`.github/workflows/release.yml`) with an SBOM and the build provenance attached, and signed (see [Verifying images](deployment.md#verifying-images)). Until 1.0.0, all releases are marked as pre-releases on GitHub.
 
