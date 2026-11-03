@@ -31,7 +31,6 @@ function ServiceInfoCardHeader({ serviceInfo }: Props) {
                                         ? "outline"
                                         : "default"
                                 }
-                                className="capitalize"
                             >
                                 {serviceInfo.environment}
                             </Badge>

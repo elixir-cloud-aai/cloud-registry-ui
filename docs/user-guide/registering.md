@@ -23,8 +23,7 @@ permissions](access.md)).
       `1.1.0`.
     - **Service Version**: the version of the service's software.
     - **Environment**: one of those that the deployment allows, e.g.
-      **Production** (`prod`) or **Test** (`test`); a text field if it
-      allows any.
+      `prod` or `test`; a text field if it allows any.
     - **Contact URL** (e.g. `mailto:support@example.org`) and
       **Documentation URL**.
     - **Description**: what the service offers, and to whom.
