@@ -15,6 +15,7 @@ import type {
   GroupPermission,
   Invitation,
   InvitationCreated,
+  InvitationRegister,
   Me,
   Permission,
   PermissionRegister,
@@ -530,19 +531,19 @@ class AuthenticatedCloudRegistryProvider
    * POST /services/{serviceId}/invitations
    * Authenticated (owners, admins).
    *
-   * Create an invitation to a service for a role.
+   * Create an invitation to a service for a role, with a label if given.
    *
    * @returns The invitation, with its token, which only this response has
    */
   async createInvitation(
     serviceId: ServiceId,
-    permission: PermissionRegister,
+    invitation: InvitationRegister,
   ): Promise<InvitationCreated> {
     return this.request(
       `/services/${this.idPath(serviceId)}/invitations`,
       {
         method: "POST",
-        body: permission,
+        body: invitation,
         authenticated: true,
       },
     );
@@ -552,7 +553,9 @@ class AuthenticatedCloudRegistryProvider
    * GET /services/{serviceId}/invitations
    * Authenticated (owners, admins).
    *
-   * List the open and accepted invitations that haven't expired.
+   * List the invitations that weren't accepted, also expired ones; registries
+   * up to cloud-registry 1.0.0rc1 list the open and accepted ones that haven't
+   * expired, without their status.
    */
   async getServiceInvitations(
     serviceId: ServiceId,
@@ -569,7 +572,7 @@ class AuthenticatedCloudRegistryProvider
    * DELETE /services/{serviceId}/invitations/{invitationId}
    * Authenticated (owners, admins).
    *
-   * Revoke an open invitation.
+   * Revoke an open invitation, or remove an expired one.
    */
   async revokeInvitation(
     serviceId: ServiceId,

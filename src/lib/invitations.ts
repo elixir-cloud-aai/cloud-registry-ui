@@ -3,7 +3,13 @@
  * token in the fragment, which browsers don't send to servers, the token
  * of a guest kept in the tab while they log in, and messages for failures
  */
-import type { Invitation } from "./cloud-registry.types";
+import type {
+    Invitation,
+    InvitationCreated,
+    InvitationRegister,
+    InvitationStatus,
+    Role,
+} from "./cloud-registry.types";
 import {
     errorDetail,
     isInvitationAccepted,
@@ -23,6 +29,18 @@ const tokenPattern = /^[\w-]{16,256}$/;
 // the token of a guest, while they log in; in the tab's session storage,
 // which the browser doesn't send anywhere
 const pendingKey = "pendingInvitation";
+
+// the registry's limit for labels, in characters
+const maxLabelLength = 100;
+
+// what the registry refuses in labels (`InvitationLabel` in its API):
+// control and direction-changing characters
+const forbiddenInLabel =
+    // biome-ignore lint/suspicious/noControlCharactersInRegex: what it finds
+    /[\u0000-\u001F\u007F-\u009F\u061C\u200B\u200E\u200F\u2028-\u202E\u2060\u2066-\u2069\uFEFF]/;
+
+// failures of removing expired invitations named in a message
+const maxNamedFailures = 3;
 
 /**
  * Get the link of an invitation
@@ -149,6 +167,17 @@ function revokeInvitationError(err: unknown) {
     );
 }
 
+/** Get the message for a failed removal of an expired invitation */
+function removeInvitationError(err: unknown) {
+    if (hasStatus(err, 404)) return "The invitation was removed already.";
+    if (hasStatus(err, 405)) return "This registry has no invitations.";
+    return mutationError(
+        err,
+        "Cannot remove the invitation currently.",
+        "Only owners and admins can remove invitations.",
+    );
+}
+
 /**
  * Get the message for a failed revocation of an invitation that got a new
  * link: the new invitation exists already
@@ -162,6 +191,16 @@ function renewRevokeError(err: unknown) {
 }
 
 /**
+ * Get the message for a failed removal of an expired invitation that got a
+ * new link: the new invitation exists already
+ */
+function renewRemoveError(err: unknown) {
+    if (hasStatus(err, 404))
+        return "Created the new link; the expired invitation was removed already.";
+    return `Created the new link, but the expired invitation is still listed: ${removeInvitationError(err)}`;
+}
+
+/**
  * Tell whether a failed revocation shows that the invitation's link no
  * longer works: it expired, was revoked, or was accepted
  */
@@ -172,8 +211,13 @@ function isDeadInvitation(err: unknown) {
 /**
  * Get the message for a failed creation of the new invitation of a
  * renewal: the old one is unchanged
+ * @param err Error of the request
+ * @param expired Whether the old invitation has expired: then its link
+ * doesn't work, and it doesn't count towards the limit
  */
-function renewInvitationError(err: unknown) {
+function renewInvitationError(err: unknown, expired = false) {
+    if (isInvitationsLimit(err) && expired)
+        return "This service has reached its limit of invitations: no new link was created. Revoke open invitations, or wait until invitations expire.";
     // the old invitation fills a slot, too
     if (isInvitationsLimit(err))
         return "This service has reached its limit of invitations: no new link was created, and the old one still works. Revoke this invitation, then create a new link.";
@@ -181,18 +225,139 @@ function renewInvitationError(err: unknown) {
 }
 
 /**
- * Get the invitations to show: the open ones, as accepted ones are users
- * with a role, newest first
+ * Get the status of an invitation
+ * @param invitation Invitation, as listed
+ * @returns Its status, as the registry tells it. Registries up to
+ * cloud-registry 1.0.0rc1 don't, and they don't list expired invitations: the
+ * others are open if nobody accepted them. The time isn't compared, as the
+ * browser's clock may be off, and expired invitations can be removed
+ */
+function invitationStatus(invitation: Invitation): InvitationStatus {
+    if (invitation.accepted) return "accepted";
+    return invitation.status ?? "open";
+}
+
+/** Tell whether an invitation has expired */
+const isExpiredInvitation = (invitation: Invitation) =>
+    invitationStatus(invitation) === "expired";
+
+/**
+ * Get the invitations to show: open and expired ones, as accepted ones are
+ * users with a role, newest first
  * @param invitations Invitations, as listed (the registry lists them oldest
  * first)
- * @returns Open invitations, by the time of their creation; of those created
+ * @returns The invitations, by the time of their creation; of those created
  * at the same time, the later listed first
  */
-function openInvitations(invitations: Invitation[]) {
+function shownInvitations(invitations: Invitation[]) {
     return invitations
-        .filter((val) => !val.accepted)
+        .filter((val) => invitationStatus(val) !== "accepted")
         .reverse()
         .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+}
+
+/**
+ * Check the text of a label, as the registry would
+ * @param text Text of the label; whitespace around it doesn't count, as it
+ * isn't sent
+ * @param required Whether a label is required
+ * @returns The message for what is wrong with it, if anything
+ */
+function invitationLabelError(text: string, required: boolean) {
+    const label = text.trim();
+    if (!label) return required ? "Label is required." : undefined;
+    // characters, as the registry counts them, not UTF-16 units
+    if ([...label].length > maxLabelLength)
+        return `Label can't be longer than ${maxLabelLength} characters.`;
+    if (forbiddenInLabel.test(label))
+        return "Label can't contain control or direction-changing characters.";
+    return undefined;
+}
+
+// registries up to cloud-registry 1.0.0rc1 refuse labels as unknown fields;
+// the words are those of the API validation (Connexion, with jsonschema) there:
+// "Additional properties are not allowed ('label' was unexpected)"
+const isLabelRefused = (err: unknown) =>
+    hasStatus(err, 400) &&
+    errorDetail(err)?.includes("'label' was unexpected") === true;
+
+/**
+ * Create an invitation, with a label if the registry has labels
+ * @param create Sends the request
+ * @param role Role of the invitation
+ * @param label Label of the invitation, if any
+ * @returns The invitation, and whether its label was kept
+ */
+async function createLabelledInvitation(
+    create: (invitation: InvitationRegister) => Promise<InvitationCreated>,
+    role: Role,
+    label?: string,
+) {
+    try {
+        const created = await create({ role, ...(label && { label }) });
+        return { created, labelKept: true };
+    } catch (err) {
+        if (!isLabelRefused(err)) throw err;
+    }
+    return { created: await create({ role }), labelKept: false };
+}
+
+/** An invitation that couldn't be removed, and why */
+type RemovalFailure = {
+    invitation: Invitation;
+    error: unknown;
+};
+
+/**
+ * Remove invitations, one request each and one at a time; a failure doesn't
+ * stop the others, and those that are gone already count as removed
+ * @param invitations Invitations to remove
+ * @param remove Sends the request for an invitation's identifier
+ * @returns The failures
+ */
+async function removeInvitations(
+    invitations: Invitation[],
+    remove: (id: string) => Promise<unknown>,
+) {
+    const failures: RemovalFailure[] = [];
+    for (const invitation of invitations) {
+        try {
+            await remove(invitation.id);
+        } catch (error) {
+            if (!hasStatus(error, 404)) failures.push({ invitation, error });
+        }
+    }
+    return failures;
+}
+
+/** Get the message for removed expired invitations */
+function removedExpiredMessage(count: number) {
+    return count === 1
+        ? "Removed the expired invitation"
+        : `Removed ${count} expired invitations`;
+}
+
+/**
+ * Get the message for expired invitations that couldn't be removed
+ * @param total Number of invitations that were to be removed
+ * @param failures Those that couldn't be
+ * @returns The message, with the first of them and each reason once
+ */
+function removeExpiredError(total: number, failures: RemovalFailure[]) {
+    const names = failures
+        .slice(0, maxNamedFailures)
+        .map(
+            ({ invitation }) =>
+                invitation.label ??
+                `${invitation.role} invitation without a label`,
+        )
+        .join(", ");
+    const others = failures.length - maxNamedFailures;
+    const more = others > 0 ? ` and ${others} more` : "";
+    const reasons = [
+        ...new Set(failures.map((val) => removeInvitationError(val.error))),
+    ].join(" ");
+    return `Cannot remove ${failures.length} of ${total} expired invitations (${names}${more}): ${reasons}`;
 }
 
 /**
@@ -246,18 +411,27 @@ function acceptInvitationError(err: unknown) {
 export {
     acceptInvitationError,
     createInvitationError,
+    createLabelledInvitation,
     dropPendingToken,
+    invitationLabelError,
     invitationLink,
     invitationPath,
+    invitationStatus,
     invitationToken,
     isDeadInvitation,
+    isExpiredInvitation,
     keepPendingToken,
     listInvitationsError,
-    openInvitations,
     pendingToken,
     readInvitation,
+    removedExpiredMessage,
+    removeExpiredError,
+    removeInvitationError,
+    removeInvitations,
     renewInvitationError,
+    renewRemoveError,
     renewRevokeError,
     revokeInvitationError,
     sessionStore,
+    shownInvitations,
 };

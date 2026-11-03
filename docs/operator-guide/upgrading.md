@@ -26,6 +26,16 @@ dialog](configuration.md#access-dialog)); there is nothing else to change.
 It no longer lists accepted invitations, as the person is listed with their
 role.
 
+Invitations now have labels, which say who they are for, and **the form
+requires one by default**. To keep it optional, set
+`NEXT_PUBLIC_INVITATION_LABEL_REQUIRED=false` (see [Access
+dialog](configuration.md#access-dialog)). Expired invitations stay listed,
+marked as expired, with **New link**, removal and **Remove expired**. Both
+need a registry newer than cloud-registry 1.0.0rc1: with 1.0.0rc1, the app
+keeps working, creates links without the label and says so, and doesn't list
+expired invitations, as that registry doesn't (see
+[Compatibility](index.md#compatibility)).
+
 ## 1.0.0-rc1
 
 Upgrade the registry to cloud-registry 1.0.0rc1 together with the app

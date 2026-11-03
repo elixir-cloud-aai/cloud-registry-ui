@@ -4,19 +4,28 @@ import type { Invitation } from "./cloud-registry.types";
 import {
     acceptInvitationError,
     createInvitationError,
+    createLabelledInvitation,
     dropPendingToken,
+    invitationLabelError,
     invitationLink,
+    invitationStatus,
     invitationToken,
     isDeadInvitation,
+    isExpiredInvitation,
     keepPendingToken,
     listInvitationsError,
-    openInvitations,
     pendingToken,
     readInvitation,
+    removedExpiredMessage,
+    removeExpiredError,
+    removeInvitationError,
+    removeInvitations,
     renewInvitationError,
+    renewRemoveError,
     renewRevokeError,
     revokeInvitationError,
     sessionStore,
+    shownInvitations,
 } from "./invitations";
 
 const token = "a".repeat(43);
@@ -281,10 +290,10 @@ describe("invitation lists", () => {
     });
     const ids = (invitations: Invitation[]) => invitations.map((val) => val.id);
 
-    it("lists open invitations, newest first", () => {
+    it("lists invitations, newest first", () => {
         expect(
             ids(
-                openInvitations([
+                shownInvitations([
                     invitation("a", "2026-11-01T08:00:00Z"),
                     invitation("b", "2026-11-01T09:00:00Z"),
                     invitation("c", "2026-11-01T10:00:00Z"),
@@ -296,7 +305,7 @@ describe("invitation lists", () => {
     it("orders by the time, not as listed", () => {
         expect(
             ids(
-                openInvitations([
+                shownInvitations([
                     invitation("b", "2026-11-01T09:00:00Z"),
                     invitation("c", "2026-11-01T10:00:00Z"),
                     invitation("a", "2026-11-01T08:00:00Z"),
@@ -308,7 +317,7 @@ describe("invitation lists", () => {
     it("compares times, not their text", () => {
         expect(
             ids(
-                openInvitations([
+                shownInvitations([
                     invitation("a", "2026-11-01T09:30:00+02:00"),
                     invitation("b", "2026-11-01T08:00:00Z"),
                 ]),
@@ -320,7 +329,7 @@ describe("invitation lists", () => {
         const time = "2026-11-01T08:00:00Z";
         expect(
             ids(
-                openInvitations([
+                shownInvitations([
                     invitation("a", time),
                     invitation("b", time),
                     invitation("c", time),
@@ -332,14 +341,52 @@ describe("invitation lists", () => {
     it("leaves out accepted invitations", () => {
         expect(
             ids(
-                openInvitations([
+                shownInvitations([
                     invitation("a", "2026-11-01T08:00:00Z", true),
                     invitation("b", "2026-11-01T09:00:00Z"),
                     invitation("c", "2026-11-01T10:00:00Z", true),
                 ]),
             ),
         ).toEqual(["b"]);
-        expect(openInvitations([])).toEqual([]);
+        expect(shownInvitations([])).toEqual([]);
+    });
+
+    it("leaves out what the registry marks as accepted", () => {
+        expect(
+            ids(
+                shownInvitations([
+                    {
+                        ...invitation("a", "2026-11-01T08:00:00Z"),
+                        status: "accepted",
+                    },
+                    {
+                        ...invitation("b", "2026-11-01T09:00:00Z"),
+                        status: "open",
+                    },
+                ]),
+            ),
+        ).toEqual(["b"]);
+    });
+
+    it("keeps expired invitations in the order of the others", () => {
+        expect(
+            ids(
+                shownInvitations([
+                    {
+                        ...invitation("a", "2026-11-01T08:00:00Z"),
+                        status: "open",
+                    },
+                    {
+                        ...invitation("b", "2026-11-01T09:00:00Z"),
+                        status: "expired",
+                    },
+                    {
+                        ...invitation("c", "2026-11-01T10:00:00Z"),
+                        status: "open",
+                    },
+                ]),
+            ),
+        ).toEqual(["c", "b", "a"]);
     });
 
     it("leaves the given list as it is", () => {
@@ -347,7 +394,7 @@ describe("invitation lists", () => {
             invitation("a", "2026-11-01T08:00:00Z"),
             invitation("b", "2026-11-01T09:00:00Z"),
         ];
-        openInvitations(listed);
+        shownInvitations(listed);
         expect(ids(listed)).toEqual(["a", "b"]);
     });
 
@@ -371,6 +418,30 @@ describe("invitation lists", () => {
         );
     });
 
+    it("words failed renewals of expired invitations", () => {
+        // expired invitations don't count towards the limit, and don't work
+        expect(
+            renewInvitationError(
+                failure(409, { code: "invitations-limit" }),
+                true,
+            ),
+        ).toBe(
+            "This service has reached its limit of invitations: no new link was created. Revoke open invitations, or wait until invitations expire.",
+        );
+        expect(renewInvitationError(failure(500), true)).toBe(
+            "Cannot create an invitation currently.",
+        );
+    });
+
+    it("words failed removals of renewed expired invitations", () => {
+        expect(renewRemoveError(failure(500))).toBe(
+            "Created the new link, but the expired invitation is still listed: Cannot remove the invitation currently.",
+        );
+        expect(renewRemoveError(failure(404))).toBe(
+            "Created the new link; the expired invitation was removed already.",
+        );
+    });
+
     it("words failed revocations of renewed invitations", () => {
         expect(renewRevokeError(failure(500))).toBe(
             "Created the new link, but the old one still works: Cannot revoke the invitation currently.",
@@ -382,6 +453,255 @@ describe("invitation lists", () => {
             renewRevokeError(failure(409, { code: "invitation-accepted" })),
         ).toBe(
             "Created the new link, but the old invitation was accepted meanwhile: revoke the new one if it isn't needed.",
+        );
+    });
+});
+
+describe("invitation status", () => {
+    const base: Invitation = {
+        id: "a",
+        service_id: "s",
+        role: "maintainer",
+        created_by: "u",
+        created_at: "2026-10-20T00:00:00Z",
+        expires_at: "2026-11-08T00:00:00Z",
+    };
+    const past = "2000-01-01T00:00:00Z";
+
+    it.each(["open", "expired", "accepted"] as const)(
+        "takes the registry's %s",
+        (status) => {
+            expect(invitationStatus({ ...base, status })).toBe(status);
+        },
+    );
+
+    it("takes the registry's word over the time", () => {
+        expect(
+            invitationStatus({ ...base, status: "open", expires_at: past }),
+        ).toBe("open");
+    });
+
+    it("tells expired invitations", () => {
+        expect(isExpiredInvitation({ ...base, status: "expired" })).toBe(true);
+        expect(isExpiredInvitation({ ...base, status: "open" })).toBe(false);
+    });
+
+    describe("of registries without it", () => {
+        it("is open", () => {
+            expect(invitationStatus(base)).toBe("open");
+        });
+
+        // they don't list expired invitations, and the clock of the browser
+        // mustn't make open ones removable
+        it("is open also after the time of the browser passed", () => {
+            expect(invitationStatus({ ...base, expires_at: past })).toBe(
+                "open",
+            );
+            expect(isExpiredInvitation({ ...base, expires_at: past })).toBe(
+                false,
+            );
+        });
+
+        it("is accepted with who accepted it", () => {
+            expect(
+                invitationStatus({
+                    ...base,
+                    accepted: {
+                        user_id: "v",
+                        accepted_at: "2026-11-02T00:00:00Z",
+                    },
+                }),
+            ).toBe("accepted");
+        });
+    });
+});
+
+describe("invitation labels", () => {
+    it.each(["", "  "])("requires a label for %j if set to", (text) => {
+        expect(invitationLabelError(text, true)).toBe("Label is required.");
+        expect(invitationLabelError(text, false)).toBeUndefined();
+    });
+
+    it.each([
+        "Bob (variant calling team)",
+        "  Bob  ",
+        "x".repeat(100),
+        // characters, not UTF-16 units, as the registry counts them
+        "\u{1F600}".repeat(100),
+        ` ${"x".repeat(100)} `,
+    ])("accepts %j", (text) => {
+        expect(invitationLabelError(text, true)).toBeUndefined();
+    });
+
+    it("limits the length", () => {
+        expect(invitationLabelError("x".repeat(101), true)).toBe(
+            "Label can't be longer than 100 characters.",
+        );
+    });
+
+    it.each([
+        "a\tb",
+        "a\u0000b",
+        "a\u007Fb",
+        "a\u0085b",
+        "a\u061Cb",
+        "a\u200Bb",
+        "a\u200Eb",
+        "a\u200Fb",
+        "a\u2028b",
+        "a\u202Eb",
+        "a\u2060b",
+        "a\u2066b",
+        "a\u2069b",
+        "a\uFEFFb",
+    ])("refuses what the registry refuses: %j", (text) => {
+        expect(invitationLabelError(text, false)).toBe(
+            "Label can't contain control or direction-changing characters.",
+        );
+    });
+});
+
+describe("createLabelledInvitation", () => {
+    const created = { id: "a", token };
+
+    it("sends the role and the label", async () => {
+        const create = vi.fn().mockResolvedValue(created);
+        await expect(
+            createLabelledInvitation(create, "owner", "Bob"),
+        ).resolves.toEqual({ created, labelKept: true });
+        expect(create).toHaveBeenCalledExactlyOnceWith({
+            role: "owner",
+            label: "Bob",
+        });
+    });
+
+    it("sends only the role without a label", async () => {
+        const create = vi.fn().mockResolvedValue(created);
+        await expect(
+            createLabelledInvitation(create, "owner"),
+        ).resolves.toEqual({ created, labelKept: true });
+        expect(create).toHaveBeenCalledExactlyOnceWith({ role: "owner" });
+    });
+
+    it("tries without the label if the registry has no labels", async () => {
+        const create = vi
+            .fn()
+            .mockRejectedValueOnce(
+                failure(400, {
+                    detail: "Additional properties are not allowed ('label' was unexpected)",
+                }),
+            )
+            .mockResolvedValueOnce(created);
+        await expect(
+            createLabelledInvitation(create, "owner", "Bob"),
+        ).resolves.toEqual({ created, labelKept: false });
+        expect(create).toHaveBeenCalledTimes(2);
+        expect(create).toHaveBeenLastCalledWith({ role: "owner" });
+    });
+
+    it.each([
+        [failure(400, { detail: "'Bob' does not match" })],
+        [failure(400)],
+        [failure(500)],
+    ])("doesn't try again after other failures (%#)", async (err) => {
+        const create = vi.fn().mockRejectedValue(err);
+        await expect(
+            createLabelledInvitation(create, "owner", "Bob"),
+        ).rejects.toBe(err);
+        expect(create).toHaveBeenCalledOnce();
+    });
+});
+
+describe("removing expired invitations", () => {
+    const expired = (id: string, label?: string): Invitation => ({
+        id,
+        service_id: "s",
+        role: "maintainer",
+        status: "expired",
+        created_by: "u",
+        created_at: "2026-10-20T00:00:00Z",
+        expires_at: "2026-10-27T00:00:00Z",
+        ...(label && { label }),
+    });
+
+    it("sends one request per invitation, one at a time", async () => {
+        const order: string[] = [];
+        const failures = await removeInvitations(
+            [expired("a"), expired("b")],
+            async (id) => {
+                order.push(`start ${id}`);
+                await Promise.resolve();
+                order.push(`end ${id}`);
+            },
+        );
+        expect(failures).toEqual([]);
+        expect(order).toEqual(["start a", "end a", "start b", "end b"]);
+    });
+
+    it("goes on after a failure and reports them all", async () => {
+        const err = failure(500);
+        const a = expired("a");
+        const b = expired("b");
+        const c = expired("c");
+        const remove = vi.fn(async (id: string) => {
+            if (id !== "b") throw err;
+        });
+        await expect(removeInvitations([a, b, c], remove)).resolves.toEqual([
+            { invitation: a, error: err },
+            { invitation: c, error: err },
+        ]);
+        expect(remove).toHaveBeenCalledTimes(3);
+    });
+
+    it("counts those that are gone already as removed", async () => {
+        await expect(
+            removeInvitations([expired("a")], async () => {
+                throw failure(404);
+            }),
+        ).resolves.toEqual([]);
+    });
+
+    it("words the result", () => {
+        expect(removedExpiredMessage(1)).toBe("Removed the expired invitation");
+        expect(removedExpiredMessage(3)).toBe("Removed 3 expired invitations");
+    });
+
+    it("words failures, with each reason once", () => {
+        const failures = [
+            { invitation: expired("a", "Bob"), error: failure(500) },
+            { invitation: expired("b"), error: failure(500) },
+            { invitation: expired("c", "Eve"), error: failure(403) },
+        ];
+        expect(removeExpiredError(5, failures)).toBe(
+            "Cannot remove 3 of 5 expired invitations (Bob, maintainer invitation without a label, Eve): Cannot remove the invitation currently. Only owners and admins can remove invitations.",
+        );
+    });
+
+    it("names only the first failures of many", () => {
+        const failures = ["a", "b", "c", "d", "e"].map((id) => ({
+            invitation: expired(id, id.toUpperCase()),
+            error: failure(500),
+        }));
+        expect(removeExpiredError(5, failures)).toBe(
+            "Cannot remove 5 of 5 expired invitations (A, B, C and 2 more): Cannot remove the invitation currently.",
+        );
+    });
+
+    it("words failed removals", () => {
+        expect(removeInvitationError(failure(404))).toBe(
+            "The invitation was removed already.",
+        );
+        expect(removeInvitationError(failure(405))).toBe(
+            "This registry has no invitations.",
+        );
+        expect(removeInvitationError(failure(401))).toBe(
+            "Your session expired. Please log in again.",
+        );
+        expect(removeInvitationError(failure(403))).toBe(
+            "Only owners and admins can remove invitations.",
+        );
+        expect(removeInvitationError(failure(500))).toBe(
+            "Cannot remove the invitation currently.",
         );
     });
 });

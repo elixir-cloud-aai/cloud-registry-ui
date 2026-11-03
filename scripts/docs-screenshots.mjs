@@ -312,6 +312,35 @@ try {
     await owner.goto(`${appUrl}/dashboard/services`);
     await owner.getByRole("cell", { name: "tes-north", exact: true }).click();
     await shoot(owner.getByRole("dialog"), "service-details", 1300);
+    // an expired invitation for the second screenshot: the registry expires
+    // them only with the time, so the list is changed for this page, and
+    // the invitation is removed afterwards
+    const invitationsPath = "/services/tes-north/invitations";
+    const seeded = (
+        await api(tokens.owner, "POST", invitationsPath, {
+            role: "maintainer",
+            label: "Dana (QA team)",
+        })
+    ).body;
+    const seededRoute = `${registry}${invitationsPath}`;
+    await owner.route(seededRoute, async (route) => {
+        if (route.request().method() !== "GET") return route.fallback();
+        const response = await route.fetch();
+        const listed = await response.json();
+        await route.fulfill({
+            response,
+            json: listed.map((val) =>
+                val.id === seeded.id
+                    ? {
+                          ...val,
+                          status: "expired",
+                          created_at: "2026-10-20T09:12:00.000Z",
+                          expires_at: "2026-10-27T09:12:00.000Z",
+                      }
+                    : val,
+            ),
+        });
+    });
     await owner
         .getByRole("dialog")
         .getByRole("button", { name: "Manage access" })
@@ -329,6 +358,7 @@ try {
     const before = await access
         .getByRole("button", { name: /^Revoke/ })
         .evaluateAll((els) => els.map((el) => el.getAttribute("aria-label")));
+    await access.getByLabel(/^Label/).fill("Bob (variant calling team)");
     await access.getByRole("button", { name: "Create link" }).click();
     await access
         .getByRole("button", { name: /^Copy link of / })
@@ -352,6 +382,8 @@ try {
         throw new Error(`expected one new invitation, found ${mine.length}`);
     await access.getByRole("button", { name: mine[0], exact: true }).click();
     await expect(revoke).toHaveCount(before.length);
+    await owner.unroute(seededRoute);
+    await api(tokens.owner, "DELETE", `${invitationsPath}/${seeded.id}`);
     await owner.goto(`${appUrl}/dashboard/services`);
     await owner.getByRole("button", { name: "Register Service" }).click();
     const register = owner.getByRole("dialog", { name: "Register Service" });
