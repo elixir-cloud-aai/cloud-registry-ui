@@ -37,6 +37,8 @@ type Props = {
     serviceId: string;
     /** Invitations per page */
     pageSize: number;
+    /** The list is loaded again when this changes */
+    refresh?: number;
     /** Whether new invitations need a label */
     labelRequired: boolean;
     disabled?: boolean;
@@ -64,6 +66,7 @@ function Invitations({
     provider,
     serviceId,
     pageSize,
+    refresh,
     labelRequired,
     disabled = false,
     onChanging,
@@ -142,9 +145,10 @@ function Invitations({
             });
     }, [provider, serviceId]);
 
+    // biome-ignore lint/correctness/useExhaustiveDependencies: asks for it
     useEffect(() => {
         fetchInvitations();
-    }, [fetchInvitations]);
+    }, [fetchInvitations, refresh]);
 
     // a change, then the list again, as it may have changed anyway
     const run = async (

@@ -42,6 +42,12 @@ interface RequestOptions {
 }
 
 /**
+ * `.` or `..`, the whole ID or between slashes or backslashes, which browsers
+ * take as slashes (`UserId` and `Group` in the registry's API)
+ */
+const dotSegment = /(^|[/\\])\.\.?([/\\]|$)/;
+
+/**
  * Get the error for an answer about another user than the requested one:
  * cloud-registry 0.6.0 and 1.0.0rc1 take the paths of users' roles for those
  * of a user `users/<ID>`, and answer `200 OK`, so only the answer tells.
@@ -119,6 +125,12 @@ class AuthenticatedCloudRegistryProvider
     if (id.startsWith("/")) {
       throw Object.assign(new Error(`Invalid ID: '${id}'`), {
         detail: `The app can't change the role of '${id}', as IDs can't start with '/'.`,
+      });
+    }
+    // a proxy that decodes slashes would resolve them to another path
+    if (dotSegment.test(id)) {
+      throw Object.assign(new Error(`Invalid ID: '${id}'`), {
+        detail: `The app can't change the role of '${id}', as IDs can't have the parts '.' or '..'.`,
       });
     }
     return this.idPath(id);
@@ -717,4 +729,4 @@ class AuthenticatedCloudRegistryProvider
   }
 }
 
-export { AuthenticatedCloudRegistryProvider };
+export { AuthenticatedCloudRegistryProvider, dotSegment };

@@ -1,4 +1,7 @@
-import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
+import {
+    type AuthenticatedCloudRegistryProvider,
+    dotSegment,
+} from "@/lib/authenticated-cloud-registry";
 import type {
     GroupPermission,
     Permission,
@@ -26,10 +29,6 @@ export const roleOptions = roles.map((value) => ({
     label: value.charAt(0).toUpperCase() + value.slice(1),
     value,
 }));
-
-// `.` or `..`, the whole ID or between slashes or backslashes, which browsers
-// take as slashes (`UserId` and `Group` in the registry's API)
-const dotSegment = /(^|[/\\])\.\.?([/\\]|$)/;
 
 export const grantSchema = z
     .object({

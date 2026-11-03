@@ -114,7 +114,7 @@ Notes:
   the label. Select the bin icon to revoke an open invitation; its link then
   stops working. Accepted invitations aren't listed: the person is listed under
   **Current Access**, where you can change or remove their role. If someone
-  accepts while the dialog is open, they appear there when you select that tab
+  accepts while the dialog is open, both tabs show it when you select them
   again.
 - **Expired invitations** are marked as **Expired**, so that you can see who
   didn't accept in time. Select **New link** to invite the person again,

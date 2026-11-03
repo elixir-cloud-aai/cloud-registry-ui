@@ -862,20 +862,24 @@ test.describe("invitations", () => {
         await expect(
             page.getByRole("dialog").getByRole("link", { name: "2" }),
         ).toBeVisible();
+        // the app logs requests still running when the page closes as errors
+        await page.waitForLoadState("networkidle");
     });
 
-    test("an invitation accepted meanwhile shows under Current Access", async ({
+    test("an invitation accepted meanwhile moves between the tabs", async ({
         page,
         browser,
     }) => {
         const service = await registerService(browser, "owner", "Meanwhile");
         const owner = await login(page, "owner");
+        const path = `/services/${encodeURIComponent(service.id)}/invitations`;
+        const created = await api(owner, "POST", path, { role: "maintainer" });
         await page.goto(`/dashboard/services/view/${service.id}`);
         await page.getByRole("button", { name: "Manage access" }).click();
         const dialog = page.getByRole("dialog");
-        await expect(dialog.getByRole("table").first()).toBeVisible();
-        const path = `/services/${encodeURIComponent(service.id)}/invitations`;
-        const created = await api(owner, "POST", path, { role: "maintainer" });
+        await expect(
+            dialog.getByRole("tab", { name: "Invitations 1" }),
+        ).toBeVisible();
         const accepted = await api(
             await tokenOf(browser, "other"),
             "POST",
@@ -888,6 +892,8 @@ test.describe("invitations", () => {
         await dialog.getByRole("tab", { name: /^Invitations/ }).click();
         await dialog.getByRole("tab", { name: "Current Access" }).click();
         await expect(dialog.getByText(users.other.sub)).toBeVisible();
+        await dialog.getByRole("tab", { name: /^Invitations/ }).click();
+        await expect(dialog.getByText("No open invitations.")).toBeVisible();
     });
 
     test("labels name the invitations", async ({ page, browser }) => {
