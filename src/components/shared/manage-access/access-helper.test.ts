@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { failure } from "@/test/errors";
 import {
     accessError,
-    accessPageSize,
     defaultGrant,
     filterHolders,
     grantSchema,
@@ -98,11 +97,6 @@ describe("role holders", () => {
         { user_id: "carol@example.org", role: "maintainer" },
         { group: "urn:example:compute-team", role: "maintainer" },
     ] as const;
-
-    it("pages long lists", () => {
-        // as the user guide says
-        expect(accessPageSize).toBe(8);
-    });
 
     it("names users by their display name, if known", () => {
         expect(userName(holders[0])).toBe("Bob Builder");

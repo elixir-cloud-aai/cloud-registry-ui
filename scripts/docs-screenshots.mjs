@@ -195,6 +195,8 @@ async function newPage(browser) {
         viewport: { width, height },
         colorScheme: "light",
         deviceScaleFactor: 1,
+        // to read invitation links as users copy them
+        permissions: ["clipboard-read", "clipboard-write"],
     });
     return context.newPage();
 }
@@ -319,6 +321,7 @@ try {
     // opens (for a user who is logged in); revoked afterwards, so that
     // runs leave no open invitations
     const access = owner.getByRole("dialog").last();
+    await access.getByRole("tab", { name: /^Invitations/ }).click();
     // the open invitations before this run's
     await expect(
         access.getByRole("button", { name: "Create link" }),
@@ -327,11 +330,13 @@ try {
         .getByRole("button", { name: /^Revoke/ })
         .evaluateAll((els) => els.map((el) => el.getAttribute("aria-label")));
     await access.getByRole("button", { name: "Create link" }).click();
-    const link = await access
-        .getByRole("textbox", { name: /^Invitation link/ })
+    await access
+        .getByRole("button", { name: /^Copy link of / })
         .first()
-        .inputValue();
-    await shoot(access, "manage-access-invite", 1300);
+        .click();
+    await owner.getByText("Copied the invitation link").waitFor();
+    const link = await owner.evaluate(() => navigator.clipboard.readText());
+    await shoot(access, "manage-access-invite");
     await pages.other.goto(link);
     await pages.other
         .getByRole("button", { name: "Accept invitation" })

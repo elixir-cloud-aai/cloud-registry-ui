@@ -20,6 +20,9 @@ export type AccessProvider = Pick<
     | "revokeInvitation"
 >;
 
+/** Class of the dialog's tables: rows low enough for a laptop's window */
+export const compactTable = "[&_td]:py-1.5 [&_th]:h-9";
+
 const roles = ["owner", "maintainer"] as const satisfies readonly Role[];
 
 export const roleOptions = roles.map((value) => ({
@@ -77,9 +80,6 @@ export function isGroup(
 }
 
 export { isForbidden, isUnauthorized };
-
-/** Role holders per page of the access list */
-export const accessPageSize = 8;
 
 /**
  * Get the display name of a user with a role

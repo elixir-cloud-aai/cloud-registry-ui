@@ -17,6 +17,15 @@ session (it is kept in cookies), unless the release notes say otherwise.
 Logins that are in progress during the update may fail; users then log in
 again.
 
+## 1.0.0-rc2
+
+The **Manage access** dialog now has the tabs **Current Access** and
+**Invitations**, and shows 5 entries per page instead of 8. To change that,
+set `NEXT_PUBLIC_ACCESS_PAGE_SIZE` (see [Access
+dialog](configuration.md#access-dialog)); there is nothing else to change.
+It no longer lists accepted invitations, as the person is listed with their
+role.
+
 ## 1.0.0-rc1
 
 Upgrade the registry to cloud-registry 1.0.0rc1 together with the app

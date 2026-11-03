@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import {
     Dialog,
     DialogContent,
@@ -9,6 +10,8 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { accessPageSize } from "@/lib/access-settings";
 import type {
     GroupPermission,
     Permission,
@@ -51,9 +54,11 @@ function ManageAccessDialog({
     const [loading, setLoading] = useState(true);
     const [changing, setChanging] = useState(false);
     const [inviting, setInviting] = useState(false);
+    const [invitationCount, setInvitationCount] = useState<number>();
     // why the dialog must close, e.g. after removing one's own owner role
     const [closeReason, setCloseReason] = useState<string | null>(null);
     const latestRequest = useRef(0);
+    const pageSize = accessPageSize();
 
     const fetchPermissions = useCallback(() => {
         if (!provider) return Promise.resolve();
@@ -183,39 +188,71 @@ function ManageAccessDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                {loading && (
-                    <p className="text-sm text-muted-foreground">Loading...</p>
-                )}
-                {!loading && !permissions && (
-                    <p className="text-sm text-muted-foreground">
-                        Cannot load the access list.
-                    </p>
-                )}
-                {permissions && (
-                    <AccessList
-                        permissions={permissions}
-                        currentUserId={currentUserId}
-                        disabled={changing}
-                        onRoleChange={handleRoleChange}
-                        onRevoke={handleRevoke}
-                    />
-                )}
+                <Tabs defaultValue="access" className="min-w-0">
+                    <TabsList>
+                        <TabsTrigger value="access">Current Access</TabsTrigger>
+                        <TabsTrigger value="invitations">
+                            Invitations
+                            {invitationCount !== undefined && (
+                                <Badge variant="secondary">
+                                    {invitationCount}
+                                </Badge>
+                            )}
+                        </TabsTrigger>
+                    </TabsList>
 
-                <Separator />
+                    {/* both stay mounted: the links of new invitations are
+                        known only to the component, and the second tab
+                        shows the number of invitations from the start */}
+                    <TabsContent
+                        value="access"
+                        forceMount
+                        className="space-y-4 data-[state=inactive]:hidden"
+                    >
+                        {loading && (
+                            <p className="text-sm text-muted-foreground">
+                                Loading...
+                            </p>
+                        )}
+                        {!loading && !permissions && (
+                            <p className="text-sm text-muted-foreground">
+                                Cannot load the access list.
+                            </p>
+                        )}
+                        {permissions && (
+                            <AccessList
+                                permissions={permissions}
+                                pageSize={pageSize}
+                                currentUserId={currentUserId}
+                                disabled={changing}
+                                onRoleChange={handleRoleChange}
+                                onRevoke={handleRevoke}
+                            />
+                        )}
 
-                <AccessGrantForm
-                    onGrant={handleGrant}
-                    disabled={changing || !permissions}
-                />
+                        <Separator />
 
-                <Separator />
+                        <AccessGrantForm
+                            onGrant={handleGrant}
+                            disabled={changing || !permissions}
+                        />
+                    </TabsContent>
 
-                <Invitations
-                    provider={provider}
-                    serviceId={serviceId}
-                    disabled={changing}
-                    onChanging={setInviting}
-                />
+                    <TabsContent
+                        value="invitations"
+                        forceMount
+                        className="data-[state=inactive]:hidden"
+                    >
+                        <Invitations
+                            provider={provider}
+                            serviceId={serviceId}
+                            pageSize={pageSize}
+                            disabled={changing}
+                            onChanging={setInviting}
+                            onCountChange={setInvitationCount}
+                        />
+                    </TabsContent>
+                </Tabs>
             </DialogContent>
         </Dialog>
     );
