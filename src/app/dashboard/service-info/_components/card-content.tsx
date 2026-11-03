@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/tooltip";
 import { safeHref } from "@/lib/links";
 import { registrationRules } from "@/lib/registration-rules";
+import ApiAddress from "./api-address";
 import { registrationRuleRows } from "./rules-helper";
 
 type Props = {
@@ -61,6 +62,8 @@ function ServiceInfoCardContent({ serviceInfo }: Props) {
                         {serviceInfo.version}
                     </code>
                 </div>
+
+                <ApiAddress />
 
                 <Separator className="md:col-span-2" />
 
@@ -121,7 +124,7 @@ function ServiceInfoCardContent({ serviceInfo }: Props) {
                                     <span className="text-slate-400">
                                         Environment:
                                     </span>{" "}
-                                    {serviceInfo.environment.toUpperCase()}
+                                    {serviceInfo.environment}
                                 </p>
                             )}
                         </div>

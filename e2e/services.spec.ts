@@ -167,7 +167,7 @@ test.describe("services", () => {
         const granted = await api(
             await tokenOf(browser, "other"),
             "PUT",
-            `/services/${maintained.id}/permissions/${encodeURIComponent(users.owner.sub)}`,
+            `/services/${maintained.id}/permissions/users/${encodeURIComponent(users.owner.sub)}`,
             { role: "maintainer" },
         );
         expect(granted.status).toBeLessThan(300);

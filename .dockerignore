@@ -10,6 +10,8 @@
 !tsconfig.json
 !postcss.config.mjs
 !components.json
+!LICENSE
+!NOTICE
 
 # also not inside the allowed folders
 **/.env*

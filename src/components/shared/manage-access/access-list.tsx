@@ -20,16 +20,13 @@ import type {
     Role,
     ServicePermissions,
 } from "@/lib/cloud-registry.types";
-import {
-    accessPageSize,
-    filterHolders,
-    isGroup,
-    userName,
-} from "./access-helper";
+import { filterHolders, isGroup, userName } from "./access-helper";
 import RoleSelect from "./role-select";
 
 type Props = {
     permissions: ServicePermissions;
+    /** Users and groups per page */
+    pageSize: number;
     currentUserId?: string;
     disabled?: boolean;
     onRoleChange: (val: Permission | GroupPermission, role: Role) => void;
@@ -38,6 +35,7 @@ type Props = {
 
 function AccessList({
     permissions,
+    pageSize,
     currentUserId,
     disabled = false,
     onRoleChange,
@@ -46,12 +44,12 @@ function AccessList({
     const [query, setQuery] = useState("");
     // a search only where the list pages; a search left over from a longer
     // list mustn't hide holders without a box to clear it
-    const searchable = permissions.length > accessPageSize;
+    const searchable = permissions.length > pageSize;
     const found = filterHolders(permissions, searchable ? query : "");
     // the registry lists all roles at once: paged here
     const { page, pageCount, pageItems, start, end, setPage } = usePagination(
         found,
-        accessPageSize,
+        pageSize,
     );
 
     if (permissions.length === 0)

@@ -23,7 +23,7 @@ export interface Permission {
   /** Display name, if known. */
   name?: string;
   role: Role;
-  /** User identifier (token sub). */
+  /** User identifier (token sub); may contain slashes. */
   user_id: UserId;
 }
 
@@ -36,7 +36,12 @@ export interface GroupPermission {
   role: Role;
 }
 
-/** Request body for granting a user's or group's permission. */
+/**
+ * PUT /services/{serviceId}/permissions/users/{userId}
+ * PUT /services/{serviceId}/permissions/groups/{group}
+ *
+ * Request body for granting a user's or group's permission.
+ */
 export interface PermissionRegister {
   role: Role;
 }
@@ -90,6 +95,20 @@ export interface InvitationAcceptance {
   accepted_at: string;
 }
 
+/** Status of an invitation; accepted ones are only listed if asked for. */
+export type InvitationStatus = "open" | "expired" | "accepted";
+
+/**
+ * POST /services/{serviceId}/invitations
+ *
+ * The role of a new invitation, and what it is for.
+ */
+export interface InvitationRegister {
+  role: Role;
+  /** Plain text: one line, at most 100 characters. Never show it as markup. */
+  label?: string;
+}
+
 /**
  * GET /services/{serviceId}/invitations
  *
@@ -99,11 +118,15 @@ export interface Invitation {
   id: string;
   service_id: ServiceId;
   role: Role;
+  /** Not set if none was given, and by cloud-registry up to 1.0.0rc1. */
+  label?: string;
+  /** Not set by cloud-registry up to 1.0.0rc1. */
+  status?: InvitationStatus;
   /** Identifier of the user who created it. */
   created_by: UserId;
   /** RFC 3339 date-time. */
   created_at: string;
-  /** RFC 3339 date-time; it is no longer listed then, accepted or not. */
+  /** RFC 3339 date-time; it can no longer be accepted then. */
   expires_at: string;
   /** Not set for open invitations. */
   accepted?: InvitationAcceptance;

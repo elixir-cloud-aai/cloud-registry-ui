@@ -40,11 +40,14 @@ services:
                     - oidc.localhost
 
     registry:
-        # cloud-registry 1.0.0rc1, the release this app's 1.0.0-rc1 goes with
-        # (features the app uses: GET /approvals and conflict codes of 0.5.0,
-        # renames and admin mode of 0.6.0, invitations and the services limit
-        # of 1.0.0rc1); pinned by digest for repeatable runs
-        image: ${E2E_REGISTRY_IMAGE:-docker.io/elixircloud/cloud-registry:1.0.0rc1@sha256:ea70b04a99ba026d8bf2d67168d7e04653b83b46801e96163acfd7b2255bd7cf}
+        # cloud-registry from `dev` at 19a6c82, as the paths of users' roles,
+        # labels and the listing of expired invitations aren't released yet
+        # (cloud-registry#337, #334, #335); back to the release once there is
+        # one that has them (the app also uses GET /approvals and conflict
+        # codes of 0.5.0, renames and admin mode of 0.6.0, invitations and the
+        # services limit of 1.0.0rc1);
+        # pinned by digest for repeatable runs
+        image: ${E2E_REGISTRY_IMAGE:-docker.io/elixircloud/cloud-registry:sha-19a6c82554b5b81c171d174ff4ab4238d35588fa@sha256:7c7bdd50ea5997750d1bf2ff3e0dfc7753ccd9e3af3b4372ada78cf67b0c27e9}
         depends_on:
             mongodb:
                 condition: service_healthy

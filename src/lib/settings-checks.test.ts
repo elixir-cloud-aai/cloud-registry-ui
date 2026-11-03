@@ -33,6 +33,26 @@ describe("publicSettingsChecks", () => {
         expect(publicSettingsChecks).toThrow(/APP_TITLE/);
     });
 
+    it("checks the page size of the access dialog", async () => {
+        vi.stubEnv(
+            "NEXT_PUBLIC_CLOUD_REGISTRY_URL",
+            "https://registry.example.org/ga4gh/registry/v1",
+        );
+        vi.stubEnv("NEXT_PUBLIC_ACCESS_PAGE_SIZE", "many");
+        const { publicSettingsChecks } = await load();
+        expect(publicSettingsChecks).toThrow(/ACCESS_PAGE_SIZE/);
+    });
+
+    it("checks the label setting of the access dialog", async () => {
+        vi.stubEnv(
+            "NEXT_PUBLIC_CLOUD_REGISTRY_URL",
+            "https://registry.example.org/ga4gh/registry/v1",
+        );
+        vi.stubEnv("NEXT_PUBLIC_INVITATION_LABEL_REQUIRED", "maybe");
+        const { publicSettingsChecks } = await load();
+        expect(publicSettingsChecks).toThrow(/INVITATION_LABEL_REQUIRED/);
+    });
+
     it.each([
         ["NEXT_PUBLIC_SERVICE_ENVIRONMENTS", "*,prod", "environments"],
         ["NEXT_PUBLIC_SERVICE_URL_SCHEMES", "", "URL schemes"],

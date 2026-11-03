@@ -26,6 +26,7 @@ ENV NODE_ENV=production \
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
+COPY --from=build /app/LICENSE /app/NOTICE ./
 RUN mkdir -p .next/cache && chown bun:bun .next/cache
 
 USER bun

@@ -15,6 +15,7 @@ import type {
   GroupPermission,
   Invitation,
   InvitationCreated,
+  InvitationRegister,
   Me,
   Permission,
   PermissionRegister,
@@ -39,6 +40,25 @@ interface RequestOptions {
   method?: HttpMethod;
   body?: unknown;
   authenticated?: boolean;
+}
+
+/**
+ * `.` or `..`, the whole ID or between slashes or backslashes, which browsers
+ * take as slashes (`UserId` and `Group` in the registry's API)
+ */
+const dotSegment = /(^|[/\\])\.\.?([/\\]|$)/;
+
+/**
+ * Get the error for an answer about another user than the requested one:
+ * cloud-registry 0.6.0 and 1.0.0rc1 take the paths of users' roles for those
+ * of a user `users/<ID>`, and answer `200 OK`, so only the answer tells.
+ * Registries return the ID from the path as it is
+ * @param what What the registry did
+ * @returns The error, with the message for the user
+ */
+function tooOldRegistry(what: string) {
+  const detail = `This registry is too old for this version of the app: ${what}. Ask its admins to upgrade it; until then, this app can't change the roles of users.`;
+  return Object.assign(new Error(detail), { detail });
 }
 
 class AuthenticatedCloudRegistryProvider
@@ -98,6 +118,23 @@ class AuthenticatedCloudRegistryProvider
     // `.` and `..` would reach other paths
     if (id === "." || id === "..") throw new Error(`Invalid ID: '${id}'`);
     return encodeURIComponent(id);
+  }
+
+  private principalPath(id: string): string {
+    // the path would have a double slash, which the registry redirects to
+    // that of another user or group
+    if (id.startsWith("/")) {
+      throw Object.assign(new Error(`Invalid ID: '${id}'`), {
+        detail: `The app can't change the role of '${id}', as IDs can't start with '/'.`,
+      });
+    }
+    // a proxy that decodes slashes would resolve them to another path
+    if (dotSegment.test(id)) {
+      throw Object.assign(new Error(`Invalid ID: '${id}'`), {
+        detail: `The app can't change the role of '${id}', as IDs can't have the parts '.' or '..'.`,
+      });
+    }
+    return this.idPath(id);
   }
 
   /**
@@ -487,7 +524,7 @@ class AuthenticatedCloudRegistryProvider
   }
 
   /**
-   * PUT /services/{serviceId}/permissions/{userId}
+   * PUT /services/{serviceId}/permissions/users/{userId}
    * Authenticated.
    *
    * Grant a role to a user.
@@ -497,18 +534,24 @@ class AuthenticatedCloudRegistryProvider
     userId: UserId,
     permission: PermissionRegister,
   ): Promise<Permission> {
-    return this.request(
-      `/services/${this.idPath(serviceId)}/permissions/${this.idPath(userId)}`,
+    const granted = await this.request<Permission>(
+      `/services/${this.idPath(serviceId)}/permissions/users/${this.principalPath(userId)}`,
       {
         method: "PUT",
         body: permission,
         authenticated: true,
       },
     );
+    if (granted?.user_id !== undefined && granted.user_id !== userId) {
+      throw tooOldRegistry(
+        `it granted the role to '${granted.user_id}', not to '${userId}'`,
+      );
+    }
+    return granted;
   }
 
   /**
-   * DELETE /services/{serviceId}/permissions/{userId}
+   * DELETE /services/{serviceId}/permissions/users/{userId}
    * Authenticated.
    *
    * Revoke a user's permission.
@@ -517,13 +560,19 @@ class AuthenticatedCloudRegistryProvider
     serviceId: ServiceId,
     userId: UserId,
   ): Promise<UserId> {
-    return this.request(
-      `/services/${this.idPath(serviceId)}/permissions/${this.idPath(userId)}`,
+    const revoked = await this.request<UserId>(
+      `/services/${this.idPath(serviceId)}/permissions/users/${this.principalPath(userId)}`,
       {
         method: "DELETE",
         authenticated: true,
       },
     );
+    if (typeof revoked === "string" && revoked !== userId) {
+      throw tooOldRegistry(
+        `it removed the role of '${revoked}', not of '${userId}'`,
+      );
+    }
+    return revoked;
   }
 
   /**
@@ -538,7 +587,7 @@ class AuthenticatedCloudRegistryProvider
     permission: PermissionRegister,
   ): Promise<GroupPermission> {
     return this.request(
-      `/services/${this.idPath(serviceId)}/permissions/groups/${this.idPath(group)}`,
+      `/services/${this.idPath(serviceId)}/permissions/groups/${this.principalPath(group)}`,
       {
         method: "PUT",
         body: permission,
@@ -558,7 +607,7 @@ class AuthenticatedCloudRegistryProvider
     group: GroupName,
   ): Promise<GroupName> {
     return this.request(
-      `/services/${this.idPath(serviceId)}/permissions/groups/${this.idPath(group)}`,
+      `/services/${this.idPath(serviceId)}/permissions/groups/${this.principalPath(group)}`,
       {
         method: "DELETE",
         authenticated: true,
@@ -574,19 +623,19 @@ class AuthenticatedCloudRegistryProvider
    * POST /services/{serviceId}/invitations
    * Authenticated (owners, admins).
    *
-   * Create an invitation to a service for a role.
+   * Create an invitation to a service for a role, with a label if given.
    *
    * @returns The invitation, with its token, which only this response has
    */
   async createInvitation(
     serviceId: ServiceId,
-    permission: PermissionRegister,
+    invitation: InvitationRegister,
   ): Promise<InvitationCreated> {
     return this.request(
       `/services/${this.idPath(serviceId)}/invitations`,
       {
         method: "POST",
-        body: permission,
+        body: invitation,
         authenticated: true,
       },
     );
@@ -596,7 +645,9 @@ class AuthenticatedCloudRegistryProvider
    * GET /services/{serviceId}/invitations
    * Authenticated (owners, admins).
    *
-   * List the open and accepted invitations that haven't expired.
+   * List the invitations that weren't accepted, also expired ones; registries
+   * up to cloud-registry 1.0.0rc1 list the open and accepted ones that haven't
+   * expired, without their status.
    */
   async getServiceInvitations(
     serviceId: ServiceId,
@@ -613,7 +664,7 @@ class AuthenticatedCloudRegistryProvider
    * DELETE /services/{serviceId}/invitations/{invitationId}
    * Authenticated (owners, admins).
    *
-   * Revoke an open invitation.
+   * Revoke an open invitation, or remove an expired one.
    */
   async revokeInvitation(
     serviceId: ServiceId,
@@ -722,4 +773,4 @@ class AuthenticatedCloudRegistryProvider
   }
 }
 
-export { AuthenticatedCloudRegistryProvider };
+export { AuthenticatedCloudRegistryProvider, dotSegment };

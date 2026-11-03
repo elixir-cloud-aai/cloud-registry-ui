@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import { expect, publishRules, registry, test } from "./fixtures";
 
 test.describe("service info", () => {
@@ -53,6 +54,125 @@ test.describe("service info", () => {
         await expect(page.getByText("Registry Version")).toBeVisible();
         await expect(
             page.getByRole("region", { name: "Registration Rules" }),
+        ).toHaveCount(0);
+    });
+
+    test("shows the environment as the registry reports it", async ({
+        page,
+    }) => {
+        await page.route(`${registry}/service-info`, async (route) => {
+            const response = await route.fetch();
+            await route.fulfill({
+                response,
+                json: { ...(await response.json()), environment: "prod" },
+            });
+        });
+        await page.goto("/dashboard/service-info");
+
+        // the rendered text, as `text-transform` doesn't change `textContent`
+        await expect(page.locator('[data-slot="badge"]')).toHaveText("prod", {
+            useInnerText: true,
+        });
+        await expect(
+            page.getByText("Environment:").locator("xpath=.."),
+        ).toHaveText("Environment: prod", { useInnerText: true });
+    });
+
+    /**
+     * Serve the app's pages with another registry setting, as the server
+     * refuses to start with a missing or relative one
+     * @param page Page
+     * @param setting The setting
+     */
+    async function withSetting(page: Page, setting: string) {
+        await page.route("**/dashboard/service-info", async (route) => {
+            const response = await route.fetch();
+            const html = await response.text();
+            // the test means nothing if the page has the setting in another form
+            expect(html).toContain(registry);
+            await route.fulfill({
+                response,
+                body: html.replaceAll(registry, setting),
+            });
+        });
+        // the app's own site passes the calls on to the registry
+        await page.route(`**${setting}/service-info`, async (route) => {
+            // with an empty setting, the pattern also matches the page
+            if (route.request().resourceType() === "document")
+                return route.fallback();
+            const response = await route.fetch({
+                url: `${registry}/service-info`,
+            });
+            await route.fulfill({ response });
+        });
+    }
+
+    test("shows the API that the app is configured with", async ({ page }) => {
+        await page.goto("/dashboard/service-info");
+
+        await expect(
+            page
+                .getByRole("region", { name: "API Address" })
+                .getByRole("code"),
+        ).toHaveText(registry);
+    });
+
+    test("copies the API address", async ({ page }) => {
+        await page.addInitScript(() => {
+            Object.defineProperty(navigator, "clipboard", {
+                value: {
+                    writeText: async (text: string) => {
+                        Object.assign(window, { copied: text });
+                    },
+                },
+            });
+        });
+        await page.goto("/dashboard/service-info");
+
+        await page.getByRole("button", { name: "Copy API address" }).click();
+
+        await expect(page.getByText("Copied the API address.")).toBeVisible();
+        expect(await page.evaluate(() => Reflect.get(window, "copied"))).toBe(
+            registry,
+        );
+    });
+
+    test("says so if it can't copy the API address", async ({ page }) => {
+        await page.addInitScript(() => {
+            Object.defineProperty(navigator, "clipboard", {
+                value: undefined,
+            });
+        });
+        await page.goto("/dashboard/service-info");
+
+        await page.getByRole("button", { name: "Copy API address" }).click();
+
+        await expect(
+            page.getByText("Cannot copy the API address."),
+        ).toBeVisible();
+    });
+
+    test("shows a relative API address as the browser resolves it", async ({
+        page,
+        baseURL,
+    }) => {
+        await withSetting(page, "/ga4gh/registry/v1");
+        await page.goto("/dashboard/service-info");
+
+        await expect(
+            page
+                .getByRole("region", { name: "API Address" })
+                .getByRole("code"),
+        ).toHaveText(`${baseURL}/ga4gh/registry/v1`);
+    });
+
+    test("leaves out the API address without the setting", async ({ page }) => {
+        await withSetting(page, "");
+        await page.goto("/dashboard/service-info");
+
+        await expect(page.getByText("Registry Version")).toBeVisible();
+        await expect(
+            page.getByRole("region", { name: "API Address" }),
         ).toHaveCount(0);
     });
 

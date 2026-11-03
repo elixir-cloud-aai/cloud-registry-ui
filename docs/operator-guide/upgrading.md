@@ -4,7 +4,9 @@
 
 1. Pick the release that matches your registry's major and minor version
    (see [Compatibility](index.md#compatibility)). When you upgrade the
-   registry to a new minor version, upgrade the app with it.
+   registry to a new minor version, upgrade the app with it. 1.0.0-rc2 is an
+   exception: it doesn't work with cloud-registry 1.0.0rc1 (see
+   [below](#100-rc2)).
 2. Read its release notes on
    [GitHub](https://github.com/elixir-cloud-aai/cloud-registry-ui/releases),
    and the changes below, for settings to add or change.
@@ -12,10 +14,61 @@
    if needed, and replace the container with one of the new image.
 
 The app keeps no data of its own: everything is stored in the registry, so
-the app can be replaced at any time. Users who are logged in keep their
+the app can be replaced at any time, except when you upgrade to or from
+1.0.0-rc2 (see [below](#100-rc2)). Users who are logged in keep their
 session (it is kept in cookies), unless the release notes say otherwise.
 Logins that are in progress during the update may fail; users then log in
 again.
+
+## 1.0.0-rc2
+
+**Upgrade the registry together with the app: this version needs a registry
+newer than cloud-registry 1.0.0rc1, and has no fallback for older ones.** The
+registry moved the paths of users' roles to
+`/services/{serviceId}/permissions/users/{userId}`, and the app calls only
+these. Don't run this version with cloud-registry 1.0.0rc1: the registry
+answers `200 OK`, but grants the role to a user `users/bob` instead of `bob`
+(0.6.0 takes these paths the same way, and earlier versions don't find them).
+Earlier versions of the app can't change roles of users with the new registry,
+which no longer finds the old paths; if user IDs start with `users/`, they even
+change the roles of another user, so stop them first.
+
+So no order of apps and registry pods is safe during a rolling update. Follow
+the [registry's upgrade guide](https://cloud-registry.readthedocs.io/en/latest/upgrading/#from-100rc1):
+scale the registry to 0 replicas for the upgrade, unless nobody changes roles
+during it. After a rolling update, look for wrongly granted roles as the guide
+describes.
+
+If the app ran with an older registry, it can't repair the result: it reports
+an error for such a grant, but the wrong role stays stored, and a downgrade
+leaves the real user's role as it was. With that registry, **Remove** on `bob`
+removes the role of `users/bob`, if there is one, and otherwise fails, usually
+with "not found", but never touches `bob`'s role, so check all role changes made in that
+time. Upgrade the registry, then remove the wrong roles as the guide describes.
+To go back from this
+version, move the registry and the app back together, as the guide describes
+under **Going back**.
+
+The app refuses user IDs and groups that start with `/`, as their paths would
+be those of another user or group. Roles of such IDs, which should be rare, can
+no longer be changed in the app, which says so when you try.
+
+The **Manage access** dialog now has the tabs **Current Access** and
+**Invitations**, and shows 5 entries per page instead of 8. To change that,
+set `NEXT_PUBLIC_ACCESS_PAGE_SIZE` (see [Access
+dialog](configuration.md#access-dialog)); there is nothing else to change.
+It no longer lists accepted invitations, as the person is listed with their
+role.
+
+Invitations now have labels, which say who they are for, and **the form
+requires one by default**. To keep it optional, set
+`NEXT_PUBLIC_INVITATION_LABEL_REQUIRED=false` (see [Access
+dialog](configuration.md#access-dialog)). Expired invitations stay listed,
+marked as expired, with **New link**, removal and **Remove expired**. Both
+need a registry newer than cloud-registry 1.0.0rc1. If the app meets 1.0.0rc1
+during an upgrade, it creates links without the label and says so, and doesn't
+list expired invitations, as that registry doesn't; this is no reason to run
+that pairing, which gives roles to the wrong user, as described above.
 
 ## 1.0.0-rc1
 

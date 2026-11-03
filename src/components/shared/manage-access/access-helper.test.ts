@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { failure } from "@/test/errors";
 import {
     accessError,
-    accessPageSize,
     defaultGrant,
     filterHolders,
     grantSchema,
@@ -18,6 +17,13 @@ const issues = (data: object) =>
         .error?.issues.map((val) => val.message);
 
 describe("grantSchema", () => {
+    it.each(["...", "a..b", "a/.../b", ".hidden", "a./b", "https://i.org/u"])(
+        "accepts %s, which has no dot segments",
+        (principal) => {
+            expect(issues({ principal })).toBeUndefined();
+        },
+    );
+
     it("accepts users and groups, trimmed", () => {
         expect(
             grantSchema.parse({ ...defaultGrant, principal: " bob " }),
@@ -38,10 +44,20 @@ describe("grantSchema", () => {
             { kind: "group", principal: "/admins" },
             "Group can't start with '/'.",
         ],
-        [{ principal: ".." }, "User ID can't consist of dots only."],
+        [{ principal: "/bob" }, "User ID can't start with '/'."],
+        [{ principal: ".." }, "User ID can't have the parts '.' or '..'."],
         [
             { kind: "group", principal: "." },
-            "Group can't consist of dots only.",
+            "Group can't have the parts '.' or '..'.",
+        ],
+        [{ principal: "a/../b" }, "User ID can't have the parts '.' or '..'."],
+        [{ principal: "x/.." }, "User ID can't have the parts '.' or '..'."],
+        [{ principal: "../x" }, "User ID can't have the parts '.' or '..'."],
+        [{ principal: "a/./b" }, "User ID can't have the parts '.' or '..'."],
+        [{ principal: "a\\..\\b" }, "User ID can't have the parts '.' or '..'."],
+        [
+            { kind: "group", principal: "a/../b" },
+            "Group can't have the parts '.' or '..'.",
         ],
     ])("rejects %j", (data, message) => {
         expect(issues(data)).toEqual([message]);
@@ -98,11 +114,6 @@ describe("role holders", () => {
         { user_id: "carol@example.org", role: "maintainer" },
         { group: "urn:example:compute-team", role: "maintainer" },
     ] as const;
-
-    it("pages long lists", () => {
-        // as the user guide says
-        expect(accessPageSize).toBe(8);
-    });
 
     it("names users by their display name, if known", () => {
         expect(userName(holders[0])).toBe("Bob Builder");
