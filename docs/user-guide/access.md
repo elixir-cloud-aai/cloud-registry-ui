@@ -107,9 +107,10 @@ Notes:
   message, not in a channel or on a page that others can read.
 - **The list** shows the open and the expired invitations, newest first
   (label, role, when created and when they expire), 5 per page unless the
-  deployment sets another number. Select the bin icon to revoke an open
-  invitation; its link then stops working. Accepted invitations aren't
-  listed: the person is listed under **Current Access**, where you can change
+  deployment sets another number. Long labels are cut off: point at one to see
+  all of it, which touch screens don't offer. On phones, the expiry is under
+  the label. Select the bin icon to revoke an open invitation; its link then stops working. Accepted invitations
+  aren't listed: the person is listed under **Current Access**, where you can change
   or remove their role.
 - **Expired invitations** are marked as **Expired**, so that you can see who
   didn't accept in time. Select **New link** to invite the person again,
