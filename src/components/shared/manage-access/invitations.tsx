@@ -70,12 +70,20 @@ function Invitations({
         invitations ?? created.map((val) => val.invitation),
     );
     const links = new Map(created.map((val) => [val.invitation.id, val.link]));
+    // a link stops working with its invitation
+    const selectable = created.some((val) => val.link === uncopied);
+    const uncopiedField = useRef<HTMLInputElement>(null);
     const count = invitations ? shown.length : undefined;
     // the registry lists all invitations at once: paged here
     const { page, pageCount, pageItems, setPage } = usePagination(
         shown,
         pageSize,
     );
+
+    // in view and selected, as the message about it asks to select it
+    useEffect(() => {
+        if (uncopied) uncopiedField.current?.focus();
+    }, [uncopied]);
 
     useEffect(() => {
         onCountChange?.(count);
@@ -93,6 +101,12 @@ function Invitations({
                 if (request !== latestRequest.current) return;
                 setInvitations(val);
                 setListFailure(undefined);
+                // links of invitations that were accepted, revoked or expired
+                // no longer work, also if a later list can't be loaded
+                const open = new Set(openInvitations(val).map(({ id }) => id));
+                setCreated((current) =>
+                    current.filter(({ invitation }) => open.has(invitation.id)),
+                );
             })
             .catch((err) => {
                 if (request !== latestRequest.current) return;
@@ -235,8 +249,9 @@ function Invitations({
             {listFailure && (
                 <p className="text-sm text-muted-foreground">{listFailure}</p>
             )}
-            {uncopied && (
+            {selectable && (
                 <Input
+                    ref={uncopiedField}
                     readOnly
                     value={uncopied}
                     aria-label="Invitation link"

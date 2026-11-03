@@ -86,6 +86,10 @@ Notes:
   can only get a new link: select the arrows icon (**New link**) in its row.
   This creates an invitation for the same role, at the top of the list, and
   revokes the old one, whose link then stops working.
+- **If the list can't be loaded,** the dialog says so and lists only the
+  invitations created in it, so that you can still copy their links. Reopen
+  the dialog later to revoke invitations or create new ones; the links of
+  invitations you copied keep working.
 - **Share it only with the person you mean:** whoever opens the link and
   logs in gets the role, and the link works once. Send it in a private
   message, not in a channel or on a page that others can read.

@@ -382,9 +382,8 @@ test.describe("invitations", () => {
         await page.goto(`/dashboard/services/view/${service.id}`);
         await openInvitations(page);
         const dialog = page.getByRole("dialog");
-        await expect(
-            dialog.getByRole("button", { name: "Create link" }),
-        ).toBeEnabled();
+        // two links, one of which is revoked while the list fails
+        await createLink(page);
         await page.route(`${registry}${path}`, (route) =>
             route.request().method() === "GET"
                 ? route.fulfill({
@@ -401,6 +400,7 @@ test.describe("invitations", () => {
                 "Cannot load the invitations. Please try again later.",
             ),
         ).toBeVisible();
+        await expect(copyButtons(page)).toHaveCount(2);
         const link = await copyLink(page);
         const accepted = await api(
             await tokenOf(browser, "other"),
@@ -410,9 +410,48 @@ test.describe("invitations", () => {
         );
         expect(accepted.status).toBe(200);
         // without a list, nothing else is acted on
+        const revoke = dialog.getByRole("button", { name: /^Revoke / });
+        await expect(revoke).toHaveCount(2);
+        for (const button of await revoke.all())
+            await expect(button).toBeDisabled();
+        // the failures on purpose
+        expect(problems.filter((val) => !val.includes("500"))).toEqual([]);
+        problems.length = 0;
+    });
+
+    test("revoked links aren't offered if the list can't be loaded", async ({
+        page,
+        browser,
+        problems,
+    }) => {
+        const service = await registerService(browser, "owner", "Dropped");
+        await watchClipboard(page);
+        await login(page, "owner");
+        const path = `/services/${encodeURIComponent(service.id)}/invitations`;
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        await createLink(page);
+        await createLink(page);
+        const dialog = page.getByRole("dialog");
+        await page.route(`${registry}${path}`, (route) =>
+            route.request().method() === "GET"
+                ? route.fulfill({
+                      status: 500,
+                      contentType: "application/problem+json",
+                      headers: { "Access-Control-Allow-Origin": "*" },
+                      body: JSON.stringify({ title: "Server error" }),
+                  })
+                : route.fallback(),
+        );
+        await dialog
+            .getByRole("button", { name: /^Revoke / })
+            .first()
+            .click();
         await expect(
-            dialog.getByRole("button", { name: /^Revoke / }),
-        ).toBeDisabled();
+            dialog.getByText(
+                "Cannot load the invitations. Please try again later.",
+            ),
+        ).toBeVisible();
+        await expect(copyButtons(page)).toHaveCount(1);
         // the failures on purpose
         expect(problems.filter((val) => !val.includes("500"))).toEqual([]);
         problems.length = 0;
@@ -442,8 +481,21 @@ test.describe("invitations", () => {
         await expect(
             dialog.getByRole("textbox", { name: "Invitation link" }),
         ).toHaveValue(/\/invitations#[\w-]{43}$/);
-        // gone with the invitation
-        await dialog.getByRole("button", { name: /^Revoke / }).click();
+        // selected, to copy it
+        await expect(
+            dialog.getByRole("textbox", { name: "Invitation link" }),
+        ).toBeFocused();
+        // gone with the next change
+        await dialog.getByRole("button", { name: "Create link" }).click();
+        await expect(dialog.getByRole("textbox")).toHaveCount(0);
+        await expect(copyButtons(page)).toHaveCount(2);
+        // and with the invitation
+        await copyButtons(page).first().click();
+        await expect(dialog.getByRole("textbox")).toHaveCount(1);
+        await dialog
+            .getByRole("button", { name: /^Revoke / })
+            .first()
+            .click();
         await expect(dialog.getByRole("textbox")).toHaveCount(0);
     });
 
