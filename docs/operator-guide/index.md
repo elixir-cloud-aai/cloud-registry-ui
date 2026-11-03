@@ -70,9 +70,10 @@ it has no fallback.** Don't run it with older registries, not even for a while:
   `users/bob` instead of `bob`. `bob` gets no access, and a downgrade leaves
   `bob`'s role as it was. The app notices from the answer and reports an error,
   but the wrong role is stored by then.
-- **The app can't clean up:** with these registries, removing a user's role
-  doesn't remove it, and usually fails with "not found", until the registry is
-  upgraded.
+- **The app can't clean up:** with these registries, **Remove** on `bob` never
+  touches `bob`'s role. It removes that of `users/bob`, if there is one, which
+  the app reports as an error, and otherwise fails with "not found". So it
+  doesn't take access away until the registry is upgraded.
 - Earlier versions don't find these paths.
 
 No order of apps and registry pods is safe during a rolling update: see

@@ -41,6 +41,19 @@ interface RequestOptions {
   authenticated?: boolean;
 }
 
+/**
+ * Get the error for an answer about another user than the requested one:
+ * cloud-registry 0.6.0 and 1.0.0rc1 take the paths of users' roles for those
+ * of a user `users/<ID>`, and answer `200 OK`, so only the answer tells.
+ * Registries return the ID from the path as it is
+ * @param what What the registry did
+ * @returns The error, with the message for the user
+ */
+function tooOldRegistry(what: string) {
+  const detail = `This registry is too old for this version of the app: ${what}. Ask its admins to upgrade it; until then, this app can't change the roles of users.`;
+  return Object.assign(new Error(detail), { detail });
+}
+
 class AuthenticatedCloudRegistryProvider
   implements CloudRegistryProvider
 {
@@ -469,11 +482,10 @@ class AuthenticatedCloudRegistryProvider
         authenticated: true,
       },
     );
-    // cloud-registry 0.6.0 and 1.0.0rc1 take this path for that of a user
-    // `users/<ID>`, and answer `200 OK`: only the answer tells
     if (granted?.user_id !== undefined && granted.user_id !== userId) {
-      const detail = `This registry is too old for this version of the app: it granted the role to '${granted.user_id}', not to '${userId}'. Ask its admins to upgrade it; until then, this app can't change or remove that role.`;
-      throw Object.assign(new Error(detail), { detail });
+      throw tooOldRegistry(
+        `it granted the role to '${granted.user_id}', not to '${userId}'`,
+      );
     }
     return granted;
   }
@@ -488,13 +500,19 @@ class AuthenticatedCloudRegistryProvider
     serviceId: ServiceId,
     userId: UserId,
   ): Promise<UserId> {
-    return this.request(
+    const revoked = await this.request<UserId>(
       `/services/${this.idPath(serviceId)}/permissions/users/${this.principalPath(userId)}`,
       {
         method: "DELETE",
         authenticated: true,
       },
     );
+    if (typeof revoked === "string" && revoked !== userId) {
+      throw tooOldRegistry(
+        `it removed the role of '${revoked}', not of '${userId}'`,
+      );
+    }
+    return revoked;
   }
 
   /**

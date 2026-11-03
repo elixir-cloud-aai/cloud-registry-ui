@@ -224,6 +224,7 @@ function Invitations({
                     {
                         description:
                             "This registry is too old for this version of the app: don't change the roles of users until its admins upgrade it.",
+                        duration: 10000,
                     },
                 );
         }, createInvitationError);

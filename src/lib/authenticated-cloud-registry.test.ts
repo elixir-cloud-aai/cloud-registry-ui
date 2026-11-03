@@ -28,6 +28,34 @@ function lastRequest() {
     };
 }
 
+describe("revokeServicePermission", () => {
+    it("takes the registry's answer for the requested user", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValue(json("bob@x"));
+        await expect(
+            provider.revokeServicePermission("a", "bob@x"),
+        ).resolves.toBe("bob@x");
+    });
+
+    it("takes an answer that names no user", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+        await expect(
+            provider.revokeServicePermission("a", "bob@x"),
+        ).resolves.toBeUndefined();
+    });
+
+    it("fails if the registry removed the role of another user", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValue(json("users/bob@x"));
+        await expect(
+            provider.revokeServicePermission("a", "bob@x"),
+        ).rejects.toMatchObject({
+            detail: "This registry is too old for this version of the app: it removed the role of 'users/bob@x', not of 'bob@x'. Ask its admins to upgrade it; until then, this app can't change the roles of users.",
+        });
+    });
+});
+
 describe("grantServicePermission", () => {
     const role = { role: "owner" } as const;
 
@@ -58,7 +86,7 @@ describe("grantServicePermission", () => {
             .catch((err: unknown) => err);
         expect(error).toBeInstanceOf(Error);
         expect(error).toMatchObject({
-            detail: "This registry is too old for this version of the app: it granted the role to 'users/bob@x', not to 'bob@x'. Ask its admins to upgrade it; until then, this app can't change or remove that role.",
+            detail: "This registry is too old for this version of the app: it granted the role to 'users/bob@x', not to 'bob@x'. Ask its admins to upgrade it; until then, this app can't change the roles of users.",
         });
     });
 });

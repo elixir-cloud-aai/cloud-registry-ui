@@ -40,11 +40,14 @@ during it. After a rolling update, look for wrongly granted roles as the guide
 describes.
 
 If the app ran with an older registry, it can't repair the result: it reports
-an error for such a grant, but the wrong role stays stored, a downgrade leaves
-the real user's role as it was, and with that registry removing a user's role
-doesn't remove it, and usually fails with "not found". Upgrade the registry, then remove the wrong
-roles as the guide describes. To go back from this version, move the registry
-and the app back together, as the guide describes under **Going back**.
+an error for such a grant, but the wrong role stays stored, and a downgrade
+leaves the real user's role as it was. With that registry, **Remove** on `bob`
+removes the role of `users/bob`, if there is one, and otherwise fails with "not
+found", but never touches `bob`'s role, so check all role changes made in that
+time. Upgrade the registry, then remove the wrong roles as the guide describes.
+To go back from this
+version, move the registry and the app back together, as the guide describes
+under **Going back**.
 
 The **Manage access** dialog now has the tabs **Current Access** and
 **Invitations**, and shows 5 entries per page instead of 8. To change that,
