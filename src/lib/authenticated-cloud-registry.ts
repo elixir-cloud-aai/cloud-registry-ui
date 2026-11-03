@@ -116,7 +116,11 @@ class AuthenticatedCloudRegistryProvider
   private principalPath(id: string): string {
     // the path would have a double slash, which the registry redirects to
     // that of another user or group
-    if (id.startsWith("/")) throw new Error(`Invalid ID: '${id}'`);
+    if (id.startsWith("/")) {
+      throw Object.assign(new Error(`Invalid ID: '${id}'`), {
+        detail: `The app can't change the role of '${id}', as IDs can't start with '/'.`,
+      });
+    }
     return this.idPath(id);
   }
 

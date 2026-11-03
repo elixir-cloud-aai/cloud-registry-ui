@@ -56,6 +56,17 @@ describe("revokeServicePermission", () => {
     });
 });
 
+describe("IDs with a leading slash", () => {
+    it("are refused with a message for the user", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        await expect(
+            provider.revokeServicePermission("a", "/u"),
+        ).rejects.toMatchObject({
+            detail: "The app can't change the role of '/u', as IDs can't start with '/'.",
+        });
+    });
+});
+
 describe("grantServicePermission", () => {
     const role = { role: "owner" } as const;
 

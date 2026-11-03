@@ -27,6 +27,10 @@ export const roleOptions = roles.map((value) => ({
     value,
 }));
 
+// `.` or `..`, the whole ID or between slashes or backslashes, which browsers
+// take as slashes (`UserId` and `Group` in the registry's API)
+const dotSegment = /(^|[/\\])\.\.?([/\\]|$)/;
+
 export const grantSchema = z
     .object({
         kind: z.enum(["user", "group"]),
@@ -53,15 +57,15 @@ export const grantSchema = z
                         ? "User ID can't start with '/'."
                         : "Group can't start with '/'.",
             });
-        // dots only: `.` and `..` would be dot segments of the API path
-        else if (/^\.+$/.test(val.principal))
+        // as the registry: clients resolve dot segments in URLs
+        else if (dotSegment.test(val.principal))
             ctx.addIssue({
                 code: "custom",
                 path: ["principal"],
                 message:
                     val.kind === "user"
-                        ? "User ID can't consist of dots only."
-                        : "Group can't consist of dots only.",
+                        ? "User ID can't have the parts '.' or '..'."
+                        : "Group can't have the parts '.' or '..'.",
             });
     });
 

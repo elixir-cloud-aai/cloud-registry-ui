@@ -177,6 +177,8 @@ test.describe("manage access", () => {
         const path = `/services/${encodeURIComponent(service.id)}/permissions`;
         const ids = [
             "https://login.example.org/users/7",
+            // no dot segment, unlike `..`
+            "...",
             "groups",
             "groups/team-lead",
         ];

@@ -44,6 +44,12 @@ Serve the app over HTTPS, at the address of `LOGIN_REDIRECT_URI` (see
   [Registry](configuration.md#registry)): the app sets its own, with a
   nonce per request.
 - Don't cache the pages: they are rendered per request.
+- Set `Strict-Transport-Security` in the proxy: the app doesn't send it, as it
+  doesn't know whether it is served over HTTPS.
+- Pass encoded slashes (`%2F`) in the registry's paths on as they are: the app
+  sends user IDs and groups with slashes, e.g. IDs namespaced by issuer, that
+  way. Some proxies decode or refuse them by default, so grant a role to such
+  an ID once to check.
 
 ## Verifying images
 

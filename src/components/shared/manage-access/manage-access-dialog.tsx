@@ -191,6 +191,11 @@ function ManageAccessDialog({
                 {/* table rows low enough for a laptop's window */}
                 <Tabs
                     defaultValue="access"
+                    // an invitation may have been accepted, by now or in the
+                    // meantime: the other tab then no longer lists it
+                    onValueChange={(tab) => {
+                        if (tab === "access" && !changing) fetchPermissions();
+                    }}
                     className="min-w-0 [&_td]:py-1.5 [&_th]:h-9"
                 >
                     <TabsList>

@@ -831,6 +831,65 @@ test.describe("invitations", () => {
         expect(scroll.scrollWidth).toBeLessThanOrEqual(scroll.clientWidth);
     });
 
+    test("the deployment sets the entries per page", async ({
+        page,
+        browser,
+    }) => {
+        const service = await registerService(browser, "owner", "Paged");
+        await setPublicSetting(page, "NEXT_PUBLIC_ACCESS_PAGE_SIZE", "2");
+        await login(page, "owner");
+        const path = `/services/${encodeURIComponent(service.id)}`;
+        await page.route(`${registry}${path}/invitations`, async (route) => {
+            if (route.request().method() !== "GET") return route.fallback();
+            const response = await route.fetch();
+            await route.fulfill({
+                response,
+                json: Array.from({ length: 3 }, (_, idx) => ({
+                    id: `invitation-${idx}`,
+                    service_id: service.id,
+                    role: "maintainer",
+                    label: `Label ${idx}`,
+                    status: "open",
+                    created_by: users.owner.sub,
+                    created_at: `2026-11-01T0${idx}:00:00Z`,
+                    expires_at: "2099-11-08T00:00:00Z",
+                })),
+            });
+        });
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        await openInvitations(page);
+        await expect(invitationRows(page)).toHaveCount(2);
+        await expect(
+            page.getByRole("dialog").getByRole("link", { name: "2" }),
+        ).toBeVisible();
+    });
+
+    test("an invitation accepted meanwhile shows under Current Access", async ({
+        page,
+        browser,
+    }) => {
+        const service = await registerService(browser, "owner", "Meanwhile");
+        const owner = await login(page, "owner");
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        await page.getByRole("button", { name: "Manage access" }).click();
+        const dialog = page.getByRole("dialog");
+        await expect(dialog.getByRole("table").first()).toBeVisible();
+        const path = `/services/${encodeURIComponent(service.id)}/invitations`;
+        const created = await api(owner, "POST", path, { role: "maintainer" });
+        const accepted = await api(
+            await tokenOf(browser, "other"),
+            "POST",
+            "/invitations/accept",
+            { token: created.body.token },
+        );
+        expect(accepted.status).toBe(200);
+        await expect(dialog.getByText(users.other.sub)).toHaveCount(0);
+
+        await dialog.getByRole("tab", { name: /^Invitations/ }).click();
+        await dialog.getByRole("tab", { name: "Current Access" }).click();
+        await expect(dialog.getByText(users.other.sub)).toBeVisible();
+    });
+
     test("labels name the invitations", async ({ page, browser }) => {
         const service = await registerService(browser, "owner", "Labelled");
         await watchClipboard(page);
