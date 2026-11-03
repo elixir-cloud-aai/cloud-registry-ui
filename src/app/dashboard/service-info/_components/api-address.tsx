@@ -7,6 +7,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { copyText } from "@/lib/clipboard";
 import { publicSetting } from "@/lib/public-settings";
 import { apiAddress } from "./api-address-helper";
 
@@ -15,14 +16,11 @@ import { apiAddress } from "./api-address-helper";
  * @param address The address
  */
 function copyAddress(address: string) {
-    const failed = () =>
-        toast.error("Cannot copy the API address. Select it to copy it.");
-    // missing outside secure contexts (HTTPS or localhost)
-    if (!navigator.clipboard) return failed();
-    navigator.clipboard
-        .writeText(address)
+    copyText(address)
         .then(() => toast.success("Copied the API address."))
-        .catch(failed);
+        .catch(() =>
+            toast.error("Cannot copy the API address. Select it to copy it."),
+        );
 }
 
 /**

@@ -16,6 +16,7 @@ import { PendingBadge, PendingBanner } from "@/components/shared/pending";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
+import { copyText } from "@/lib/clipboard";
 import type { Me, Verification } from "@/lib/cloud-registry.types";
 import { isVerificationMismatch, mutationError } from "@/lib/errors";
 import {
@@ -102,10 +103,7 @@ function ServiceDetails({
             setShareUrl(url);
             toast.error("Cannot copy the link. Copy it from the field below.");
         };
-        // missing outside secure contexts (HTTPS or localhost)
-        if (!navigator.clipboard) return showUrl();
-        navigator.clipboard
-            .writeText(url)
+        copyText(url)
             .then(() => {
                 setShareUrl(undefined);
                 toast.success("Copied the link to this service.");

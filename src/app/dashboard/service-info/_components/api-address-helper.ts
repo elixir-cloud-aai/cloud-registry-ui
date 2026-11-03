@@ -18,7 +18,9 @@ function apiAddress(
     const url = new URL(setting, page);
     url.username = "";
     url.password = "";
-    return safeHref(url.href);
+    // a bare origin gets a "/", which calls would double: `https://x//service-info`
+    const added = url.href.endsWith("/") && !setting.trim().endsWith("/");
+    return safeHref(added ? url.href.slice(0, -1) : url.href);
 }
 
 export { apiAddress };

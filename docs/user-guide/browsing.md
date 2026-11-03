@@ -105,6 +105,7 @@ configured with, which may be on another host than the app. It's the address
 your browser calls, and the one to use in scripts or other clients of the
 API; the button next to it copies it. It's a base URL, not a page: the API's
 calls add their paths to it, e.g. `/service-info`.
+The page leaves it out if the app has no usable address configured.
 
 Under **Registration Rules**, it shows the rules that the registry checks
 for registrations:

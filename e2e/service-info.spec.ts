@@ -87,9 +87,12 @@ test.describe("service info", () => {
     async function withSetting(page: Page, setting: string) {
         await page.route("**/dashboard/service-info", async (route) => {
             const response = await route.fetch();
+            const html = await response.text();
+            // the test means nothing if the page has the setting in another form
+            expect(html).toContain(registry);
             await route.fulfill({
                 response,
-                body: (await response.text()).replaceAll(registry, setting),
+                body: html.replaceAll(registry, setting),
             });
         });
         // the app's own site passes the calls on to the registry
