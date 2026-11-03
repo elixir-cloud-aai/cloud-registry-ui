@@ -65,6 +65,9 @@ function Invitations({
     // the link that couldn't be copied, shown to be selected instead
     const [uncopied, setUncopied] = useState<string>();
     const latestRequest = useRef(0);
+    // browsers copy in the background: only the latest result counts, and none
+    // once the invitations changed
+    const latestCopy = useRef(0);
     // without a list, those created here, so that their links stay available
     const shown = openInvitations(
         invitations ?? created.map((val) => val.invitation),
@@ -127,6 +130,7 @@ function Invitations({
     ) => {
         if (!provider) return;
         setChanging(true);
+        latestCopy.current++;
         setUncopied(undefined);
         // new links are shown only while the dialog is open
         onChanging?.(true);
@@ -173,17 +177,16 @@ function Invitations({
 
     // a new invitation for the same role first, so that a failure (e.g. at
     // the limit) keeps the old one
+    // only for invitations whose link isn't known, so there is none to forget
     const renew = (invitation: Invitation) =>
         run(async (val) => {
             await createLink(val, invitation.role);
             try {
                 await val.revokeInvitation(serviceId, invitation.id);
             } catch (err) {
-                if (isDeadInvitation(err)) dropLink(invitation.id);
                 toast.error(renewRevokeError(err));
                 return;
             }
-            dropLink(invitation.id);
             toast.success(
                 `Created a new ${invitation.role} link; the old one no longer works`,
             );
@@ -202,14 +205,15 @@ function Invitations({
         }, revokeInvitationError);
 
     const copy = (link: string) => {
+        const request = ++latestCopy.current;
         const failed = () => {
-            setUncopied(link);
+            if (request === latestCopy.current) setUncopied(link);
             toast.error("Cannot copy the link; select and copy it.");
         };
         // no Clipboard API outside secure contexts
         if (!navigator.clipboard) return failed();
         navigator.clipboard.writeText(link).then(() => {
-            setUncopied(undefined);
+            if (request === latestCopy.current) setUncopied(undefined);
             toast.success("Copied the invitation link");
         }, failed);
     };

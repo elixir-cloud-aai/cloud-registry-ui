@@ -499,6 +499,36 @@ test.describe("invitations", () => {
         await expect(dialog.getByRole("textbox")).toHaveCount(0);
     });
 
+    test("a late failure to copy doesn't bring back the field", async ({
+        page,
+        browser,
+    }) => {
+        const service = await registerService(browser, "owner", "Late");
+        await page.addInitScript(() => {
+            Object.defineProperty(navigator, "clipboard", {
+                value: {
+                    writeText: () =>
+                        new Promise((_, reject) =>
+                            setTimeout(() => reject(new Error("denied")), 2000),
+                        ),
+                },
+            });
+        });
+        await login(page, "owner");
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        await openInvitations(page);
+        const dialog = page.getByRole("dialog");
+        await dialog.getByRole("button", { name: "Create link" }).click();
+        await copyButtons(page).first().click();
+        // a change while the browser is still copying
+        await dialog.getByRole("button", { name: "Create link" }).click();
+        await expect(copyButtons(page)).toHaveCount(2);
+        await expect(
+            page.getByText("Cannot copy the link; select and copy it."),
+        ).toBeVisible();
+        await expect(dialog.getByRole("textbox")).toHaveCount(0);
+    });
+
     test("both tabs fit a laptop's window without scrolling", async ({
         page,
         browser,
