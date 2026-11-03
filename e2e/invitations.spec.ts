@@ -812,7 +812,9 @@ test.describe("invitations", () => {
             dialog.getByRole("columnheader", { name: "Expires" }),
         ).toBeHidden();
         await expect(invitationRows(page).first()).toContainText("expires");
-        const wrapper = dialog.locator('[data-slot="table-container"]').last();
+        const wrapper = invitationRows(page)
+            .first()
+            .locator('xpath=ancestor::*[@data-slot="table-container"]');
         const scroll = await wrapper.evaluate((el) => ({
             scrollWidth: el.scrollWidth,
             clientWidth: el.clientWidth,

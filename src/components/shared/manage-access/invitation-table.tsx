@@ -90,13 +90,20 @@ function InvitationTable({
                                     </span>
                                     <span className="truncate text-xs text-muted-foreground">
                                         created {when(val.created_at)}
-                                        {!expired &&
-                                            !link &&
-                                            ", link no longer shown"}
+                                        {!expired && !link && (
+                                            <span className="hidden sm:inline">
+                                                , link no longer shown
+                                            </span>
+                                        )}
                                     </span>
                                     <span className="truncate text-xs text-muted-foreground sm:hidden">
                                         expires {when(val.expires_at)}
                                     </span>
+                                    {!expired && !link && (
+                                        <span className="truncate text-xs text-muted-foreground sm:hidden">
+                                            link no longer shown
+                                        </span>
+                                    )}
                                 </div>
                             </TableCell>
                             <TableCell className="hidden text-xs sm:table-cell">
