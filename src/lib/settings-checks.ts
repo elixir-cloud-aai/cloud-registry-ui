@@ -2,6 +2,7 @@
  * @description checks of the public settings (`NEXT_PUBLIC_*`), in one
  * place for `next.config.ts` and `src/instrumentation.ts`
  */
+import { accessSettings } from "./access-settings";
 import { brandingSettings } from "./branding";
 import { registrySettings } from "./registry-settings";
 
@@ -28,6 +29,7 @@ function removedSettingsWarnings() {
  */
 function publicSettingsChecks() {
     registrySettings();
+    accessSettings();
     brandingSettings();
     removedSettingsWarnings();
 }
