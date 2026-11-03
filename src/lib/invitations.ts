@@ -241,6 +241,10 @@ function invitationStatus(
     return Date.parse(invitation.expires_at) <= now ? "expired" : "open";
 }
 
+/** Tell whether an invitation has expired */
+const isExpiredInvitation = (invitation: Invitation) =>
+    invitationStatus(invitation) === "expired";
+
 /**
  * Get the invitations to show: open and expired ones, as accepted ones are
  * users with a role, newest first
@@ -274,7 +278,9 @@ function invitationLabelError(text: string, required: boolean) {
     return undefined;
 }
 
-// registries up to cloud-registry 1.0.0rc1 refuse labels as unknown fields
+// registries up to cloud-registry 1.0.0rc1 refuse labels as unknown fields;
+// the words are those of the API validation (Connexion, with jsonschema) there:
+// "Additional properties are not allowed ('label' was unexpected)"
 const isLabelRefused = (err: unknown) =>
     hasStatus(err, 400) &&
     errorDetail(err)?.includes("'label' was unexpected") === true;
@@ -417,6 +423,7 @@ export {
     invitationStatus,
     invitationToken,
     isDeadInvitation,
+    isExpiredInvitation,
     keepPendingToken,
     listInvitationsError,
     pendingToken,

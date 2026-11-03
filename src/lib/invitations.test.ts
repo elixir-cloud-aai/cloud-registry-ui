@@ -11,6 +11,7 @@ import {
     invitationStatus,
     invitationToken,
     isDeadInvitation,
+    isExpiredInvitation,
     keepPendingToken,
     listInvitationsError,
     pendingToken,
@@ -485,6 +486,11 @@ describe("invitation status", () => {
                 now,
             ),
         ).toBe("open");
+    });
+
+    it("tells expired invitations", () => {
+        expect(isExpiredInvitation({ ...base, status: "expired" })).toBe(true);
+        expect(isExpiredInvitation({ ...base, status: "open" })).toBe(false);
     });
 
     describe("of registries without it", () => {

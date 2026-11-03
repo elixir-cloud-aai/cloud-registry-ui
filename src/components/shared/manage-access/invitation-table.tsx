@@ -11,7 +11,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import type { Invitation } from "@/lib/cloud-registry.types";
-import { invitationStatus } from "@/lib/invitations";
+import { isExpiredInvitation } from "@/lib/invitations";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -53,7 +53,7 @@ function InvitationTable({
             </TableHeader>
             <TableBody>
                 {invitations.map((val) => {
-                    const expired = invitationStatus(val) === "expired";
+                    const expired = isExpiredInvitation(val);
                     const link = expired ? undefined : links.get(val.id);
                     const what = val.label
                         ? `${val.role} invitation "${val.label}"`
@@ -72,7 +72,7 @@ function InvitationTable({
                                             )}
                                             title={val.label}
                                         >
-                                            {val.label ?? "No label"}
+                                            {val.label || "No label"}
                                         </span>
                                         <Badge variant="secondary">
                                             {val.role}

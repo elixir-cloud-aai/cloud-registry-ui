@@ -15,6 +15,7 @@ import {
     invitationLink,
     invitationStatus,
     isDeadInvitation,
+    isExpiredInvitation,
     listInvitationsError,
     removedExpiredMessage,
     removeExpiredError,
@@ -54,8 +55,9 @@ type CreatedLink = {
 /**
  * Invitations to a service: create a link for a role, with a label, list the
  * open and expired invitations, newest first and in pages, give them a new
- * link, and revoke or remove them. The links created while the component is shown stay available;
- * the registry stores only hashes of the tokens, so no others are known.
+ * link, and revoke or remove them. The links created while the component is
+ * shown stay available; the registry stores only hashes of the tokens, so no
+ * others are known.
  * Requests and their messages are here, the list in `InvitationTable`
  */
 function Invitations({
@@ -87,7 +89,7 @@ function Invitations({
     const shown = shownInvitations(
         invitations ?? created.map((val) => val.invitation),
     );
-    const expired = shown.filter((val) => invitationStatus(val) === "expired");
+    const expired = shown.filter(isExpiredInvitation);
     const links = new Map(created.map((val) => [val.invitation.id, val.link]));
     // a link stops working with its invitation
     const selectable = created.some((val) => val.link === uncopied);
@@ -221,10 +223,10 @@ function Invitations({
     };
 
     // a new invitation for the same role and label first, so that a failure
-    // (e.g. at the limit) keeps the old one
-    // only for invitations whose link isn't known, so there is none to forget
+    // (e.g. at the limit) keeps the old one. Rows offer this only for
+    // invitations whose link isn't known, so no known link gets lost
     const renew = (invitation: Invitation) => {
-        const dead = invitationStatus(invitation) === "expired";
+        const dead = isExpiredInvitation(invitation);
         run(
             async (val) => {
                 await createLink(val, invitation.role, invitation.label);
@@ -247,7 +249,7 @@ function Invitations({
     };
 
     const revoke = (invitation: Invitation) => {
-        const dead = invitationStatus(invitation) === "expired";
+        const dead = isExpiredInvitation(invitation);
         run(
             async (val) => {
                 try {

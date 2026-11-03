@@ -55,13 +55,15 @@ with older registries without them, e.g. without the switch to admin mode:
 | Several login providers (the registry namespaces user IDs by issuer, see [Login](login.md))  | 0.6.0                |
 | [Limit on registered services](../user-guide/registering.md#limit-on-registered-services)    | 1.0.0rc1             |
 | [Invitations](../user-guide/access.md#inviting-by-link)                                      | 1.0.0rc1             |
-| [Labels and expired invitations](../user-guide/access.md#inviting-by-link)                   | after 1.0.0rc1       |
+| [Labels and expired invitations](../user-guide/access.md#inviting-by-link)                   | newer than 1.0.0rc1  |
 | [Registration rules](configuration.md#registry) (environments, URL schemes)                  | 0.6.0                |
 
-The app is tested against the development version of cloud-registry after
-1.0.0rc1, as labels and expired invitations aren't released yet; 1.0.0-rc1
-was tested against cloud-registry 1.0.0rc1 (see the [release
-notes](../releases/1.0.0-rc1.md)).
+Labels and expired invitations aren't in a release of cloud-registry yet. With
+cloud-registry 1.0.0rc1, the app works without them. The end-to-end tests
+therefore run against its development version.
+
+The app's release 1.0.0-rc1 was tested against cloud-registry 1.0.0rc1 (see the
+[release notes](../releases/1.0.0-rc1.md)).
 
 The limit on the services per user (see [Limit on registered
 services](../user-guide/registering.md#limit-on-registered-services)) comes
