@@ -28,8 +28,8 @@ whom to ask.
 
 Owners of a service, and admins, can see and change who has which role on
 it. This needs a registry newer than cloud-registry 1.0.0rc1 (see
-[Compatibility](../operator-guide/index.md#compatibility)); older ones give
-roles to the wrong user:
+[Compatibility](../operator-guide/index.md#compatibility)); 0.6.0 and 1.0.0rc1
+give roles to the wrong user:
 
 1. Open the service and select **Manage access**. The dialog has two tabs:
    **Current Access**, described here, and **Invitations** (see [Inviting

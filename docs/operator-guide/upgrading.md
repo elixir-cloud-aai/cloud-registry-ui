@@ -42,8 +42,8 @@ describes.
 If the app ran with an older registry, it can't repair the result: it reports
 an error for such a grant, but the wrong role stays stored, and a downgrade
 leaves the real user's role as it was. With that registry, **Remove** on `bob`
-removes the role of `users/bob`, if there is one, and otherwise fails with "not
-found", but never touches `bob`'s role, so check all role changes made in that
+removes the role of `users/bob`, if there is one, and otherwise fails, usually
+with "not found", but never touches `bob`'s role, so check all role changes made in that
 time. Upgrade the registry, then remove the wrong roles as the guide describes.
 To go back from this
 version, move the registry and the app back together, as the guide describes

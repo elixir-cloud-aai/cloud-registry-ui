@@ -48,8 +48,8 @@ Releases are published as GitHub releases and as images on Docker Hub, `elixircl
 
 Features need a registry of the version below. From 1.0.0-rc2, registries
 older than the row **Changing roles of users** states **aren't supported**:
-they don't fail, they give roles to the wrong user (see below). The other rows
-say which version brought a feature:
+0.6.0 and 1.0.0rc1 don't fail, they give roles to the wrong user (see below).
+The other rows say which version brought a feature:
 
 | Feature                                                                                      | Needs cloud-registry |
 | -------------------------------------------------------------------------------------------- | -------------------- |
@@ -72,8 +72,8 @@ it has no fallback.** Don't run it with older registries, not even for a while:
   but the wrong role is stored by then.
 - **The app can't clean up:** with these registries, **Remove** on `bob` never
   touches `bob`'s role. It removes that of `users/bob`, if there is one, which
-  the app reports as an error, and otherwise fails with "not found". So it
-  doesn't take access away until the registry is upgraded.
+  the app reports as an error, and otherwise fails, usually with "not found". So
+  it doesn't take access away until the registry is upgraded.
 - Earlier versions don't find these paths.
 
 No order of apps and registry pods is safe during a rolling update: see
