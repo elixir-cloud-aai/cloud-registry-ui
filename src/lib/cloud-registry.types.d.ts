@@ -23,7 +23,7 @@ export interface Permission {
   /** Display name, if known. */
   name?: string;
   role: Role;
-  /** User identifier (token sub). */
+  /** User identifier (token sub); may contain slashes. */
   user_id: UserId;
 }
 
@@ -36,7 +36,12 @@ export interface GroupPermission {
   role: Role;
 }
 
-/** Request body for granting a user's or group's permission. */
+/**
+ * PUT /services/{serviceId}/permissions/users/{userId}
+ * PUT /services/{serviceId}/permissions/groups/{group}
+ *
+ * Request body for granting a user's or group's permission.
+ */
 export interface PermissionRegister {
   role: Role;
 }

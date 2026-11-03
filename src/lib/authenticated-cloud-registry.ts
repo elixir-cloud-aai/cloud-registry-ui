@@ -444,7 +444,7 @@ class AuthenticatedCloudRegistryProvider
   }
 
   /**
-   * PUT /services/{serviceId}/permissions/{userId}
+   * PUT /services/{serviceId}/permissions/users/{userId}
    * Authenticated.
    *
    * Grant a role to a user.
@@ -455,7 +455,7 @@ class AuthenticatedCloudRegistryProvider
     permission: PermissionRegister,
   ): Promise<Permission> {
     return this.request(
-      `/services/${this.idPath(serviceId)}/permissions/${this.idPath(userId)}`,
+      `/services/${this.idPath(serviceId)}/permissions/users/${this.idPath(userId)}`,
       {
         method: "PUT",
         body: permission,
@@ -465,7 +465,7 @@ class AuthenticatedCloudRegistryProvider
   }
 
   /**
-   * DELETE /services/{serviceId}/permissions/{userId}
+   * DELETE /services/{serviceId}/permissions/users/{userId}
    * Authenticated.
    *
    * Revoke a user's permission.
@@ -475,7 +475,7 @@ class AuthenticatedCloudRegistryProvider
     userId: UserId,
   ): Promise<UserId> {
     return this.request(
-      `/services/${this.idPath(serviceId)}/permissions/${this.idPath(userId)}`,
+      `/services/${this.idPath(serviceId)}/permissions/users/${this.idPath(userId)}`,
       {
         method: "DELETE",
         authenticated: true,

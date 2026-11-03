@@ -121,7 +121,7 @@ test.describe("conflicts", () => {
         ).toBeVisible();
         dropConflict(
             problems,
-            `/services/${service.id}/permissions/${encodeURIComponent(users.owner.sub)}`,
+            `/services/${service.id}/permissions/users/${encodeURIComponent(users.owner.sub)}`,
         );
     });
 

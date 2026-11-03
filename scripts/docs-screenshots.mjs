@@ -239,19 +239,19 @@ async function seed(tokens) {
         await api(
             tokens.admin,
             "PUT",
-            `${path}/${encodeURIComponent(ownerId)}`,
+            `${path}/users/${encodeURIComponent(ownerId)}`,
             { role: "owner" },
         );
         await api(
             tokens.admin,
             "DELETE",
-            `${path}/${encodeURIComponent(adminId)}`,
+            `${path}/users/${encodeURIComponent(adminId)}`,
         );
     }
     await api(
         tokens.admin,
         "PUT",
-        `/services/tes-north/permissions/${encodeURIComponent(otherId)}`,
+        `/services/tes-north/permissions/users/${encodeURIComponent(otherId)}`,
         {
             role: "maintainer",
         },

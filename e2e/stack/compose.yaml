@@ -40,13 +40,14 @@ services:
                     - oidc.localhost
 
     registry:
-        # cloud-registry from `dev` at 32dca62, as labels and the listing of
-        # expired invitations aren't released yet (cloud-registry#334, #335);
-        # back to the release once there is one that has them (the app also
-        # uses GET /approvals and conflict codes of 0.5.0, renames and admin
-        # mode of 0.6.0, invitations and the services limit of 1.0.0rc1);
+        # cloud-registry from `dev` at 19a6c82, as the paths of users' roles,
+        # labels and the listing of expired invitations aren't released yet
+        # (cloud-registry#337, #334, #335); back to the release once there is
+        # one that has them (the app also uses GET /approvals and conflict
+        # codes of 0.5.0, renames and admin mode of 0.6.0, invitations and the
+        # services limit of 1.0.0rc1);
         # pinned by digest for repeatable runs
-        image: ${E2E_REGISTRY_IMAGE:-docker.io/elixircloud/cloud-registry:sha-32dca62f0c0b16824a94a94381e72953b4b705c9@sha256:bbbee686e6b936cd4aae2156d286e9680ebfafd266018ad299109b518776b7e0}
+        image: ${E2E_REGISTRY_IMAGE:-docker.io/elixircloud/cloud-registry:sha-19a6c82554b5b81c171d174ff4ab4238d35588fa@sha256:7c7bdd50ea5997750d1bf2ff3e0dfc7753ccd9e3af3b4372ada78cf67b0c27e9}
         depends_on:
             mongodb:
                 condition: service_healthy
