@@ -11,6 +11,8 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import type { Invitation } from "@/lib/cloud-registry.types";
+import { invitationStatus } from "@/lib/invitations";
+import { cn } from "@/lib/utils";
 
 type Props = {
     /** Invitations to show, in that order */
@@ -20,6 +22,7 @@ type Props = {
     disabled?: boolean;
     onCopy: (link: string) => void;
     onRenew: (invitation: Invitation) => void;
+    /** Revokes an open invitation, or removes an expired one */
     onRevoke: (invitation: Invitation) => void;
 };
 
@@ -27,8 +30,9 @@ type Props = {
 const when = (value: string) => new Date(value).toLocaleString();
 
 /**
- * Open invitations: each with a button that copies its link, if known, or
- * else gets it a new one, and a button that revokes it
+ * Invitations, by their label: each with a button that copies its link, if
+ * known and it hasn't expired, or else gets it a new one, and a button that
+ * revokes or removes it. Labels are text from users, and shown as such
  */
 function InvitationTable({
     invitations,
@@ -49,21 +53,41 @@ function InvitationTable({
             </TableHeader>
             <TableBody>
                 {invitations.map((val) => {
-                    const link = links.get(val.id);
-                    const name = `${val.role} invitation created ${when(val.created_at)}`;
+                    const expired = invitationStatus(val) === "expired";
+                    const link = expired ? undefined : links.get(val.id);
+                    const what = val.label
+                        ? `${val.role} invitation "${val.label}"`
+                        : `${val.role} invitation`;
+                    const name = `${what} created ${when(val.created_at)}`;
                     return (
                         <TableRow key={val.id}>
                             <TableCell className="max-w-0 w-full">
                                 <div className="grid leading-tight">
                                     <span className="flex items-center gap-2">
+                                        <span
+                                            className={cn(
+                                                "min-w-0 truncate",
+                                                !val.label &&
+                                                    "text-muted-foreground italic",
+                                            )}
+                                            title={val.label}
+                                        >
+                                            {val.label ?? "No label"}
+                                        </span>
                                         <Badge variant="secondary">
                                             {val.role}
                                         </Badge>
-                                        Open
+                                        {expired && (
+                                            <Badge variant="destructive">
+                                                Expired
+                                            </Badge>
+                                        )}
                                     </span>
                                     <span className="truncate text-xs text-muted-foreground">
                                         created {when(val.created_at)}
-                                        {!link && ", link no longer shown"}
+                                        {!expired &&
+                                            !link &&
+                                            ", link no longer shown"}
                                     </span>
                                 </div>
                             </TableCell>
@@ -88,7 +112,11 @@ function InvitationTable({
                                             onClick={() => onRenew(val)}
                                             disabled={disabled}
                                             aria-label={`New link for ${name}`}
-                                            title="New link (revokes this one)"
+                                            title={
+                                                expired
+                                                    ? "New link (removes this one)"
+                                                    : "New link (revokes this one)"
+                                            }
                                         >
                                             <RefreshCw className="size-4" />
                                         </Button>
@@ -98,7 +126,7 @@ function InvitationTable({
                                         variant={"ghost"}
                                         onClick={() => onRevoke(val)}
                                         disabled={disabled}
-                                        aria-label={`Revoke ${name}`}
+                                        aria-label={`${expired ? "Remove" : "Revoke"} ${name}`}
                                     >
                                         <Trash2 className="size-4" />
                                     </Button>

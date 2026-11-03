@@ -4,22 +4,31 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ListPagination } from "@/components/shared/list-pagination";
 import { Button } from "@/components/ui/button";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { usePagination } from "@/hooks";
 import type { Invitation, Role } from "@/lib/cloud-registry.types";
 import {
     createInvitationError,
+    createLabelledInvitation,
+    invitationLabelError,
     invitationLink,
+    invitationStatus,
     isDeadInvitation,
     listInvitationsError,
-    openInvitations,
+    removedExpiredMessage,
+    removeExpiredError,
+    removeInvitationError,
+    removeInvitations,
     renewInvitationError,
+    renewRemoveError,
     renewRevokeError,
     revokeInvitationError,
+    shownInvitations,
 } from "@/lib/invitations";
 import type { AccessProvider } from "./access-helper";
 import InvitationTable from "./invitation-table";
+import RemoveExpiredButton from "./remove-expired-button";
 import RoleSelect from "./role-select";
 
 type Props = {
@@ -27,6 +36,8 @@ type Props = {
     serviceId: string;
     /** Invitations per page */
     pageSize: number;
+    /** Whether new invitations need a label */
+    labelRequired: boolean;
     disabled?: boolean;
     /** Called when a change starts and ends, e.g. to keep a dialog open */
     onChanging?: (changing: boolean) => void;
@@ -41,9 +52,9 @@ type CreatedLink = {
 };
 
 /**
- * Invitations to a service: create a link for a role, list the open
- * invitations, newest first and in pages, give them a new link, and revoke
- * them. The links created while the component is shown stay available;
+ * Invitations to a service: create a link for a role, with a label, list the
+ * open and expired invitations, newest first and in pages, give them a new
+ * link, and revoke or remove them. The links created while the component is shown stay available;
  * the registry stores only hashes of the tokens, so no others are known.
  * Requests and their messages are here, the list in `InvitationTable`
  */
@@ -51,6 +62,7 @@ function Invitations({
     provider,
     serviceId,
     pageSize,
+    labelRequired,
     disabled = false,
     onChanging,
     onCountChange,
@@ -58,6 +70,9 @@ function Invitations({
     const [invitations, setInvitations] = useState<Invitation[] | null>(null);
     const [listFailure, setListFailure] = useState<string>();
     const [role, setRole] = useState<Role>("maintainer");
+    const [label, setLabel] = useState("");
+    const [labelError, setLabelError] = useState<string>();
+    const labelField = useRef<HTMLInputElement>(null);
     const [changing, setChanging] = useState(false);
     // the invitations created here, with their links: their tokens are only
     // known now
@@ -69,14 +84,16 @@ function Invitations({
     // once the invitations changed
     const latestCopy = useRef(0);
     // without a list, those created here, so that their links stay available
-    const shown = openInvitations(
+    const shown = shownInvitations(
         invitations ?? created.map((val) => val.invitation),
     );
+    const expired = shown.filter((val) => invitationStatus(val) === "expired");
     const links = new Map(created.map((val) => [val.invitation.id, val.link]));
     // a link stops working with its invitation
     const selectable = created.some((val) => val.link === uncopied);
     const uncopiedField = useRef<HTMLInputElement>(null);
-    const count = invitations ? shown.length : undefined;
+    // the open ones: the others need nothing but removing
+    const count = invitations ? shown.length - expired.length : undefined;
     // the registry lists all invitations at once: paged here
     const { page, pageCount, pageItems, setPage } = usePagination(
         shown,
@@ -106,7 +123,11 @@ function Invitations({
                 setListFailure(undefined);
                 // links of invitations that were accepted, revoked or expired
                 // no longer work, also if a later list can't be loaded
-                const open = new Set(openInvitations(val).map(({ id }) => id));
+                const open = new Set(
+                    val
+                        .filter((item) => invitationStatus(item) === "open")
+                        .map(({ id }) => id),
+                );
                 setCreated((current) =>
                     current.filter(({ invitation }) => open.has(invitation.id)),
                 );
@@ -152,10 +173,19 @@ function Invitations({
             current.filter((val) => val.invitation.id !== id),
         );
 
-    const createLink = async (val: AccessProvider, linkRole: Role) => {
-        const { token, ...invitation } = await val.createInvitation(serviceId, {
-            role: linkRole,
-        });
+    // tells whether the label was kept: registries up to cloud-registry
+    // 1.0.0rc1 have no labels
+    const createLink = async (
+        val: AccessProvider,
+        linkRole: Role,
+        linkLabel?: string,
+    ) => {
+        const { created: result, labelKept } = await createLabelledInvitation(
+            (invitation) => val.createInvitation(serviceId, invitation),
+            linkRole,
+            linkLabel,
+        );
+        const { token, ...invitation } = result;
         setCreated((current) => [
             ...current,
             {
@@ -165,44 +195,90 @@ function Invitations({
         ]);
         // the newest invitation is the first one
         setPage(1);
+        return labelKept;
     };
 
-    const create = () =>
+    const create = () => {
+        const problem = invitationLabelError(label, labelRequired);
+        setLabelError(problem);
+        if (problem) {
+            labelField.current?.focus();
+            return;
+        }
         run(async (val) => {
-            await createLink(val, role);
+            const labelKept = await createLink(
+                val,
+                role,
+                label.trim() || undefined,
+            );
+            setLabel("");
             toast.success(
-                `Created a ${role} link; copy it before you close this dialog`,
+                labelKept
+                    ? `Created a ${role} link; copy it before you close this dialog`
+                    : `Created a ${role} link without its label, as this registry has no labels; copy it before you close this dialog`,
             );
         }, createInvitationError);
+    };
 
-    // a new invitation for the same role first, so that a failure (e.g. at
-    // the limit) keeps the old one
+    // a new invitation for the same role and label first, so that a failure
+    // (e.g. at the limit) keeps the old one
     // only for invitations whose link isn't known, so there is none to forget
-    const renew = (invitation: Invitation) =>
-        run(async (val) => {
-            await createLink(val, invitation.role);
-            try {
-                await val.revokeInvitation(serviceId, invitation.id);
-            } catch (err) {
-                toast.error(renewRevokeError(err));
-                return;
-            }
-            toast.success(
-                `Created a new ${invitation.role} link; the old one no longer works`,
-            );
-        }, renewInvitationError);
+    const renew = (invitation: Invitation) => {
+        const dead = invitationStatus(invitation) === "expired";
+        run(
+            async (val) => {
+                await createLink(val, invitation.role, invitation.label);
+                try {
+                    await val.revokeInvitation(serviceId, invitation.id);
+                } catch (err) {
+                    toast.error(
+                        dead ? renewRemoveError(err) : renewRevokeError(err),
+                    );
+                    return;
+                }
+                toast.success(
+                    dead
+                        ? `Created a new ${invitation.role} link and removed the expired invitation`
+                        : `Created a new ${invitation.role} link; the old one no longer works`,
+                );
+            },
+            (err) => renewInvitationError(err, dead),
+        );
+    };
 
-    const revoke = (invitation: Invitation) =>
+    const revoke = (invitation: Invitation) => {
+        const dead = invitationStatus(invitation) === "expired";
+        run(
+            async (val) => {
+                try {
+                    await val.revokeInvitation(serviceId, invitation.id);
+                } catch (err) {
+                    if (isDeadInvitation(err)) dropLink(invitation.id);
+                    throw err;
+                }
+                dropLink(invitation.id);
+                toast.success(
+                    dead
+                        ? `Removed the expired ${invitation.role} invitation`
+                        : `Revoked the ${invitation.role} invitation`,
+                );
+            },
+            dead ? removeInvitationError : revokeInvitationError,
+        );
+    };
+
+    const removeExpired = () => {
+        // of all pages
+        const removing = expired;
         run(async (val) => {
-            try {
-                await val.revokeInvitation(serviceId, invitation.id);
-            } catch (err) {
-                if (isDeadInvitation(err)) dropLink(invitation.id);
-                throw err;
-            }
-            dropLink(invitation.id);
-            toast.success(`Revoked the ${invitation.role} invitation`);
-        }, revokeInvitationError);
+            const failures = await removeInvitations(removing, (id) =>
+                val.revokeInvitation(serviceId, id),
+            );
+            if (failures.length)
+                toast.error(removeExpiredError(removing.length, failures));
+            else toast.success(removedExpiredMessage(removing.length));
+        }, removeInvitationError);
+    };
 
     const copy = (link: string) => {
         const request = ++latestCopy.current;
@@ -229,26 +305,66 @@ function Invitations({
                 </p>
                 <p>
                     Links aren't kept, so copy a link before you close this
-                    dialog. An open invitation can get a new link, which stops
-                    the old one working.
+                    dialog. An invitation can get a new link, which stops the
+                    old one working.
                 </p>
             </div>
 
-            <div className="flex flex-wrap items-end gap-3">
-                <Field className="w-40">
-                    <FieldLabel htmlFor="invitation-role">Role</FieldLabel>
-                    <RoleSelect
-                        id="invitation-role"
-                        value={role}
-                        onChange={setRole}
-                        disabled={busy || !invitations}
-                    />
-                </Field>
-                <Button onClick={create} disabled={busy || !invitations}>
-                    <Link2 />
-                    Create link
-                </Button>
-            </div>
+            <form
+                className="space-y-1"
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!busy && invitations) create();
+                }}
+            >
+                <div className="flex flex-wrap items-end gap-3">
+                    <Field className="w-36">
+                        <FieldLabel htmlFor="invitation-role">Role</FieldLabel>
+                        <RoleSelect
+                            id="invitation-role"
+                            value={role}
+                            onChange={setRole}
+                            disabled={busy || !invitations}
+                        />
+                    </Field>
+                    <Field
+                        className="w-auto min-w-40 flex-1"
+                        data-invalid={!!labelError}
+                    >
+                        <FieldLabel htmlFor="invitation-label">
+                            {labelRequired ? "Label" : "Label (optional)"}
+                        </FieldLabel>
+                        <Input
+                            ref={labelField}
+                            id="invitation-label"
+                            value={label}
+                            placeholder="Who is it for?"
+                            autoComplete="off"
+                            aria-required={labelRequired}
+                            aria-invalid={!!labelError}
+                            aria-describedby={
+                                labelError
+                                    ? "invitation-label-error"
+                                    : undefined
+                            }
+                            disabled={busy || !invitations}
+                            onChange={(e) => {
+                                setLabel(e.target.value);
+                                setLabelError(undefined);
+                            }}
+                        />
+                    </Field>
+                    <Button type="submit" disabled={busy || !invitations}>
+                        <Link2 />
+                        Create link
+                    </Button>
+                </div>
+                {labelError && (
+                    <FieldError id="invitation-label-error">
+                        {labelError}
+                    </FieldError>
+                )}
+            </form>
 
             {listFailure && (
                 <p className="text-sm text-muted-foreground">{listFailure}</p>
@@ -278,11 +394,26 @@ function Invitations({
                     onRevoke={revoke}
                 />
             )}
-            <ListPagination
-                page={page}
-                pageCount={pageCount}
-                onPageChange={setPage}
-            />
+            {(expired.length > 0 || pageCount > 1) && (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    {expired.length > 0 ? (
+                        <RemoveExpiredButton
+                            count={expired.length}
+                            // what the list doesn't show may have changed
+                            disabled={busy || !invitations}
+                            onConfirm={removeExpired}
+                        />
+                    ) : (
+                        <span />
+                    )}
+                    <ListPagination
+                        className="mx-0 w-auto"
+                        page={page}
+                        pageCount={pageCount}
+                        onPageChange={setPage}
+                    />
+                </div>
+            )}
         </div>
     );
 }

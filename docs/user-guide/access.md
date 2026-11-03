@@ -71,21 +71,29 @@ invite a colleague with a link:
 
 1. Open the service, select **Manage access**, and open the **Invitations**
    tab, which shows the number of open invitations.
-2. Choose the role the invitation is for, and select **Create link**. The new
-   invitation is at the top of the list.
+2. Choose the role the invitation is for, enter a label that says who it is
+   for, e.g. `Bob (variant calling team)`, and select **Create link**. The
+   new invitation is at the top of the list.
 3. Copy the link with the copy icon in its row, and send it to the person.
 
 ![Managing access to a service, with a new invitation](../images/manage-access-invite.png){ width="672" }
 
 Notes:
 
+- **Labels** tell you which link is whose, so that you send the right one.
+  They are for those who manage access: the person who gets the link doesn't
+  see the label. Labels are plain text of at most 100 characters on one
+  line, so don't put more in them than needed, as they may name people. The
+  deployment decides whether a label is required; by default, it is.
+  Invitations without one, e.g. older ones, show **No label**.
 - **Links aren't kept:** the registry keeps no copy of a link, so the copy
   icon is there only while the dialog is open, for the invitations created
   in it. Copy a link before you close the dialog; if copying fails, the
-  dialog shows the link for you to select. Afterwards, an open invitation
-  can only get a new link: select the arrows icon (**New link**) in its row.
-  This creates an invitation for the same role, at the top of the list, and
-  revokes the old one, whose link then stops working.
+  dialog shows the link for you to select. Afterwards, an invitation can
+  only get a new link: select the arrows icon (**New link**) in its row.
+  This creates an invitation for the same role and with the same label, at
+  the top of the list, and revokes the old one, whose link then stops
+  working.
 - **If the list can't be loaded,** the dialog says so and lists only the
   invitations created in it, so that you can still copy their links. Reopen
   the dialog later to revoke invitations or create new ones; the links of
@@ -93,22 +101,34 @@ Notes:
 - **Share it only with the person you mean:** whoever opens the link and
   logs in gets the role, and the link works once. Send it in a private
   message, not in a channel or on a page that others can read.
-- **The list** shows the open invitations, newest first (role, when created
-  and when they expire), 5 per page unless the deployment sets another
-  number. Select the bin icon to revoke an invitation; its link then stops
-  working. Accepted invitations aren't listed: the person is listed under
-  **Current Access**, where you can change or remove their role.
+- **The list** shows the open and the expired invitations, newest first
+  (label, role, when created and when they expire), 5 per page unless the
+  deployment sets another number. Select the bin icon to revoke an open
+  invitation; its link then stops working. Accepted invitations aren't
+  listed: the person is listed under **Current Access**, where you can change
+  or remove their role.
+- **Expired invitations** are marked as **Expired**, so that you can see who
+  didn't accept in time. Select **New link** to invite the person again,
+  which removes the expired invitation, or the bin icon to remove it. To
+  remove all expired invitations of the service, on all pages, select
+  **Remove expired** and confirm. If some can't be removed, the dialog says
+  which and they stay listed; select **Remove expired** to try again. The
+  registry also removes expired invitations itself after some time, by
+  default after 30 days.
 - **Limits:** invitations expire, and a service can have only so many
   invitations at a time that haven't expired, open or accepted, so accepted
-  invitations count until they expire although they aren't listed. If the
-  limit is reached, the dialog says so and neither **Create link** nor **New
-  link** makes a new invitation; a new link leaves the old invitation and its
-  link as they are. Revoke open invitations or wait until invitations
-  expire. The expiry and the limit are settings of the
-  registry (see [Compatibility](../operator-guide/index.md#compatibility)).
+  invitations count until they expire although they aren't listed; expired
+  ones don't count. If the limit is reached, the dialog says so and neither
+  **Create link** nor **New link** makes a new invitation; a new link leaves
+  the old invitation and its link as they are. Revoke open invitations or
+  wait until invitations expire. The expiry and the limit are settings of
+  the registry (see [Compatibility](../operator-guide/index.md#compatibility)).
 - **Registries without invitations:** the tab reports that the registry
   has none, and you grant roles as above. Invitations need cloud-registry
   1.0.0rc1 or later.
+- **Registries without labels:** cloud-registry 1.0.0rc1 has no labels and
+  doesn't list expired invitations. The dialog then creates the link without
+  the label and says so, and invitations show **No label**.
 
 The person who got the link follows [Accepting an
 invitation](invitations.md).

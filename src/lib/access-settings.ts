@@ -34,15 +34,47 @@ function accessPageSize() {
 }
 
 /**
+ * Parse whether invitations need a label
+ * @param value Text of the setting; blank counts as not set
+ * @returns The value, the default if not set, or undefined if invalid
+ */
+function parseLabelRequired(value = "") {
+    const text = value.trim();
+    if (!text || text === "true") return true;
+    return text === "false" ? false : undefined;
+}
+
+/**
+ * Tell whether the form for invitations requires a label; the registry
+ * doesn't, so this is up to the deployment
+ * @returns The setting `NEXT_PUBLIC_INVITATION_LABEL_REQUIRED`, or the
+ * default if it isn't set; invalid values stop the server first
+ */
+function invitationLabelRequired() {
+    return (
+        parseLabelRequired(
+            publicSetting("NEXT_PUBLIC_INVITATION_LABEL_REQUIRED"),
+        ) ?? true
+    );
+}
+
+/**
  * Check the settings of the dialog; invalid values stop the server
- * @throws Error naming the invalid setting
+ * @throws Error naming the first invalid setting
  */
 function accessSettings() {
-    const value = publicSetting("NEXT_PUBLIC_ACCESS_PAGE_SIZE");
-    if (parsePageSize(value) === undefined)
+    const pageSize = publicSetting("NEXT_PUBLIC_ACCESS_PAGE_SIZE");
+    if (parsePageSize(pageSize) === undefined)
         throw new Error(
-            `Invalid setting NEXT_PUBLIC_ACCESS_PAGE_SIZE: "${value}" must be a whole number of at least 1`,
+            `Invalid setting NEXT_PUBLIC_ACCESS_PAGE_SIZE: "${pageSize}" must be a whole number of at least 1`,
+        );
+    const labelRequired = publicSetting(
+        "NEXT_PUBLIC_INVITATION_LABEL_REQUIRED",
+    );
+    if (parseLabelRequired(labelRequired) === undefined)
+        throw new Error(
+            `Invalid setting NEXT_PUBLIC_INVITATION_LABEL_REQUIRED: "${labelRequired}" must be true or false`,
         );
 }
 
-export { accessPageSize, accessSettings };
+export { accessPageSize, accessSettings, invitationLabelRequired };

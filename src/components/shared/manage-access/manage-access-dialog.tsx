@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { accessPageSize } from "@/lib/access-settings";
+import { accessPageSize, invitationLabelRequired } from "@/lib/access-settings";
 import type {
     GroupPermission,
     Permission,
@@ -251,6 +251,7 @@ function ManageAccessDialog({
                             provider={provider}
                             serviceId={serviceId}
                             pageSize={pageSize}
+                            labelRequired={invitationLabelRequired()}
                             disabled={changing}
                             onChanging={setInviting}
                             onCountChange={setInvitationCount}

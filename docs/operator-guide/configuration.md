@@ -4,20 +4,21 @@ The app is configured through environment variables. For `bun run dev`, `bun run
 
 The settings are read when the app starts (`bun run start`, `docker run`, `bun run dev`): change them, then restart the app, without building it again. The `NEXT_PUBLIC_*` settings reach the browser, so they are public: put no secrets in them. Values of `NEXT_PUBLIC_*` settings that are set when the app is built (e.g. in `.env` for `bun run build`, or on Vercel) apply where the environment of the started app doesn't set them; the Docker image is built without settings, so this doesn't apply there.
 
-| Variable                           | Required | Section                         |
-| ---------------------------------- | -------- | ------------------------------- |
-| `NEXT_PUBLIC_CLOUD_REGISTRY_URL`   | yes      | [Registry](#registry)           |
-| `NEXT_PUBLIC_ACCESS_PAGE_SIZE`     | no       | [Access dialog](#access-dialog) |
-| `NEXT_PUBLIC_APP_TITLE`            | no       | [Branding](branding.md)         |
-| `NEXT_PUBLIC_APP_TITLE_SIZE`       | no       | [Branding](branding.md)         |
-| `NEXT_PUBLIC_APP_TITLE_FONT`       | no       | [Branding](branding.md)         |
-| `NEXT_PUBLIC_APP_LOGO`             | no       | [Branding](branding.md)         |
-| `NEXT_PUBLIC_APP_LOGO_DARK`        | no       | [Branding](branding.md)         |
-| `NEXT_PUBLIC_FOOTER_LOGO`          | no       | [Branding](branding.md)         |
-| `NEXT_PUBLIC_FOOTER_LOGO_DARK`     | no       | [Branding](branding.md)         |
-| `NEXT_PUBLIC_FOOTER_START_YEAR`    | no       | [Branding](branding.md)         |
-| `LOGIN_PROVIDERS`                  | yes      | [Login](login.md)               |
-| `LOGIN_REDIRECT_URI`               | yes      | [Login](login.md)               |
+| Variable                                | Required | Section                         |
+| --------------------------------------- | -------- | ------------------------------- |
+| `NEXT_PUBLIC_CLOUD_REGISTRY_URL`        | yes      | [Registry](#registry)           |
+| `NEXT_PUBLIC_ACCESS_PAGE_SIZE`          | no       | [Access dialog](#access-dialog) |
+| `NEXT_PUBLIC_INVITATION_LABEL_REQUIRED` | no       | [Access dialog](#access-dialog) |
+| `NEXT_PUBLIC_APP_TITLE`                 | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_APP_TITLE_SIZE`            | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_APP_TITLE_FONT`            | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_APP_LOGO`                  | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_APP_LOGO_DARK`             | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_FOOTER_LOGO`               | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_FOOTER_LOGO_DARK`          | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_FOOTER_START_YEAR`         | no       | [Branding](branding.md)         |
+| `LOGIN_PROVIDERS`                       | yes      | [Login](login.md)               |
+| `LOGIN_REDIRECT_URI`                    | yes      | [Login](login.md)               |
 
 Missing or invalid settings stop the app with a message that names the setting:
 
@@ -44,4 +45,6 @@ mode](admins.md).
 
 ## Access dialog
 
-`NEXT_PUBLIC_ACCESS_PAGE_SIZE` (default: `5`) sets the entries per page of both tables of the **Manage access** dialog (see [Managing access](../user-guide/access.md#managing-access)): the users and groups with a role, and the open invitations. It must be a whole number of at least 1. With the default, both tabs fit a window of 1366 x 768 pixels without scrolling; with higher values, the dialog may scroll in small windows.
+`NEXT_PUBLIC_ACCESS_PAGE_SIZE` (default: `5`) sets the entries per page of both tables of the **Manage access** dialog (see [Managing access](../user-guide/access.md#managing-access)): the users and groups with a role, and the open and expired invitations. It must be a whole number of at least 1. With the default, both tabs fit a window of 1366 x 768 pixels without scrolling; with higher values, the dialog may scroll in small windows.
+
+`NEXT_PUBLIC_INVITATION_LABEL_REQUIRED` (default: `true`) sets whether the form for new invitations requires a label, the text that says who an invitation is for (see [Inviting by link](../user-guide/access.md#inviting-by-link)). Set it to `false` to make the label optional; other values than `true` and `false` stop the app. The registry doesn't require labels, and renewing an invitation without a label doesn't ask for one, whichever the setting is. Labels are stored in the registry until the invitation is removed, and may name people, so consider this when you decide (see the registry's [invitations](https://cloud-registry.readthedocs.io/en/latest/access-control/#invitations)). Registries that have no labels (cloud-registry 1.0.0rc1) refuse them: the app then creates the link without the label and says so.
