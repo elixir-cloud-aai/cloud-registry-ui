@@ -15,7 +15,9 @@ function apiAddress(
     setting: string | undefined,
     page: string,
 ): string | undefined {
-    if (!setting?.trim() || !URL.canParse(setting, page)) return undefined;
+    // with spaces, the calls go elsewhere than the address parsed here says
+    if (!setting || setting !== setting.trim()) return undefined;
+    if (!URL.canParse(setting, page)) return undefined;
     const url = new URL(setting, page);
     url.username = "";
     url.password = "";

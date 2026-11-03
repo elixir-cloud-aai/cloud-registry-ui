@@ -19,8 +19,6 @@ describe("apiAddress", () => {
         ["api/v1", "https://app.example.org/dashboard/api/v1"],
         // no "//": the browser takes it as a path of the app's own site
         ["https:api/v1", "https://app.example.org/dashboard/api/v1"],
-        // the browser strips surrounding spaces
-        [" https://r.example.org/x ", "https://r.example.org/x"],
         // credentials don't belong on the page
         ["https://user:secret@r.example.org/x", "https://r.example.org/x"],
     ])("%s", (setting, address) => {
@@ -31,6 +29,8 @@ describe("apiAddress", () => {
         [undefined],
         [""],
         ["   "],
+        [" https://r.example.org/x"],
+        ["https://r.example.org/x "],
         // not an address to show or link to
         ["http://[invalid/x"],
         ["javascript:alert(1)"],
