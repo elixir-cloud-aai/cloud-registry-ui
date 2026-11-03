@@ -93,6 +93,34 @@ test.describe("manage access", () => {
         await expect(holders).toHaveCount(5);
     });
 
+    test("roles of IDs with a leading slash can't be changed", async ({
+        page,
+        browser,
+    }) => {
+        const service = await registerService(browser, "owner", "Leading");
+        await login(page, "owner");
+        const path = `/services/${encodeURIComponent(service.id)}/permissions`;
+        await page.route(`${registry}${path}`, async (route) => {
+            const response = await route.fetch();
+            const held = await response.json();
+            await route.fulfill({
+                response,
+                json: [...held, { user_id: "/bob", role: "maintainer" }],
+            });
+        });
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        await page.getByRole("button", { name: "Manage access" }).click();
+        await page
+            .getByRole("dialog")
+            .getByRole("button", { name: "Remove /bob" })
+            .click();
+        await expect(
+            page.getByText(
+                "The app can't change the role of '/bob', as IDs can't start with '/'.",
+            ),
+        ).toBeVisible();
+    });
+
     test("a role granted to another user isn't reported as granted", async ({
         page,
         browser,

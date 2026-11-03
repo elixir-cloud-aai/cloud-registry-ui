@@ -51,7 +51,7 @@ under **Going back**.
 
 The app refuses user IDs and groups that start with `/`, as their paths would
 be those of another user or group. Roles of such IDs, which should be rare, can
-no longer be changed in the app.
+no longer be changed in the app, which says so when you try.
 
 The **Manage access** dialog now has the tabs **Current Access** and
 **Invitations**, and shows 5 entries per page instead of 8. To change that,

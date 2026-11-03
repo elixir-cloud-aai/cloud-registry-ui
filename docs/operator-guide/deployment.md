@@ -29,7 +29,7 @@ Without the required settings, or with invalid ones, the container refuses to st
 
 One image can be used for all environments of a deployment (e.g. staging and production). Deployments that passed the `NEXT_PUBLIC_*` settings as build arguments must pass them with `docker run` now (see [Upgrading](upgrading.md#settings-at-start-instead-of-build-arguments)).
 
-The image holds only the built app: Next's standalone server (`bun server.js`), its static files and `public/`, without sources or development dependencies. It runs as the unprivileged user `bun`, which can write only to `.next/cache`, listens on all IPv4 interfaces (set `LISTEN_HOSTNAME`, e.g. to `::` for IPv6, to change this) and on `PORT` (default: 3000), and reports its health (`docker ps`) by requesting the start page every 30 seconds. Serve it over HTTPS, e.g. behind a reverse proxy: the login cookies are marked `Secure`, and browsers accept them over plain HTTP only on `localhost`.
+The image holds only the built app: Next's standalone server (`bun server.js`), its static files, `public/` and the licence files (`LICENSE`, `NOTICE`), without sources or development dependencies. It runs as the unprivileged user `bun`, which can write only to `.next/cache`, listens on all IPv4 interfaces (set `LISTEN_HOSTNAME`, e.g. to `::` for IPv6, to change this) and on `PORT` (default: 3000), and reports its health (`docker ps`) by requesting the start page every 30 seconds. Serve it over HTTPS, e.g. behind a reverse proxy: the login cookies are marked `Secure`, and browsers accept them over plain HTTP only on `localhost`.
 
 ## Behind a reverse proxy
 
@@ -48,8 +48,9 @@ Serve the app over HTTPS, at the address of `LOGIN_REDIRECT_URI` (see
   doesn't know whether it is served over HTTPS.
 - Pass encoded slashes (`%2F`) in the registry's paths on as they are: the app
   sends user IDs and groups with slashes, e.g. IDs namespaced by issuer, that
-  way. Some proxies decode or refuse them by default, so grant a role to such
-  an ID once to check.
+  way. Some proxies decode or refuse them by default, and the registry may then
+  store another ID. To check, on a service for testing, grant a role to such an
+  ID, see that **Current Access** lists exactly that ID, and remove it.
 
 ## Verifying images
 

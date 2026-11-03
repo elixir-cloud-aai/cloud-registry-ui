@@ -66,7 +66,8 @@ Notes:
 - **Your own role:** if you remove your own owner role, you can no longer
   manage access, and the dialog closes.
 - **User IDs and groups** may contain slashes, though not start with one, and
-  can't have the parts `.` or `..` (e.g. `a/../b`). User IDs may be `groups` or
+  can't have the parts `.` or `..` between slashes or backslashes (e.g.
+  `a/../b`). User IDs may be `groups` or
   start with `groups/`: the app and the registry keep them apart from groups.
 
 ## Inviting by link
