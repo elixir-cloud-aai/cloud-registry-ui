@@ -43,7 +43,8 @@ deployment to the table in [`README.md`](README.md).
 
 ## Quick start
 
-UI versions follow the registry in major and minor version (see
+UI versions follow the registry in major and minor version, except that
+1.0.0-rc2 needs a registry newer than Cloud Registry 1.0.0rc1 (see
 [Compatibility][docs-compatibility]). Write the settings to a file outside
 the repository, e.g. `~/cloud-registry-ui/settings.env`, with at least
 `NEXT_PUBLIC_CLOUD_REGISTRY_URL`, `LOGIN_PROVIDERS` and `LOGIN_REDIRECT_URI`
