@@ -56,6 +56,27 @@ test.describe("service info", () => {
         ).toHaveCount(0);
     });
 
+    test("shows the environment as the registry reports it", async ({
+        page,
+    }) => {
+        await page.route(`${registry}/service-info`, async (route) => {
+            const response = await route.fetch();
+            await route.fulfill({
+                response,
+                json: { ...(await response.json()), environment: "prod" },
+            });
+        });
+        await page.goto("/dashboard/service-info");
+
+        // the rendered text, as `text-transform` doesn't change `textContent`
+        await expect(page.locator('[data-slot="badge"]')).toHaveText("prod", {
+            useInnerText: true,
+        });
+        await expect(
+            page.getByText("Environment:").locator("xpath=.."),
+        ).toHaveText("Environment: prod", { useInnerText: true });
+    });
+
     test("labels the registry type and the links", async ({ page }) => {
         await page.route(`${registry}/service-info`, async (route) => {
             const response = await route.fetch();

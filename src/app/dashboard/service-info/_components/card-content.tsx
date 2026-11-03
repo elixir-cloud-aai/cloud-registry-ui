@@ -121,7 +121,7 @@ function ServiceInfoCardContent({ serviceInfo }: Props) {
                                     <span className="text-slate-400">
                                         Environment:
                                     </span>{" "}
-                                    {serviceInfo.environment.toUpperCase()}
+                                    {serviceInfo.environment}
                                 </p>
                             )}
                         </div>
