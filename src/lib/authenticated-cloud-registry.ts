@@ -100,6 +100,13 @@ class AuthenticatedCloudRegistryProvider
     return encodeURIComponent(id);
   }
 
+  private principalPath(id: string): string {
+    // the path would have a double slash, which the registry redirects to
+    // that of another user or group
+    if (id.startsWith("/")) throw new Error(`Invalid ID: '${id}'`);
+    return this.idPath(id);
+  }
+
   /**
    * Shared HTTP request handler.
    *
@@ -444,7 +451,7 @@ class AuthenticatedCloudRegistryProvider
   }
 
   /**
-   * PUT /services/{serviceId}/permissions/{userId}
+   * PUT /services/{serviceId}/permissions/users/{userId}
    * Authenticated.
    *
    * Grant a role to a user.
@@ -455,7 +462,7 @@ class AuthenticatedCloudRegistryProvider
     permission: PermissionRegister,
   ): Promise<Permission> {
     return this.request(
-      `/services/${this.idPath(serviceId)}/permissions/${this.idPath(userId)}`,
+      `/services/${this.idPath(serviceId)}/permissions/users/${this.principalPath(userId)}`,
       {
         method: "PUT",
         body: permission,
@@ -465,7 +472,7 @@ class AuthenticatedCloudRegistryProvider
   }
 
   /**
-   * DELETE /services/{serviceId}/permissions/{userId}
+   * DELETE /services/{serviceId}/permissions/users/{userId}
    * Authenticated.
    *
    * Revoke a user's permission.
@@ -475,7 +482,7 @@ class AuthenticatedCloudRegistryProvider
     userId: UserId,
   ): Promise<UserId> {
     return this.request(
-      `/services/${this.idPath(serviceId)}/permissions/${this.idPath(userId)}`,
+      `/services/${this.idPath(serviceId)}/permissions/users/${this.principalPath(userId)}`,
       {
         method: "DELETE",
         authenticated: true,
@@ -495,7 +502,7 @@ class AuthenticatedCloudRegistryProvider
     permission: PermissionRegister,
   ): Promise<GroupPermission> {
     return this.request(
-      `/services/${this.idPath(serviceId)}/permissions/groups/${this.idPath(group)}`,
+      `/services/${this.idPath(serviceId)}/permissions/groups/${this.principalPath(group)}`,
       {
         method: "PUT",
         body: permission,
@@ -515,7 +522,7 @@ class AuthenticatedCloudRegistryProvider
     group: GroupName,
   ): Promise<GroupName> {
     return this.request(
-      `/services/${this.idPath(serviceId)}/permissions/groups/${this.idPath(group)}`,
+      `/services/${this.idPath(serviceId)}/permissions/groups/${this.principalPath(group)}`,
       {
         method: "DELETE",
         authenticated: true,

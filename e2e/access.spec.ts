@@ -21,7 +21,7 @@ test.describe("manage access", () => {
                     await api(
                         admin,
                         "PUT",
-                        `${path}/${encodeURIComponent(id)}`,
+                        `${path}/users/${encodeURIComponent(id)}`,
                         {
                             role: "maintainer",
                         },
@@ -83,5 +83,46 @@ test.describe("manage access", () => {
         ).toBeVisible();
         await search.fill("");
         await expect(holders).toHaveCount(5);
+    });
+
+    test("user IDs with slashes, or like the path of groups, get roles", async ({
+        page,
+        browser,
+    }) => {
+        const service = await registerService(browser, "owner", "Slashes");
+        const owner = await tokenOf(browser, "owner");
+        const path = `/services/${encodeURIComponent(service.id)}/permissions`;
+        const ids = [
+            "https://login.example.org/users/7",
+            "groups",
+            "groups/team-lead",
+        ];
+        const held = async () =>
+            (await api(owner, "GET", path)).body.map(
+                (val: { user_id?: string; group?: string }) =>
+                    val.user_id ?? `group:${val.group}`,
+            );
+        const before = await held();
+
+        await login(page, "owner");
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        await page.getByRole("button", { name: "Manage access" }).click();
+        const dialog = page.getByRole("dialog");
+        // exact, as the name of one is the start of that of another
+        const removal = (id: string) =>
+            dialog.getByRole("button", { name: `Remove ${id}`, exact: true });
+        for (const id of ids) {
+            await dialog.getByLabel("User ID").fill(id);
+            await dialog.getByRole("button", { name: "Grant" }).click();
+            await expect(removal(id)).toBeVisible();
+        }
+        // these users, and neither groups nor users with a prefix of the path
+        expect((await held()).sort()).toEqual([...before, ...ids].sort());
+
+        for (const id of ids) {
+            await removal(id).click();
+            await expect(removal(id)).toHaveCount(0);
+        }
+        expect((await held()).sort()).toEqual([...before].sort());
     });
 });

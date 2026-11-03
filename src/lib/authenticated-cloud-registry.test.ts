@@ -293,7 +293,31 @@ describe("operations", () => {
             "grantServicePermission",
             (p) => p.grantServicePermission("a", "u@x", role),
             "PUT",
-            "/services/a/permissions/u%40x",
+            "/services/a/permissions/users/u%40x",
+            true,
+            role,
+        ],
+        [
+            "grantServicePermission, ID with slashes",
+            (p) => p.grantServicePermission("a", "https://i.org/u", role),
+            "PUT",
+            "/services/a/permissions/users/https%3A%2F%2Fi.org%2Fu",
+            true,
+            role,
+        ],
+        [
+            "grantServicePermission, user called like the groups' path",
+            (p) => p.grantServicePermission("a", "groups", role),
+            "PUT",
+            "/services/a/permissions/users/groups",
+            true,
+            role,
+        ],
+        [
+            "grantServicePermission, ID starting like the groups' path",
+            (p) => p.grantServicePermission("a", "groups/g", role),
+            "PUT",
+            "/services/a/permissions/users/groups%2Fg",
             true,
             role,
         ],
@@ -301,7 +325,23 @@ describe("operations", () => {
             "revokeServicePermission",
             (p) => p.revokeServicePermission("a", "u"),
             "DELETE",
-            "/services/a/permissions/u",
+            "/services/a/permissions/users/u",
+            true,
+            undefined,
+        ],
+        [
+            "revokeServicePermission, ID with slashes",
+            (p) => p.revokeServicePermission("a", "https://i.org/u"),
+            "DELETE",
+            "/services/a/permissions/users/https%3A%2F%2Fi.org%2Fu",
+            true,
+            undefined,
+        ],
+        [
+            "revokeServicePermission, ID starting like the groups' path",
+            (p) => p.revokeServicePermission("a", "groups/g"),
+            "DELETE",
+            "/services/a/permissions/users/groups%2Fg",
             true,
             undefined,
         ],
@@ -403,6 +443,32 @@ describe("operations", () => {
             auth: authenticated ? "Bearer t" : null,
             body,
         });
+    });
+});
+
+describe("user IDs and groups with a leading slash", () => {
+    // the path would have a double slash, which the registry redirects to
+    // that of another user or group
+    it.each<
+        [string, (p: AuthenticatedCloudRegistryProvider) => Promise<unknown>]
+    >([
+        [
+            "grantServicePermission",
+            (p) => p.grantServicePermission("a", "/u", { role: "owner" }),
+        ],
+        [
+            "revokeServicePermission",
+            (p) => p.revokeServicePermission("a", "/u"),
+        ],
+        [
+            "grantGroupPermission",
+            (p) => p.grantGroupPermission("a", "/g", { role: "owner" }),
+        ],
+        ["revokeGroupPermission", (p) => p.revokeGroupPermission("a", "/g")],
+    ])("%s refuses them without a request", async (_, call) => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        await expect(call(provider)).rejects.toThrow("Invalid ID");
+        expect(fetchMock).not.toHaveBeenCalled();
     });
 });
 

@@ -27,7 +27,8 @@ whom to ask.
 ## Managing access
 
 Owners of a service, and admins, can see and change who has which role on
-it:
+it. Changing the roles of users needs a registry newer than cloud-registry
+1.0.0rc1 (see [Compatibility](../operator-guide/index.md#compatibility)):
 
 1. Open the service and select **Manage access**. The dialog has two tabs:
    **Current Access**, described here, and **Invitations** (see [Inviting
@@ -63,6 +64,9 @@ Notes:
   owner first, or delete the service.
 - **Your own role:** if you remove your own owner role, you can no longer
   manage access, and the dialog closes.
+- **User IDs** may contain slashes, though not start with one, and may be
+  `groups` or start with `groups/`: the app and the registry keep them apart
+  from groups.
 
 ## Inviting by link
 
@@ -124,8 +128,10 @@ Notes:
   wait until invitations expire. The expiry and the limit are settings of
   the registry (see [Compatibility](../operator-guide/index.md#compatibility)).
 - **Registries without invitations:** the tab reports that the registry
-  has none, and you grant roles as above. Invitations need cloud-registry
-  1.0.0rc1 or later.
+  has none. Invitations need cloud-registry 1.0.0rc1 or later, and changing
+  the roles of users needs a newer registry still (see
+  [Compatibility](../operator-guide/index.md#compatibility)): ask your
+  registry's admins to upgrade it.
 - **Registries without labels:** cloud-registry 1.0.0rc1 has no labels and
   doesn't list expired invitations. The dialog then creates the link without
   the label and says so, and invitations show **No label**.

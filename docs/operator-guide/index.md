@@ -42,12 +42,14 @@ pages. A deployment needs:
 
 ## Compatibility
 
-UI versions follow the registry in major and minor version: UI 1.0.x works with cloud-registry 1.0.x; patch releases are independent. The first release, 1.0.0-rc1, goes with cloud-registry 1.0.0rc1. Pre-releases are spelled differently: the app follows SemVer and npm (`1.0.0-rc1`, tag `v1.0.0-rc1`), the registry PEP 440 (`1.0.0rc1`, tag `v1.0.0rc1`).
+UI versions follow the registry in major and minor version: UI 1.0.x works with cloud-registry 1.0.x; patch releases are independent. Pre-releases may need a newer pre-release of the registry, as 1.0.0-rc2 does (see below). The first release, 1.0.0-rc1, goes with cloud-registry 1.0.0rc1. Pre-releases are spelled differently: the app follows SemVer and npm (`1.0.0-rc1`, tag `v1.0.0-rc1`), the registry PEP 440 (`1.0.0rc1`, tag `v1.0.0rc1`).
 
 Releases are published as GitHub releases and as images on Docker Hub, `elixircloud/cloud-registry-ui:<version>` (`latest` for the highest release without a pre-release suffix such as `-rc1`, 0.x releases included), built by the release workflow (`.github/workflows/release.yml`) with an SBOM and the build provenance attached, and signed (see [Verifying images](deployment.md#verifying-images)). Until 1.0.0, all releases are marked as pre-releases on GitHub.
 
 Features of newer registries need a registry of that version. The app works
-with older registries without them, e.g. without the switch to admin mode:
+with older registries without them, e.g. without the switch to admin mode. The
+only exception is changing the roles of users, which has no fallback (see
+below):
 
 | Feature                                                                                      | Needs cloud-registry |
 | -------------------------------------------------------------------------------------------- | -------------------- |
@@ -56,11 +58,21 @@ with older registries without them, e.g. without the switch to admin mode:
 | [Limit on registered services](../user-guide/registering.md#limit-on-registered-services)    | 1.0.0rc1             |
 | [Invitations](../user-guide/access.md#inviting-by-link)                                      | 1.0.0rc1             |
 | [Labels and expired invitations](../user-guide/access.md#inviting-by-link)                   | newer than 1.0.0rc1  |
+| [Changing roles of users](../user-guide/access.md#managing-access), no fallback              | newer than 1.0.0rc1  |
 | [Registration rules](configuration.md#registry) (environments, URL schemes)                  | 0.6.0                |
 
 Labels and expired invitations aren't in a release of cloud-registry yet. With
-cloud-registry 1.0.0rc1, the app works without them. The end-to-end tests
+cloud-registry 1.0.0rc1, invitations work without them. The end-to-end tests
 therefore run against its development version.
+
+**From 1.0.0-rc2, the app must ship together with a registry that has the new
+paths of users' roles (`/services/{serviceId}/permissions/users/{userId}`),
+which aren't in a release of cloud-registry yet either.** Don't run it with
+older registries: cloud-registry 0.6.0 and 1.0.0rc1 grant the role to the wrong
+user, and earlier ones don't find these paths. No order of apps and registry
+pods is safe during a rolling update: see
+[Upgrading](upgrading.md#100-rc2) and the [registry's upgrade
+guide](https://cloud-registry.readthedocs.io/en/latest/upgrading/#from-100rc1).
 
 The app's release 1.0.0-rc1 was tested against cloud-registry 1.0.0rc1 (see the
 [release notes](../releases/1.0.0-rc1.md)).
