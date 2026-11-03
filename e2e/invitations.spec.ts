@@ -132,12 +132,15 @@ async function expectLabelsClipped(page: Page) {
         const cell = rows.nth(idx).getByRole("cell").first();
         const measured = await cell.evaluate((el) => {
             const label = el.querySelector("[title]") as HTMLElement;
-            const right = el.getBoundingClientRect().right;
+            const { left, right } = el.getBoundingClientRect();
             return {
                 clipped: label.scrollWidth > label.clientWidth,
                 badges: Array.from(
                     el.querySelectorAll('[data-slot="badge"]'),
-                    (badge) => badge.getBoundingClientRect().right - right,
+                    (badge) => {
+                        const box = badge.getBoundingClientRect();
+                        return Math.max(left - box.left, box.right - right);
+                    },
                 ),
             };
         });
@@ -759,8 +762,14 @@ test.describe("invitations", () => {
             cells.flatMap((cell) => {
                 const right = cell.getBoundingClientRect().right;
                 return Array.from(cell.querySelectorAll("*"))
-                    .map((el) => el.getBoundingClientRect().right - right)
-                    .filter((overflow) => overflow > 0);
+                    .filter(
+                        (el) =>
+                            el.getBoundingClientRect().right > right ||
+                            // text that paints outside its box
+                            (el.scrollWidth > el.clientWidth &&
+                                getComputedStyle(el).overflowX === "visible"),
+                    )
+                    .map((el) => el.textContent);
             }),
         );
         expect(overflows).toEqual([]);
@@ -905,6 +914,11 @@ test.describe("invitations", () => {
         await dialog.getByRole("button", { name: "Create link" }).click();
         await expect(copyButtons(page)).toHaveCount(1);
         await expect(invitationRows(page).first()).toContainText("No label");
+        // italics lean out of their box: the last letter stays
+        const noLabel = invitationRows(page).first().getByText("No label");
+        expect(
+            await noLabel.evaluate((el) => el.scrollWidth <= el.clientWidth),
+        ).toBe(true);
         const listed = await api(token, "GET", path);
         expect((listed.body as Invitation[])[0].label).toBeUndefined();
     });
