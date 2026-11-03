@@ -964,7 +964,7 @@ test.describe("invitations", () => {
         await watchClipboard(page);
         const token = await login(page, "owner");
         const path = `/services/${encodeURIComponent(service.id)}/invitations`;
-        const [gone] = await createInvitations(token, path, ["Past"]);
+        const [late] = await createInvitations(token, path, ["Past"]);
         const [taken] = await createInvitations(token, path, ["Taken"]);
         // as cloud-registry 1.0.0rc1 lists them: without both fields, and
         // with accepted ones; it also refuses labels as unknown fields
@@ -977,7 +977,7 @@ test.describe("invitations", () => {
                         accepted_at: "2026-11-02T00:00:00.000Z",
                     },
                 }),
-                ...(val.id === gone && {
+                ...(val.id === late && {
                     expires_at: "2026-10-01T00:00:00.000Z",
                 }),
             })),
@@ -1001,12 +1001,16 @@ test.describe("invitations", () => {
         await openInvitations(page);
         const dialog = page.getByRole("dialog");
 
-        // the accepted one is hidden, the one past its time marked
+        // the accepted one is hidden; the other one is open, as such a
+        // registry lists no expired ones and the browser's clock may be off
         await expect(invitationRows(page)).toHaveCount(1);
         await expect(invitationRows(page).first()).toContainText("No label");
-        await expect(invitationRows(page).first()).toContainText("Expired");
+        await expect(invitationRows(page).first()).not.toContainText("Expired");
         await expect(
-            dialog.getByRole("tab", { name: "Invitations 0" }),
+            dialog.getByRole("button", { name: "Remove expired" }),
+        ).toHaveCount(0);
+        await expect(
+            dialog.getByRole("tab", { name: "Invitations 1" }),
         ).toBeVisible();
 
         // a link without the label, rather than none
@@ -1018,9 +1022,8 @@ test.describe("invitations", () => {
         ).toBeVisible();
         await expect(copyButtons(page)).toHaveCount(1);
         await expect(invitationRows(page).first()).toContainText("No label");
-        await expect(invitationRows(page).first()).not.toContainText("Expired");
         await expect(
-            dialog.getByRole("tab", { name: "Invitations 1" }),
+            dialog.getByRole("tab", { name: "Invitations 2" }),
         ).toBeVisible();
         // Chromium logs the 400 that the app handles
         expect(

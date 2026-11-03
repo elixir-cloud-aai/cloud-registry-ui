@@ -227,18 +227,14 @@ function renewInvitationError(err: unknown, expired = false) {
 /**
  * Get the status of an invitation
  * @param invitation Invitation, as listed
- * @param now Current time, in milliseconds since the epoch
- * @returns Its status, as the registry tells it; registries up to
- * cloud-registry 1.0.0rc1 don't, so there it follows from whether someone
- * accepted it and from the time it expires
+ * @returns Its status, as the registry tells it. Registries up to
+ * cloud-registry 1.0.0rc1 don't, and they don't list expired invitations: the
+ * others are open if nobody accepted them. The time isn't compared, as the
+ * browser's clock may be off, and expired invitations can be removed
  */
-function invitationStatus(
-    invitation: Invitation,
-    now = Date.now(),
-): InvitationStatus {
+function invitationStatus(invitation: Invitation): InvitationStatus {
     if (invitation.accepted) return "accepted";
-    if (invitation.status) return invitation.status;
-    return Date.parse(invitation.expires_at) <= now ? "expired" : "open";
+    return invitation.status ?? "open";
 }
 
 /** Tell whether an invitation has expired */

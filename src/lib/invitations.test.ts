@@ -458,7 +458,6 @@ describe("invitation lists", () => {
 });
 
 describe("invitation status", () => {
-    const now = Date.parse("2026-11-03T00:00:00Z");
     const base: Invitation = {
         id: "a",
         service_id: "s",
@@ -467,24 +466,18 @@ describe("invitation status", () => {
         created_at: "2026-10-20T00:00:00Z",
         expires_at: "2026-11-08T00:00:00Z",
     };
+    const past = "2000-01-01T00:00:00Z";
 
     it.each(["open", "expired", "accepted"] as const)(
         "takes the registry's %s",
         (status) => {
-            expect(invitationStatus({ ...base, status }, now)).toBe(status);
+            expect(invitationStatus({ ...base, status })).toBe(status);
         },
     );
 
     it("takes the registry's word over the time", () => {
         expect(
-            invitationStatus(
-                {
-                    ...base,
-                    status: "open",
-                    expires_at: "2026-11-01T00:00:00Z",
-                },
-                now,
-            ),
+            invitationStatus({ ...base, status: "open", expires_at: past }),
         ).toBe("open");
     });
 
@@ -494,41 +487,31 @@ describe("invitation status", () => {
     });
 
     describe("of registries without it", () => {
-        it("is open before the invitation expires", () => {
-            expect(invitationStatus(base, now)).toBe("open");
+        it("is open", () => {
+            expect(invitationStatus(base)).toBe("open");
         });
 
-        it("is expired from the time it expires", () => {
-            expect(
-                invitationStatus(
-                    { ...base, expires_at: "2026-11-03T00:00:00Z" },
-                    now,
-                ),
-            ).toBe("expired");
+        // they don't list expired invitations, and the clock of the browser
+        // mustn't make open ones removable
+        it("is open also after the time of the browser passed", () => {
+            expect(invitationStatus({ ...base, expires_at: past })).toBe(
+                "open",
+            );
+            expect(isExpiredInvitation({ ...base, expires_at: past })).toBe(
+                false,
+            );
         });
 
         it("is accepted with who accepted it", () => {
             expect(
-                invitationStatus(
-                    {
-                        ...base,
-                        accepted: {
-                            user_id: "v",
-                            accepted_at: "2026-11-02T00:00:00Z",
-                        },
-                    },
-                    now,
-                ),
-            ).toBe("accepted");
-        });
-
-        it("uses the current time by default", () => {
-            expect(
                 invitationStatus({
                     ...base,
-                    expires_at: "2000-01-01T00:00:00Z",
+                    accepted: {
+                        user_id: "v",
+                        accepted_at: "2026-11-02T00:00:00Z",
+                    },
                 }),
-            ).toBe("expired");
+            ).toBe("accepted");
         });
     });
 });
