@@ -120,6 +120,35 @@ async function setPublicSetting(page: Page, name: string, value: string) {
 }
 
 /**
+ * Check that long labels are clipped, and that the badges of their rows stay
+ * in their cells, where the column after them starts
+ * @param page Page that shows the invitations
+ */
+async function expectLabelsClipped(page: Page) {
+    const rows = invitationRows(page);
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(0);
+    for (let idx = 0; idx < count; idx++) {
+        const cell = rows.nth(idx).getByRole("cell").first();
+        const measured = await cell.evaluate((el) => {
+            const label = el.querySelector("[title]") as HTMLElement;
+            const right = el.getBoundingClientRect().right;
+            return {
+                clipped: label.scrollWidth > label.clientWidth,
+                badges: Array.from(
+                    el.querySelectorAll('[data-slot="badge"]'),
+                    (badge) => badge.getBoundingClientRect().right - right,
+                ),
+            };
+        });
+        expect(measured.clipped).toBe(true);
+        expect(measured.badges.length).toBeGreaterThan(0);
+        for (const overlap of measured.badges)
+            expect(overlap).toBeLessThanOrEqual(0);
+    }
+}
+
+/**
  * Change what the registry lists for a page, e.g. as the time passed
  * @param page Page, before it loads the list
  * @param path Path of the invitations of the service
@@ -655,11 +684,26 @@ test.describe("invitations", () => {
             const response = await route.fetch();
             await route.fulfill({
                 response,
-                json: Array.from({ length: 12 }, (_, idx) => ({
-                    user_id: `member-${idx}@lifescience-ri.eu`,
-                    name: `Member ${idx}`,
-                    role: idx ? "maintainer" : "owner",
-                })),
+                json: [
+                    {
+                        user_id: `${"long-id-".repeat(13)}@lifescience-ri.eu`,
+                        name: "Long Name ".repeat(13),
+                        role: "owner",
+                    },
+                    {
+                        user_id: `${"unnamed-".repeat(13)}@lifescience-ri.eu`,
+                        role: "maintainer",
+                    },
+                    {
+                        group: `urn:${"long-group:".repeat(13)}`,
+                        role: "maintainer",
+                    },
+                    ...Array.from({ length: 9 }, (_, idx) => ({
+                        user_id: `member-${idx}@lifescience-ri.eu`,
+                        name: `Member ${idx}`,
+                        role: "maintainer",
+                    })),
+                ],
             });
         });
         await page.route(`${registry}${path}/invitations`, async (route) => {
@@ -704,6 +748,22 @@ test.describe("invitations", () => {
             dialog.getByRole("button", { name: "Grant" }),
         ).toBeVisible();
         await fits();
+        // whatever the length of names, IDs and groups, the role and the
+        // remove button stay on the row's other cells
+        const holderCells = dialog
+            .getByRole("table")
+            .first()
+            .locator("tbody tr td:first-child");
+        await expect(holderCells).toHaveCount(5);
+        const overflows = await holderCells.evaluateAll((cells) =>
+            cells.flatMap((cell) => {
+                const right = cell.getBoundingClientRect().right;
+                return Array.from(cell.querySelectorAll("*"))
+                    .map((el) => el.getBoundingClientRect().right - right)
+                    .filter((overflow) => overflow > 0);
+            }),
+        );
+        expect(overflows).toEqual([]);
 
         await dialog.getByRole("tab", { name: "Invitations 6" }).click();
         await expect(invitationRows(page)).toHaveCount(5);
@@ -712,6 +772,52 @@ test.describe("invitations", () => {
             dialog.getByRole("button", { name: "Remove expired" }),
         ).toBeVisible();
         await fits();
+        await expectLabelsClipped(page);
+    });
+
+    test("long labels stay in their cell at phone width", async ({
+        page,
+        browser,
+    }) => {
+        await page.setViewportSize({ width: 375, height: 667 });
+        const service = await registerService(browser, "owner", "Narrow");
+        await login(page, "owner");
+        const path = `/services/${encodeURIComponent(service.id)}/invitations`;
+        await page.route(`${registry}${path}`, async (route) => {
+            if (route.request().method() !== "GET") return route.fallback();
+            const response = await route.fetch();
+            await route.fulfill({
+                response,
+                json: [false, true].map((expired, idx) => ({
+                    id: `invitation-${idx}`,
+                    service_id: service.id,
+                    role: "maintainer",
+                    label: "x".repeat(100),
+                    status: expired ? "expired" : "open",
+                    created_by: users.owner.sub,
+                    created_at: "2026-11-01T00:00:00Z",
+                    expires_at: expired
+                        ? "2026-11-02T00:00:00Z"
+                        : "2099-11-08T00:00:00Z",
+                })),
+            });
+        });
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        await openInvitations(page);
+        await expect(invitationRows(page)).toHaveCount(2);
+        await expectLabelsClipped(page);
+        // the column's dates move into the first cell; nothing scrolls sideways
+        const dialog = page.getByRole("dialog");
+        await expect(
+            dialog.getByRole("columnheader", { name: "Expires" }),
+        ).toBeHidden();
+        await expect(invitationRows(page).first()).toContainText("expires");
+        const wrapper = dialog.locator('[data-slot="table-container"]').last();
+        const scroll = await wrapper.evaluate((el) => ({
+            scrollWidth: el.scrollWidth,
+            clientWidth: el.clientWidth,
+        }));
+        expect(scroll.scrollWidth).toBeLessThanOrEqual(scroll.clientWidth);
     });
 
     test("labels name the invitations", async ({ page, browser }) => {

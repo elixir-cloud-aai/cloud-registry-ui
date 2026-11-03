@@ -47,7 +47,10 @@ function InvitationTable({
             <TableHeader>
                 <TableRow>
                     <TableHead>Invitation</TableHead>
-                    <TableHead>Expires</TableHead>
+                    {/* on phones, in the row's first cell instead */}
+                    <TableHead className="hidden sm:table-cell">
+                        Expires
+                    </TableHead>
                     <TableHead className="w-20" />
                 </TableRow>
             </TableHeader>
@@ -62,11 +65,13 @@ function InvitationTable({
                     return (
                         <TableRow key={val.id}>
                             <TableCell className="max-w-0 w-full">
-                                <div className="grid leading-tight">
-                                    <span className="flex items-center gap-2">
+                                {/* a track that doesn't grow with the label */}
+                                <div className="grid grid-cols-[minmax(0,1fr)] leading-tight">
+                                    <span className="flex min-w-0 items-center gap-2">
                                         <span
                                             className={cn(
-                                                "min-w-0 truncate",
+                                                // `pr-px`: italics lean out
+                                                "min-w-0 truncate pr-px",
                                                 !val.label &&
                                                     "text-muted-foreground italic",
                                             )}
@@ -89,9 +94,12 @@ function InvitationTable({
                                             !link &&
                                             ", link no longer shown"}
                                     </span>
+                                    <span className="truncate text-xs text-muted-foreground sm:hidden">
+                                        expires {when(val.expires_at)}
+                                    </span>
                                 </div>
                             </TableCell>
-                            <TableCell className="text-xs">
+                            <TableCell className="hidden text-xs sm:table-cell">
                                 {when(val.expires_at)}
                             </TableCell>
                             <TableCell>

@@ -107,7 +107,8 @@ Notes:
   message, not in a channel or on a page that others can read.
 - **The list** shows the open and the expired invitations, newest first
   (label, role, when created and when they expire), 5 per page unless the
-  deployment sets another number. Select the bin icon to revoke an open
+  deployment sets another number. Long labels are cut off: point at one to see
+  all of it. Select the bin icon to revoke an open
   invitation; its link then stops working. Accepted invitations aren't
   listed: the person is listed under **Current Access**, where you can change
   or remove their role.
