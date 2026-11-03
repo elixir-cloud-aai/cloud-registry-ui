@@ -370,6 +370,83 @@ test.describe("invitations", () => {
         problems.length = 0;
     });
 
+    test("a link stays available if the list can't be loaded", async ({
+        page,
+        browser,
+        problems,
+    }) => {
+        const service = await registerService(browser, "owner", "Unlisted");
+        await watchClipboard(page);
+        await login(page, "owner");
+        const path = `/services/${encodeURIComponent(service.id)}/invitations`;
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        await openInvitations(page);
+        const dialog = page.getByRole("dialog");
+        await expect(
+            dialog.getByRole("button", { name: "Create link" }),
+        ).toBeEnabled();
+        await page.route(`${registry}${path}`, (route) =>
+            route.request().method() === "GET"
+                ? route.fulfill({
+                      status: 500,
+                      contentType: "application/problem+json",
+                      headers: { "Access-Control-Allow-Origin": "*" },
+                      body: JSON.stringify({ title: "Server error" }),
+                  })
+                : route.fallback(),
+        );
+        await dialog.getByRole("button", { name: "Create link" }).click();
+        await expect(
+            dialog.getByText(
+                "Cannot load the invitations. Please try again later.",
+            ),
+        ).toBeVisible();
+        const link = await copyLink(page);
+        const accepted = await api(
+            await tokenOf(browser, "other"),
+            "POST",
+            "/invitations/accept",
+            { token: link.split("#")[1] },
+        );
+        expect(accepted.status).toBe(200);
+        // without a list, nothing else is acted on
+        await expect(
+            dialog.getByRole("button", { name: /^Revoke / }),
+        ).toBeDisabled();
+        // the failures on purpose
+        expect(problems.filter((val) => !val.includes("500"))).toEqual([]);
+        problems.length = 0;
+    });
+
+    test("a link that can't be copied can be selected", async ({
+        page,
+        browser,
+    }) => {
+        const service = await registerService(browser, "owner", "Uncopied");
+        await page.addInitScript(() => {
+            Object.defineProperty(navigator, "clipboard", {
+                value: {
+                    writeText: () => Promise.reject(new Error("denied")),
+                },
+            });
+        });
+        await login(page, "owner");
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        await openInvitations(page);
+        const dialog = page.getByRole("dialog");
+        await dialog.getByRole("button", { name: "Create link" }).click();
+        await copyButtons(page).first().click();
+        await expect(
+            page.getByText("Cannot copy the link; select and copy it."),
+        ).toBeVisible();
+        await expect(
+            dialog.getByRole("textbox", { name: "Invitation link" }),
+        ).toHaveValue(/\/invitations#[\w-]{43}$/);
+        // gone with the invitation
+        await dialog.getByRole("button", { name: /^Revoke / }).click();
+        await expect(dialog.getByRole("textbox")).toHaveCount(0);
+    });
+
     test("both tabs fit a laptop's window without scrolling", async ({
         page,
         browser,

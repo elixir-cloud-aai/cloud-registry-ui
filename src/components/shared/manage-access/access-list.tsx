@@ -20,12 +20,7 @@ import type {
     Role,
     ServicePermissions,
 } from "@/lib/cloud-registry.types";
-import {
-    compactTable,
-    filterHolders,
-    isGroup,
-    userName,
-} from "./access-helper";
+import { filterHolders, isGroup, userName } from "./access-helper";
 import RoleSelect from "./role-select";
 
 type Props = {
@@ -98,7 +93,7 @@ function AccessList({
                     No users or groups match.
                 </p>
             ) : (
-                <Table className={compactTable}>
+                <Table>
                     <TableHeader>
                         <TableRow>
                             <TableHead>User or group</TableHead>

@@ -81,10 +81,11 @@ Notes:
 
 - **Links aren't kept:** the registry keeps no copy of a link, so the copy
   icon is there only while the dialog is open, for the invitations created
-  in it. Copy a link before you close the dialog. Afterwards, an open
-  invitation can only get a new link: select the arrows icon (**New link**)
-  in its row. This creates an invitation for the same role, at the top of
-  the list, and revokes the old one, whose link then stops working.
+  in it. Copy a link before you close the dialog; if copying fails, the
+  dialog shows the link for you to select. Afterwards, an open invitation
+  can only get a new link: select the arrows icon (**New link**) in its row.
+  This creates an invitation for the same role, at the top of the list, and
+  revokes the old one, whose link then stops working.
 - **Share it only with the person you mean:** whoever opens the link and
   logs in gets the role, and the link works once. Send it in a private
   message, not in a channel or on a page that others can read.

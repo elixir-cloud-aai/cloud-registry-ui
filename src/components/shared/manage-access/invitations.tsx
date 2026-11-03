@@ -2,12 +2,16 @@
 import { Link2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { ListPagination } from "@/components/shared/list-pagination";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { usePagination } from "@/hooks";
 import type { Invitation, Role } from "@/lib/cloud-registry.types";
 import {
     createInvitationError,
     invitationLink,
+    isDeadInvitation,
     listInvitationsError,
     openInvitations,
     renewInvitationError,
@@ -30,6 +34,12 @@ type Props = {
     onCountChange?: (count: number | undefined) => void;
 };
 
+/** An invitation created here, with its link */
+type CreatedLink = {
+    invitation: Invitation;
+    link: string;
+};
+
 /**
  * Invitations to a service: create a link for a role, list the open
  * invitations, newest first and in pages, give them a new link, and revoke
@@ -49,19 +59,30 @@ function Invitations({
     const [listFailure, setListFailure] = useState<string>();
     const [role, setRole] = useState<Role>("maintainer");
     const [changing, setChanging] = useState(false);
-    // the links created here, by invitation; their tokens are only known now
-    const [links, setLinks] = useState<ReadonlyMap<string, string>>(new Map());
+    // the invitations created here, with their links: their tokens are only
+    // known now
+    const [created, setCreated] = useState<CreatedLink[]>([]);
+    // the link that couldn't be copied, shown to be selected instead
+    const [uncopied, setUncopied] = useState<string>();
     const latestRequest = useRef(0);
-    const open = openInvitations(invitations ?? []);
-    const count = invitations ? open.length : undefined;
-    // here, as a new link goes back to the first page, where it is listed
-    const [page, setPage] = useState(1);
+    // without a list, those created here, so that their links stay available
+    const shown = openInvitations(
+        invitations ?? created.map((val) => val.invitation),
+    );
+    const links = new Map(created.map((val) => [val.invitation.id, val.link]));
+    const count = invitations ? shown.length : undefined;
+    // the registry lists all invitations at once: paged here
+    const { page, pageCount, pageItems, setPage } = usePagination(
+        shown,
+        pageSize,
+    );
 
     useEffect(() => {
         onCountChange?.(count);
-        // not known once the dialog closes, until the list is loaded again
-        return () => onCountChange?.(undefined);
     }, [count, onCountChange]);
+
+    // not known once the dialog closes, until the list is loaded again
+    useEffect(() => () => onCountChange?.(undefined), [onCountChange]);
 
     const fetchInvitations = useCallback(() => {
         if (!provider) return Promise.resolve();
@@ -92,6 +113,7 @@ function Invitations({
     ) => {
         if (!provider) return;
         setChanging(true);
+        setUncopied(undefined);
         // new links are shown only while the dialog is open
         onChanging?.(true);
         try {
@@ -105,16 +127,24 @@ function Invitations({
         onChanging?.(false);
     };
 
+    // a link stops working with its invitation, also if the list can't be
+    // loaded again to tell
+    const dropLink = (id: string) =>
+        setCreated((current) =>
+            current.filter((val) => val.invitation.id !== id),
+        );
+
     const createLink = async (val: AccessProvider, linkRole: Role) => {
-        const invitation = await val.createInvitation(serviceId, {
+        const { token, ...invitation } = await val.createInvitation(serviceId, {
             role: linkRole,
         });
-        setLinks((current) =>
-            new Map(current).set(
-                invitation.id,
-                invitationLink(window.location.origin, invitation.token),
-            ),
-        );
+        setCreated((current) => [
+            ...current,
+            {
+                invitation,
+                link: invitationLink(window.location.origin, token),
+            },
+        ]);
         // the newest invitation is the first one
         setPage(1);
     };
@@ -135,9 +165,11 @@ function Invitations({
             try {
                 await val.revokeInvitation(serviceId, invitation.id);
             } catch (err) {
+                if (isDeadInvitation(err)) dropLink(invitation.id);
                 toast.error(renewRevokeError(err));
                 return;
             }
+            dropLink(invitation.id);
             toast.success(
                 `Created a new ${invitation.role} link; the old one no longer works`,
             );
@@ -145,18 +177,27 @@ function Invitations({
 
     const revoke = (invitation: Invitation) =>
         run(async (val) => {
-            await val.revokeInvitation(serviceId, invitation.id);
+            try {
+                await val.revokeInvitation(serviceId, invitation.id);
+            } catch (err) {
+                if (isDeadInvitation(err)) dropLink(invitation.id);
+                throw err;
+            }
+            dropLink(invitation.id);
             toast.success(`Revoked the ${invitation.role} invitation`);
         }, revokeInvitationError);
 
     const copy = (link: string) => {
-        const failed = () =>
+        const failed = () => {
+            setUncopied(link);
             toast.error("Cannot copy the link; select and copy it.");
+        };
         // no Clipboard API outside secure contexts
         if (!navigator.clipboard) return failed();
-        navigator.clipboard
-            .writeText(link)
-            .then(() => toast.success("Copied the invitation link"), failed);
+        navigator.clipboard.writeText(link).then(() => {
+            setUncopied(undefined);
+            toast.success("Copied the invitation link");
+        }, failed);
     };
 
     const busy = disabled || changing;
@@ -194,19 +235,35 @@ function Invitations({
             {listFailure && (
                 <p className="text-sm text-muted-foreground">{listFailure}</p>
             )}
-            {invitations && (
+            {uncopied && (
+                <Input
+                    readOnly
+                    value={uncopied}
+                    aria-label="Invitation link"
+                    onFocus={(e) => e.target.select()}
+                />
+            )}
+            {invitations && shown.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                    No open invitations.
+                </p>
+            )}
+            {shown.length > 0 && (
                 <InvitationTable
-                    invitations={open}
+                    invitations={pageItems}
                     links={links}
-                    pageSize={pageSize}
-                    page={page}
-                    onPageChange={setPage}
-                    disabled={busy}
+                    // what the list doesn't show may have changed
+                    disabled={busy || !invitations}
                     onCopy={copy}
                     onRenew={renew}
                     onRevoke={revoke}
                 />
             )}
+            <ListPagination
+                page={page}
+                pageCount={pageCount}
+                onPageChange={setPage}
+            />
         </div>
     );
 }

@@ -188,7 +188,11 @@ function ManageAccessDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <Tabs defaultValue="access" className="min-w-0">
+                {/* table rows low enough for a laptop's window */}
+                <Tabs
+                    defaultValue="access"
+                    className="min-w-0 [&_td]:py-1.5 [&_th]:h-9"
+                >
                     <TabsList>
                         <TabsTrigger value="access">Current Access</TabsTrigger>
                         <TabsTrigger value="invitations">

@@ -4,20 +4,20 @@ The app is configured through environment variables. For `bun run dev`, `bun run
 
 The settings are read when the app starts (`bun run start`, `docker run`, `bun run dev`): change them, then restart the app, without building it again. The `NEXT_PUBLIC_*` settings reach the browser, so they are public: put no secrets in them. Values of `NEXT_PUBLIC_*` settings that are set when the app is built (e.g. in `.env` for `bun run build`, or on Vercel) apply where the environment of the started app doesn't set them; the Docker image is built without settings, so this doesn't apply there.
 
-| Variable                           | Required | Section                 |
-| ---------------------------------- | -------- | ----------------------- |
-| `NEXT_PUBLIC_CLOUD_REGISTRY_URL`   | yes      | [Registry](#registry)   |
+| Variable                           | Required | Section                         |
+| ---------------------------------- | -------- | ------------------------------- |
+| `NEXT_PUBLIC_CLOUD_REGISTRY_URL`   | yes      | [Registry](#registry)           |
 | `NEXT_PUBLIC_ACCESS_PAGE_SIZE`     | no       | [Access dialog](#access-dialog) |
-| `NEXT_PUBLIC_APP_TITLE`            | no       | [Branding](branding.md) |
-| `NEXT_PUBLIC_APP_TITLE_SIZE`       | no       | [Branding](branding.md) |
-| `NEXT_PUBLIC_APP_TITLE_FONT`       | no       | [Branding](branding.md) |
-| `NEXT_PUBLIC_APP_LOGO`             | no       | [Branding](branding.md) |
-| `NEXT_PUBLIC_APP_LOGO_DARK`        | no       | [Branding](branding.md) |
-| `NEXT_PUBLIC_FOOTER_LOGO`          | no       | [Branding](branding.md) |
-| `NEXT_PUBLIC_FOOTER_LOGO_DARK`     | no       | [Branding](branding.md) |
-| `NEXT_PUBLIC_FOOTER_START_YEAR`    | no       | [Branding](branding.md) |
-| `LOGIN_PROVIDERS`                  | yes      | [Login](login.md)       |
-| `LOGIN_REDIRECT_URI`               | yes      | [Login](login.md)       |
+| `NEXT_PUBLIC_APP_TITLE`            | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_APP_TITLE_SIZE`       | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_APP_TITLE_FONT`       | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_APP_LOGO`             | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_APP_LOGO_DARK`        | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_FOOTER_LOGO`          | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_FOOTER_LOGO_DARK`     | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_FOOTER_START_YEAR`    | no       | [Branding](branding.md)         |
+| `LOGIN_PROVIDERS`                  | yes      | [Login](login.md)               |
+| `LOGIN_REDIRECT_URI`               | yes      | [Login](login.md)               |
 
 Missing or invalid settings stop the app with a message that names the setting:
 

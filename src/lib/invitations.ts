@@ -162,6 +162,14 @@ function renewRevokeError(err: unknown) {
 }
 
 /**
+ * Tell whether a failed revocation shows that the invitation's link no
+ * longer works: it expired, was revoked, or was accepted
+ */
+function isDeadInvitation(err: unknown) {
+    return hasStatus(err, 404) || isInvitationAccepted(err);
+}
+
+/**
  * Get the message for a failed creation of the new invitation of a
  * renewal: the old one is unchanged
  */
@@ -242,6 +250,7 @@ export {
     invitationLink,
     invitationPath,
     invitationToken,
+    isDeadInvitation,
     keepPendingToken,
     listInvitationsError,
     openInvitations,

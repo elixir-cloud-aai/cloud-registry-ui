@@ -20,9 +20,6 @@ export type AccessProvider = Pick<
     | "revokeInvitation"
 >;
 
-/** Class of the dialog's tables: rows low enough for a laptop's window */
-export const compactTable = "[&_td]:py-1.5 [&_th]:h-9";
-
 const roles = ["owner", "maintainer"] as const satisfies readonly Role[];
 
 export const roleOptions = roles.map((value) => ({
