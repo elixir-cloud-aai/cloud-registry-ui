@@ -214,11 +214,18 @@ function Invitations({
                 label.trim() || undefined,
             );
             setLabel("");
-            toast.success(
-                labelKept
-                    ? `Created a ${role} link; copy it before you close this dialog`
-                    : `Created a ${role} link without its label, as this registry has no labels; copy it before you close this dialog`,
-            );
+            if (labelKept)
+                toast.success(
+                    `Created a ${role} link; copy it before you close this dialog`,
+                );
+            else
+                toast.success(
+                    `Created a ${role} link without its label, as this registry has no labels; copy it before you close this dialog`,
+                    {
+                        description:
+                            "This registry is too old for this version of the app: don't change the roles of users until its admins upgrade it.",
+                    },
+                );
         }, createInvitationError);
     };
 

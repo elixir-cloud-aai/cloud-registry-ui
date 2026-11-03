@@ -461,7 +461,7 @@ class AuthenticatedCloudRegistryProvider
     userId: UserId,
     permission: PermissionRegister,
   ): Promise<Permission> {
-    return this.request(
+    const granted = await this.request<Permission>(
       `/services/${this.idPath(serviceId)}/permissions/users/${this.principalPath(userId)}`,
       {
         method: "PUT",
@@ -469,6 +469,13 @@ class AuthenticatedCloudRegistryProvider
         authenticated: true,
       },
     );
+    // cloud-registry 0.6.0 and 1.0.0rc1 take this path for that of a user
+    // `users/<ID>`, and answer `200 OK`: only the answer tells
+    if (granted?.user_id !== undefined && granted.user_id !== userId) {
+      const detail = `This registry is too old for this version of the app: it granted the role to '${granted.user_id}', not to '${userId}'. Ask its admins to upgrade it; until then, this app can't change or remove that role.`;
+      throw Object.assign(new Error(detail), { detail });
+    }
+    return granted;
   }
 
   /**

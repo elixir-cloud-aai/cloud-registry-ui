@@ -28,6 +28,41 @@ function lastRequest() {
     };
 }
 
+describe("grantServicePermission", () => {
+    const role = { role: "owner" } as const;
+
+    it("takes the registry's answer for the requested user", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        const granted = { user_id: "bob@x", role: "owner" };
+        fetchMock.mockResolvedValue(json(granted));
+        await expect(
+            provider.grantServicePermission("a", "bob@x", role),
+        ).resolves.toEqual(granted);
+    });
+
+    it("takes an answer that names no user", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+        await expect(
+            provider.grantServicePermission("a", "bob@x", role),
+        ).resolves.toBeUndefined();
+    });
+
+    it("fails if the registry granted the role to another user", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValue(
+            json({ user_id: "users/bob@x", role: "owner" }),
+        );
+        const error = await provider
+            .grantServicePermission("a", "bob@x", role)
+            .catch((err: unknown) => err);
+        expect(error).toBeInstanceOf(Error);
+        expect(error).toMatchObject({
+            detail: "This registry is too old for this version of the app: it granted the role to 'users/bob@x', not to 'bob@x'. Ask its admins to upgrade it; until then, this app can't change or remove that role.",
+        });
+    });
+});
+
 describe("requests", () => {
     it("strips trailing slashes and takes options", async () => {
         const provider = new AuthenticatedCloudRegistryProvider({

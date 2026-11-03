@@ -1020,6 +1020,11 @@ test.describe("invitations", () => {
                 "Created a maintainer link without its label, as this registry has no labels; copy it before you close this dialog",
             ),
         ).toBeVisible();
+        await expect(
+            page.getByText(
+                "This registry is too old for this version of the app: don't change the roles of users until its admins upgrade it.",
+            ),
+        ).toBeVisible();
         await expect(copyButtons(page)).toHaveCount(1);
         await expect(invitationRows(page).first()).toContainText("No label");
         await expect(

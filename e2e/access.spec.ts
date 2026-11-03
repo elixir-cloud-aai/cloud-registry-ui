@@ -1,4 +1,12 @@
-import { api, expect, login, registerService, test, tokenOf } from "./fixtures";
+import {
+    api,
+    expect,
+    login,
+    registerService,
+    registry,
+    test,
+    tokenOf,
+} from "./fixtures";
 
 test.describe("manage access", () => {
     test("long lists of role holders page, and can be searched", async ({
@@ -83,6 +91,42 @@ test.describe("manage access", () => {
         ).toBeVisible();
         await search.fill("");
         await expect(holders).toHaveCount(5);
+    });
+
+    test("a role granted to another user isn't reported as granted", async ({
+        page,
+        browser,
+    }) => {
+        const service = await registerService(browser, "owner", "Too old");
+        await login(page, "owner");
+        const path = `/services/${encodeURIComponent(service.id)}/permissions`;
+        // as cloud-registry 0.6.0 and 1.0.0rc1 answer on the new paths
+        await page.route(
+            `${registry}${path}/users/${encodeURIComponent("dave@example.org")}`,
+            (route) =>
+                route.request().method() === "PUT"
+                    ? route.fulfill({
+                          status: 200,
+                          contentType: "application/json",
+                          headers: { "Access-Control-Allow-Origin": "*" },
+                          body: JSON.stringify({
+                              user_id: "users/dave@example.org",
+                              role: "maintainer",
+                          }),
+                      })
+                    : route.fallback(),
+        );
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        await page.getByRole("button", { name: "Manage access" }).click();
+        const dialog = page.getByRole("dialog");
+        await dialog.getByLabel("User ID").fill("dave@example.org");
+        await dialog.getByRole("button", { name: "Grant" }).click();
+        await expect(
+            page.getByText(
+                "This registry is too old for this version of the app: it granted the role to 'users/dave@example.org', not to 'dave@example.org'.",
+            ),
+        ).toBeVisible();
+        await expect(page.getByText(/^Granted /)).toHaveCount(0);
     });
 
     test("user IDs with slashes, or like the path of groups, get roles", async ({

@@ -4,7 +4,9 @@
 
 1. Pick the release that matches your registry's major and minor version
    (see [Compatibility](index.md#compatibility)). When you upgrade the
-   registry to a new minor version, upgrade the app with it.
+   registry to a new minor version, upgrade the app with it. 1.0.0-rc2 is an
+   exception: it doesn't work with cloud-registry 1.0.0rc1 (see
+   [below](#100-rc2)).
 2. Read its release notes on
    [GitHub](https://github.com/elixir-cloud-aai/cloud-registry-ui/releases),
    and the changes below, for settings to add or change.
@@ -12,7 +14,8 @@
    if needed, and replace the container with one of the new image.
 
 The app keeps no data of its own: everything is stored in the registry, so
-the app can be replaced at any time. Users who are logged in keep their
+the app can be replaced at any time, except when you upgrade to or from
+1.0.0-rc2 (see [below](#100-rc2)). Users who are logged in keep their
 session (it is kept in cookies), unless the release notes say otherwise.
 Logins that are in progress during the update may fail; users then log in
 again.
@@ -36,6 +39,13 @@ scale the registry to 0 replicas for the upgrade, unless nobody changes roles
 during it. After a rolling update, look for wrongly granted roles as the guide
 describes.
 
+If the app ran with an older registry, it can't repair the result: it reports
+an error for such a grant, but the wrong role stays stored, a downgrade leaves
+the real user's role as it was, and with that registry removing a user's role
+doesn't remove it, and usually fails with "not found". Upgrade the registry, then remove the wrong
+roles as the guide describes. To go back from this version, move the registry
+and the app back together, as the guide describes under **Going back**.
+
 The **Manage access** dialog now has the tabs **Current Access** and
 **Invitations**, and shows 5 entries per page instead of 8. To change that,
 set `NEXT_PUBLIC_ACCESS_PAGE_SIZE` (see [Access
@@ -48,11 +58,10 @@ requires one by default**. To keep it optional, set
 `NEXT_PUBLIC_INVITATION_LABEL_REQUIRED=false` (see [Access
 dialog](configuration.md#access-dialog)). Expired invitations stay listed,
 marked as expired, with **New link**, removal and **Remove expired**. Both
-need a registry newer than cloud-registry 1.0.0rc1: with 1.0.0rc1, invitations
-still work, the app creates links without the label and says so, and doesn't
-list expired invitations, as that registry doesn't (see
-[Compatibility](index.md#compatibility)). Changing the roles of users still
-needs the newer registry, as described above.
+need a registry newer than cloud-registry 1.0.0rc1. If the app meets 1.0.0rc1
+during an upgrade, it creates links without the label and says so, and doesn't
+list expired invitations, as that registry doesn't; this is no reason to run
+that pairing, which gives roles to the wrong user, as described above.
 
 ## 1.0.0-rc1
 

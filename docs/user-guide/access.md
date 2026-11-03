@@ -27,8 +27,9 @@ whom to ask.
 ## Managing access
 
 Owners of a service, and admins, can see and change who has which role on
-it. Changing the roles of users needs a registry newer than cloud-registry
-1.0.0rc1 (see [Compatibility](../operator-guide/index.md#compatibility)):
+it. This needs a registry newer than cloud-registry 1.0.0rc1 (see
+[Compatibility](../operator-guide/index.md#compatibility)); older ones give
+roles to the wrong user:
 
 1. Open the service and select **Manage access**. The dialog has two tabs:
    **Current Access**, described here, and **Invitations** (see [Inviting
@@ -127,14 +128,15 @@ Notes:
   the old invitation and its link as they are. Revoke open invitations or
   wait until invitations expire. The expiry and the limit are settings of
   the registry (see [Compatibility](../operator-guide/index.md#compatibility)).
-- **Registries without invitations:** the tab reports that the registry
-  has none. Invitations need cloud-registry 1.0.0rc1 or later, and changing
-  the roles of users needs a newer registry still (see
-  [Compatibility](../operator-guide/index.md#compatibility)): ask your
-  registry's admins to upgrade it.
-- **Registries without labels:** cloud-registry 1.0.0rc1 has no labels and
-  doesn't list expired invitations. The dialog then creates the link without
-  the label and says so, and invitations show **No label**.
+- **A registry that is too old:** this version of the app needs a registry
+  newer than cloud-registry 1.0.0rc1 (see
+  [Compatibility](../operator-guide/index.md#compatibility)). Don't change the
+  roles of users and ask your registry's admins to upgrade it if the dialog
+  says so: if a grant reports that the role went to another user; if it
+  creates a link without its label, as the registry has no labels, and
+  invitations show **No label**; or if the tab reports that the registry has no
+  invitations. The tab may also only say that it can't load them, which can have
+  other causes.
 
 The person who got the link follows [Accepting an
 invitation](invitations.md).
