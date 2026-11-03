@@ -86,6 +86,16 @@ yet, so the end-to-end tests run against its development version.
 The app's release 1.0.0-rc1 was tested against cloud-registry 1.0.0rc1 (see the
 [release notes](../releases/1.0.0-rc1.md)).
 
+To find out whether the registry has approvals, the app reads its service
+info (`GET /service-info`, without a token) for logged-in users: registries
+that publish registration rules (cloud-registry 0.6.0 and later) have them. If
+the service info has no rules or can't be read, the app also sends `GET
+/approvals` without a token. Registries with approvals answer it with a 401,
+which the browser console shows and the registry may log as an error; this is
+harmless, and the app remembers the result until the page is reloaded.
+Registries without approvals (before 0.5.0) answer with a 404, and are asked
+again by each page.
+
 The limit on the services per user (see [Limit on registered
 services](../user-guide/registering.md#limit-on-registered-services)) comes
 from cloud-registry 1.0.0rc1: the registry sets it (`custom.access_control.max_services_per_user`,

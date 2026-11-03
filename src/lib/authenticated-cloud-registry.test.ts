@@ -578,8 +578,14 @@ describe("servicesPath", () => {
 
 describe("hasApprovals", () => {
     // each test uses its own registry, as support is kept per base URL
-    it("probes once without a token and keeps support", async () => {
-        fetchMock.mockResolvedValue(new Response(null, { status: 401 }));
+    const unauthorized = () => new Response(null, { status: 401 });
+    const authorization = (call: number) =>
+        new Headers(fetchMock.mock.calls[call][1]?.headers).get(
+            "Authorization",
+        );
+
+    it("trusts published rules without requesting the route", async () => {
+        fetchMock.mockResolvedValueOnce(json({ registration_rules: {} }));
         const provider = new AuthenticatedCloudRegistryProvider(
             `${base}/1`,
             "t",
@@ -587,19 +593,83 @@ describe("hasApprovals", () => {
         expect(await provider.hasApprovals()).toBe(true);
         expect(await provider.hasApprovals()).toBe(true);
         expect(fetchMock).toHaveBeenCalledOnce();
-        const [url, init] = fetchMock.mock.calls[0];
-        expect(url).toBe(`${base}/1/approvals`);
-        expect(new Headers(init?.headers).get("Authorization")).toBeNull();
+        expect(fetchMock.mock.calls[0][0]).toBe(`${base}/1/service-info`);
+        expect(authorization(0)).toBeNull();
     });
 
-    it("asks again after a 404 or a failure", async () => {
-        const provider = new AuthenticatedCloudRegistryProvider(`${base}/2`);
-        fetchMock.mockResolvedValueOnce(new Response(null, { status: 404 }));
+    it("probes registries without rules, without a token", async () => {
+        fetchMock
+            .mockResolvedValueOnce(json({ id: "older" }))
+            .mockResolvedValueOnce(unauthorized());
+        const provider = new AuthenticatedCloudRegistryProvider(
+            `${base}/2`,
+            "t",
+        );
+        expect(await provider.hasApprovals()).toBe(true);
+        expect(await provider.hasApprovals()).toBe(true);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(fetchMock.mock.calls[1][0]).toBe(`${base}/2/approvals`);
+        expect(authorization(1)).toBeNull();
+    });
+
+    it.each([
+        ["fails", () => new Response(null, { status: 500 })],
+        ["needs a login", unauthorized],
+        ["isn't JSON", () => new Response("<html>")],
+        ["has empty rules", () => json({ registration_rules: null })],
+    ])("probes if the service info %s", async (name, response) => {
+        fetchMock
+            .mockResolvedValueOnce(response())
+            .mockResolvedValueOnce(unauthorized());
+        const provider = new AuthenticatedCloudRegistryProvider(
+            `${base}/3/${name}`,
+        );
+        expect(await provider.hasApprovals()).toBe(true);
+        expect(fetchMock.mock.calls[1][0]).toBe(`${base}/3/${name}/approvals`);
+    });
+
+    it("probes if the service info can't be reached", async () => {
+        fetchMock
+            .mockRejectedValueOnce(new TypeError("offline"))
+            .mockResolvedValueOnce(unauthorized());
+        const provider = new AuthenticatedCloudRegistryProvider(`${base}/6`);
+        expect(await provider.hasApprovals()).toBe(true);
+        expect(fetchMock.mock.calls[1][0]).toBe(`${base}/6/approvals`);
+    });
+
+    it("asks again after a 404", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(`${base}/4`);
+        fetchMock
+            .mockResolvedValueOnce(json({ id: "older" }))
+            .mockResolvedValueOnce(new Response(null, { status: 404 }));
         expect(await provider.hasApprovals()).toBe(false);
-        fetchMock.mockRejectedValueOnce(new TypeError("offline"));
-        await expect(provider.hasApprovals()).rejects.toThrow("offline");
-        fetchMock.mockResolvedValueOnce(new Response(null, { status: 200 }));
+        fetchMock.mockResolvedValueOnce(json({ registration_rules: {} }));
         expect(await provider.hasApprovals()).toBe(true);
         expect(fetchMock).toHaveBeenCalledTimes(3);
+    });
+
+    it("asks again after a failure", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(`${base}/7`);
+        fetchMock
+            .mockRejectedValueOnce(new TypeError("offline"))
+            .mockRejectedValueOnce(new TypeError("offline"));
+        await expect(provider.hasApprovals()).rejects.toThrow("offline");
+        fetchMock.mockResolvedValueOnce(json({ registration_rules: {} }));
+        expect(await provider.hasApprovals()).toBe(true);
+        expect(fetchMock).toHaveBeenCalledTimes(3);
+    });
+
+    it("gives each request a timeout of its own", async () => {
+        fetchMock
+            .mockResolvedValueOnce(json({ id: "older" }))
+            .mockResolvedValueOnce(unauthorized());
+        const timeout = vi.spyOn(AbortSignal, "timeout");
+        const provider = new AuthenticatedCloudRegistryProvider(`${base}/5`);
+        await provider.hasApprovals();
+        expect(timeout.mock.calls).toEqual([[5_000], [10_000]]);
+        const [first, second] = fetchMock.mock.calls;
+        expect(first[1]?.signal).toBe(timeout.mock.results[0].value);
+        expect(second[1]?.signal).toBe(timeout.mock.results[1].value);
+        timeout.mockRestore();
     });
 });

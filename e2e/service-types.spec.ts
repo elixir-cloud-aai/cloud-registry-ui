@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Page, Request } from "@playwright/test";
 import {
     api,
     expect,
@@ -24,6 +24,51 @@ async function openTypeList(page: Page, id: string) {
     await page.goto(`/dashboard/services/update/${id}`);
     await page.getByRole("combobox", { name: "Service Type" }).click();
 }
+
+test.describe("pending entries", () => {
+    /**
+     * Keep the page's reads of the pending entries
+     * @param page Page
+     * @returns The list of requests, which grows while the page runs
+     */
+    function watchApprovals(page: Page) {
+        const reads: Request[] = [];
+        page.on("request", (request) => {
+            if (
+                request.method() === "GET" &&
+                request.url() === `${registry}/approvals`
+            )
+                reads.push(request);
+        });
+        return reads;
+    }
+
+    test("are read with the token only", async ({ page }) => {
+        const reads = watchApprovals(page);
+        await login(page, "admin", { adminMode: true });
+        await page.goto("/dashboard/services");
+        await expect.poll(() => reads.length).toBeGreaterThan(0);
+        await page.waitForLoadState("networkidle");
+        // checks the requests, as `expectedMessage` allows the probe's 401
+        for (const read of reads)
+            expect(read.headers().authorization).toBeTruthy();
+    });
+
+    test("are read from registries that publish no rules", async ({ page }) => {
+        await page.route(`${registry}/service-info`, async (route) => {
+            const response = await route.fetch();
+            const { registration_rules: _, ...info } = await response.json();
+            await route.fulfill({ response, json: info });
+        });
+        const reads = watchApprovals(page);
+        await login(page, "admin", { adminMode: true });
+        await page.goto("/dashboard/services");
+        // the probe without a token, then the read with it
+        await expect
+            .poll(() => reads.map((read) => !!read.headers().authorization))
+            .toEqual(expect.arrayContaining([false, true]));
+    });
+});
 
 test.describe("service types", () => {
     test("new types of users are pending until an admin approves them", async ({
