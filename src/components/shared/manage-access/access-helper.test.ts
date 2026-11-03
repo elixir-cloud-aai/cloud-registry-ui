@@ -17,6 +17,13 @@ const issues = (data: object) =>
         .error?.issues.map((val) => val.message);
 
 describe("grantSchema", () => {
+    it.each(["...", "a..b", "a/.../b", ".hidden", "a./b", "https://i.org/u"])(
+        "accepts %s, which has no dot segments",
+        (principal) => {
+            expect(issues({ principal })).toBeUndefined();
+        },
+    );
+
     it("accepts users and groups, trimmed", () => {
         expect(
             grantSchema.parse({ ...defaultGrant, principal: " bob " }),
@@ -38,10 +45,19 @@ describe("grantSchema", () => {
             "Group can't start with '/'.",
         ],
         [{ principal: "/bob" }, "User ID can't start with '/'."],
-        [{ principal: ".." }, "User ID can't consist of dots only."],
+        [{ principal: ".." }, "User ID can't have the parts '.' or '..'."],
         [
             { kind: "group", principal: "." },
-            "Group can't consist of dots only.",
+            "Group can't have the parts '.' or '..'.",
+        ],
+        [{ principal: "a/../b" }, "User ID can't have the parts '.' or '..'."],
+        [{ principal: "x/.." }, "User ID can't have the parts '.' or '..'."],
+        [{ principal: "../x" }, "User ID can't have the parts '.' or '..'."],
+        [{ principal: "a/./b" }, "User ID can't have the parts '.' or '..'."],
+        [{ principal: "a\\..\\b" }, "User ID can't have the parts '.' or '..'."],
+        [
+            { kind: "group", principal: "a/../b" },
+            "Group can't have the parts '.' or '..'.",
         ],
     ])("rejects %j", (data, message) => {
         expect(issues(data)).toEqual([message]);

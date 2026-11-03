@@ -56,6 +56,32 @@ describe("revokeServicePermission", () => {
     });
 });
 
+describe("IDs with dot segments", () => {
+    it.each(["a/../b", "x/..", "../x", "a/./b", "a\\..\\b"])(
+        "%s is refused without a request",
+        async (id) => {
+            const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+            await expect(
+                provider.revokeServicePermission("a", id),
+            ).rejects.toMatchObject({
+                detail: `The app can't change the role of '${id}', as IDs can't have the parts '.' or '..'.`,
+            });
+            expect(fetchMock).not.toHaveBeenCalled();
+        },
+    );
+});
+
+describe("IDs with a leading slash", () => {
+    it("are refused with a message for the user", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        await expect(
+            provider.revokeServicePermission("a", "/u"),
+        ).rejects.toMatchObject({
+            detail: "The app can't change the role of '/u', as IDs can't start with '/'.",
+        });
+    });
+});
+
 describe("grantServicePermission", () => {
     const role = { role: "owner" } as const;
 

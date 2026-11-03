@@ -184,8 +184,10 @@ versions):
        git push origin "v${version}"
    ```
 
-   Moving `main` also deploys it to Vercel production
-   (`.github/workflows/deploy-prod.yml`), also for pre-releases.
+   No workflow of this repository deploys `main`, but a hosting project may
+   follow it (a Vercel project follows this repository): check its settings
+   before you move `main`. If it deploys `main`, also for pre-releases, move
+   `main` no earlier than the registry the release needs is deployed.
 4. Approve the jobs of the release workflow (`.github/workflows/release.yml`)
    in the `release` environment, after checking that the run is for the tag
    you pushed. It checks that GitHub verified the tag's signature, that its
@@ -206,7 +208,7 @@ public, before the first release), only in that environment, not as
 repository secrets; optionally the variable `DOCKERHUB_ORG` for another
 Docker Hub organization; a ruleset for `dev` that requires the check `CI
 passed` (the gate job of `ci.yml`); a ruleset for `main` that lets only
-maintainers update it (every push to `main` deploys to Vercel production)
+maintainers update it (hosting projects may deploy it)
 and protects it against non-fast-forward pushes; a ruleset that lets only maintainers create `v*`
 tags and keeps them from being moved or deleted; and immutable releases.
 Tags and published releases and images can't be changed: if a release

@@ -65,9 +65,10 @@ Notes:
   owner first, or delete the service.
 - **Your own role:** if you remove your own owner role, you can no longer
   manage access, and the dialog closes.
-- **User IDs** may contain slashes, though not start with one, and may be
-  `groups` or start with `groups/`: the app and the registry keep them apart
-  from groups.
+- **User IDs and groups** may contain slashes, though not start with one, and
+  can't have the parts `.` or `..` between slashes or backslashes (e.g.
+  `a/../b`). User IDs may be `groups` or
+  start with `groups/`: the app and the registry keep them apart from groups.
 
 ## Inviting by link
 
@@ -110,9 +111,11 @@ Notes:
   (label, role, when created and when they expire), 5 per page unless the
   deployment sets another number. Long labels are cut off: point at one to see
   all of it, which touch screens don't offer. On phones, the expiry is under
-  the label. Select the bin icon to revoke an open invitation; its link then stops working. Accepted invitations
-  aren't listed: the person is listed under **Current Access**, where you can change
-  or remove their role.
+  the label. Select the bin icon to revoke an open invitation; its link then
+  stops working. Accepted invitations aren't listed: the person is listed under
+  **Current Access**, where you can change or remove their role. If someone
+  accepts while the dialog is open, both tabs show it when you select them
+  again.
 - **Expired invitations** are marked as **Expired**, so that you can see who
   didn't accept in time. Select **New link** to invite the person again,
   which removes the expired invitation, or the bin icon to remove it. To

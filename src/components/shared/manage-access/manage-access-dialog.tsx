@@ -55,6 +55,7 @@ function ManageAccessDialog({
     const [changing, setChanging] = useState(false);
     const [inviting, setInviting] = useState(false);
     const [invitationCount, setInvitationCount] = useState<number>();
+    const [invitationsRefresh, setInvitationsRefresh] = useState(0);
     // why the dialog must close, e.g. after removing one's own owner role
     const [closeReason, setCloseReason] = useState<string | null>(null);
     const latestRequest = useRef(0);
@@ -191,6 +192,14 @@ function ManageAccessDialog({
                 {/* table rows low enough for a laptop's window */}
                 <Tabs
                     defaultValue="access"
+                    // an invitation may have been accepted in the meantime,
+                    // which moves it from one tab to the other; a change in
+                    // progress lists the tab's entries anew anyway
+                    onValueChange={(tab) => {
+                        if (changing || inviting) return;
+                        if (tab === "access") fetchPermissions();
+                        else setInvitationsRefresh((val) => val + 1);
+                    }}
                     className="min-w-0 [&_td]:py-1.5 [&_th]:h-9"
                 >
                     <TabsList>
@@ -251,6 +260,7 @@ function ManageAccessDialog({
                             provider={provider}
                             serviceId={serviceId}
                             pageSize={pageSize}
+                            refresh={invitationsRefresh}
                             labelRequired={invitationLabelRequired()}
                             disabled={changing}
                             onChanging={setInviting}
