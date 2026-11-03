@@ -19,6 +19,21 @@ again.
 
 ## 1.0.0-rc2
 
+**Upgrade the registry together with the app: this version needs a registry
+newer than cloud-registry 1.0.0rc1, and has no fallback for older ones.** The
+registry moved the paths of users' roles to
+`/services/{serviceId}/permissions/users/{userId}`, and the app calls only
+these. Don't run this version with cloud-registry 1.0.0rc1: the registry
+answers `200 OK`, but grants the role to a user `users/bob` instead of `bob`.
+Earlier versions of the app can't change roles of users with the new registry,
+which no longer finds the old paths.
+
+So no order of apps and registry pods is safe during a rolling update. Follow
+the [registry's upgrade guide](https://cloud-registry.readthedocs.io/en/latest/upgrading/#from-100rc1):
+scale the registry to 0 replicas for the upgrade, unless nobody changes roles
+during it. After a rolling update, look for wrongly granted roles as the guide
+describes.
+
 The **Manage access** dialog now has the tabs **Current Access** and
 **Invitations**, and shows 5 entries per page instead of 8. To change that,
 set `NEXT_PUBLIC_ACCESS_PAGE_SIZE` (see [Access
@@ -31,10 +46,11 @@ requires one by default**. To keep it optional, set
 `NEXT_PUBLIC_INVITATION_LABEL_REQUIRED=false` (see [Access
 dialog](configuration.md#access-dialog)). Expired invitations stay listed,
 marked as expired, with **New link**, removal and **Remove expired**. Both
-need a registry newer than cloud-registry 1.0.0rc1: with 1.0.0rc1, the app
-keeps working, creates links without the label and says so, and doesn't list
-expired invitations, as that registry doesn't (see
-[Compatibility](index.md#compatibility)).
+need a registry newer than cloud-registry 1.0.0rc1: with 1.0.0rc1, invitations
+still work, the app creates links without the label and says so, and doesn't
+list expired invitations, as that registry doesn't (see
+[Compatibility](index.md#compatibility)); changing users' roles doesn't, as
+said above.
 
 ## 1.0.0-rc1
 

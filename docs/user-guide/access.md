@@ -63,6 +63,10 @@ Notes:
   owner first, or delete the service.
 - **Your own role:** if you remove your own owner role, you can no longer
   manage access, and the dialog closes.
+- **User IDs** may contain slashes, and may be `groups` or start with
+  `groups/`: the app and the registry keep them apart from groups, as long
+  as the registry is newer than cloud-registry 1.0.0rc1 (see
+  [Compatibility](../operator-guide/index.md#compatibility)).
 
 ## Inviting by link
 
