@@ -338,6 +338,14 @@ describe("operations", () => {
             undefined,
         ],
         [
+            "revokeServicePermission, ID starting like the groups' path",
+            (p) => p.revokeServicePermission("a", "groups/g"),
+            "DELETE",
+            "/services/a/permissions/users/groups%2Fg",
+            true,
+            undefined,
+        ],
+        [
             "grantGroupPermission",
             (p) => p.grantGroupPermission("a", "urn:g#x", role),
             "PUT",

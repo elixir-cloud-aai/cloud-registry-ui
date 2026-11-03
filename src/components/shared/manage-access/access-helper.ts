@@ -43,12 +43,15 @@ export const grantSchema = z
                         ? "User ID is required."
                         : "Group is required.",
             });
-        // a leading slash would make the path that of another group
-        else if (val.kind === "group" && val.principal.startsWith("/"))
+        // a leading slash would make the path that of another user or group
+        else if (val.principal.startsWith("/"))
             ctx.addIssue({
                 code: "custom",
                 path: ["principal"],
-                message: "Group can't start with '/'.",
+                message:
+                    val.kind === "user"
+                        ? "User ID can't start with '/'."
+                        : "Group can't start with '/'.",
             });
         // dots only: `.` and `..` would be dot segments of the API path
         else if (/^\.+$/.test(val.principal))

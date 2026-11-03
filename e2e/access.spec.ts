@@ -108,21 +108,20 @@ test.describe("manage access", () => {
         await page.goto(`/dashboard/services/view/${service.id}`);
         await page.getByRole("button", { name: "Manage access" }).click();
         const dialog = page.getByRole("dialog");
+        // exact, as the name of one is the start of that of another
+        const removal = (id: string) =>
+            dialog.getByRole("button", { name: `Remove ${id}`, exact: true });
         for (const id of ids) {
             await dialog.getByLabel("User ID").fill(id);
             await dialog.getByRole("button", { name: "Grant" }).click();
-            await expect(
-                dialog.getByRole("button", { name: `Remove ${id}` }),
-            ).toBeVisible();
+            await expect(removal(id)).toBeVisible();
         }
         // these users, and neither groups nor users with a prefix of the path
         expect((await held()).sort()).toEqual([...before, ...ids].sort());
 
         for (const id of ids) {
-            await dialog.getByRole("button", { name: `Remove ${id}` }).click();
-            await expect(
-                dialog.getByRole("button", { name: `Remove ${id}` }),
-            ).toHaveCount(0);
+            await removal(id).click();
+            await expect(removal(id)).toHaveCount(0);
         }
         expect((await held()).sort()).toEqual([...before].sort());
     });

@@ -48,7 +48,8 @@ Releases are published as GitHub releases and as images on Docker Hub, `elixircl
 
 Features of newer registries need a registry of that version. The app works
 with older registries without them, e.g. without the switch to admin mode. The
-exception are the paths of users' roles, which have no fallback (see below):
+only exception is changing the roles of users, which has no fallback (see
+below):
 
 | Feature                                                                                      | Needs cloud-registry |
 | -------------------------------------------------------------------------------------------- | -------------------- |
@@ -64,16 +65,14 @@ Labels and expired invitations aren't in a release of cloud-registry yet. With
 cloud-registry 1.0.0rc1, invitations work without them. The end-to-end tests
 therefore run against its development version.
 
-**The app must ship together with the registry that has the new paths of users'
-roles (`/services/{serviceId}/permissions/users/{userId}`), which aren't in a
-release of cloud-registry yet either.** Don't run this version of the app with
-cloud-registry 1.0.0rc1: it answers `200 OK` on the new paths, but grants the
-role to a user `users/bob` instead of `bob`. Older registries don't have these
-paths either. Earlier versions of the app can't change roles of users with the
-new registry, and no order of apps and registry pods is safe during a rolling
-update: follow the [registry's upgrade
-guide](https://cloud-registry.readthedocs.io/en/latest/upgrading/#from-100rc1)
-and [Upgrading](upgrading.md#100-rc2).
+**From 1.0.0-rc2, the app must ship together with a registry that has the new
+paths of users' roles (`/services/{serviceId}/permissions/users/{userId}`),
+which aren't in a release of cloud-registry yet either.** Don't run it with
+older registries: cloud-registry 0.6.0 and 1.0.0rc1 grant the role to the wrong
+user, and earlier ones don't find these paths. No order of apps and registry
+pods is safe during a rolling update: see
+[Upgrading](upgrading.md#100-rc2) and the [registry's upgrade
+guide](https://cloud-registry.readthedocs.io/en/latest/upgrading/#from-100rc1).
 
 The app's release 1.0.0-rc1 was tested against cloud-registry 1.0.0rc1 (see the
 [release notes](../releases/1.0.0-rc1.md)).

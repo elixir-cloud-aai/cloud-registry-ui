@@ -37,6 +37,7 @@ describe("grantSchema", () => {
             { kind: "group", principal: "/admins" },
             "Group can't start with '/'.",
         ],
+        [{ principal: "/bob" }, "User ID can't start with '/'."],
         [{ principal: ".." }, "User ID can't consist of dots only."],
         [
             { kind: "group", principal: "." },

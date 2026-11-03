@@ -24,9 +24,11 @@ newer than cloud-registry 1.0.0rc1, and has no fallback for older ones.** The
 registry moved the paths of users' roles to
 `/services/{serviceId}/permissions/users/{userId}`, and the app calls only
 these. Don't run this version with cloud-registry 1.0.0rc1: the registry
-answers `200 OK`, but grants the role to a user `users/bob` instead of `bob`.
+answers `200 OK`, but grants the role to a user `users/bob` instead of `bob`
+(0.6.0 takes these paths the same way, and earlier versions don't find them).
 Earlier versions of the app can't change roles of users with the new registry,
-which no longer finds the old paths.
+which no longer finds the old paths; if user IDs start with `users/`, they even
+change the roles of another user, so stop them first.
 
 So no order of apps and registry pods is safe during a rolling update. Follow
 the [registry's upgrade guide](https://cloud-registry.readthedocs.io/en/latest/upgrading/#from-100rc1):
@@ -49,8 +51,8 @@ marked as expired, with **New link**, removal and **Remove expired**. Both
 need a registry newer than cloud-registry 1.0.0rc1: with 1.0.0rc1, invitations
 still work, the app creates links without the label and says so, and doesn't
 list expired invitations, as that registry doesn't (see
-[Compatibility](index.md#compatibility)); changing users' roles doesn't, as
-said above.
+[Compatibility](index.md#compatibility)). Changing the roles of users still
+needs the newer registry, as described above.
 
 ## 1.0.0-rc1
 
