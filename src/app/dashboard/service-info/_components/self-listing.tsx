@@ -35,15 +35,18 @@ function SelfListing() {
     const [listing, setListing] = useState<Listing | null>();
     const [changing, setChanging] = useState(false);
 
+    // whether the state could be read
     const load = useCallback(async () => {
-        if (!cloudRegistryProvider) return;
+        if (!cloudRegistryProvider) return false;
         try {
             setListing(await cloudRegistryProvider.getSelfListing());
+            return true;
         } catch (err) {
             console.error("Failed to load the listing of the registry:", err);
             // what the page knows stays, e.g. if a change failed for the same
             // reason, which its toast tells
             setListing((val) => val ?? null);
+            return false;
         }
     }, [cloudRegistryProvider]);
 
@@ -70,6 +73,13 @@ function SelfListing() {
         } finally {
             setChanging(false);
         }
+    };
+
+    const retry = async () => {
+        setChanging(true);
+        if (!(await load()))
+            toast.error("Still can't check whether the registry is listed.");
+        setChanging(false);
     };
 
     const add = () => {
@@ -113,7 +123,12 @@ function SelfListing() {
                             older than cloud-registry 1.0.0rc2, which this
                             needs.
                         </p>
-                        <Button size="sm" variant="outline" onClick={load}>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={changing}
+                            onClick={retry}
+                        >
                             <RotateCw />
                             Try again
                         </Button>

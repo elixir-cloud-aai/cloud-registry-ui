@@ -336,8 +336,15 @@ test.describe("listing of the registry", () => {
             region.getByRole("button", { name: "Add to services" }),
         ).toHaveCount(0);
 
+        const retry = region.getByRole("button", { name: "Try again" });
+        await retry.click();
+        await expect(
+            page.getByText("Still can't check whether the registry is listed."),
+        ).toBeVisible();
+        await expect(retry).toBeEnabled();
+
         await page.unroute(url);
-        await region.getByRole("button", { name: "Try again" }).click();
+        await retry.click();
         await expect(
             region.getByRole("button", { name: "Add to services" }),
         ).toBeVisible();
