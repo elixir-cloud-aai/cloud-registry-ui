@@ -5,7 +5,8 @@ import { safeHref } from "@/lib/links";
  * @param setting The base URL that the app is configured with
  * @param page Address of the current page, which relative settings resolve
  * against
- * @returns The absolute http(s) address, without a user or password;
+ * @returns The absolute http(s) address, without a user, password or
+ * trailing slashes;
  * undefined if the setting is missing or isn't such an address. The server
  * refuses to start with such a setting or a relative one, so these only
  * occur where the check doesn't run
@@ -18,9 +19,9 @@ function apiAddress(
     const url = new URL(setting, page);
     url.username = "";
     url.password = "";
-    // a bare origin gets a "/", which calls would double: `https://x//service-info`
-    const added = url.href.endsWith("/") && !setting.trim().endsWith("/");
-    return safeHref(added ? url.href.slice(0, -1) : url.href);
+    // as the calls use it (`authenticated-cloud-registry.ts`), so that adding
+    // a path gives no `//`
+    return safeHref(url.href.replace(/\/+$/, ""));
 }
 
 export { apiAddress };

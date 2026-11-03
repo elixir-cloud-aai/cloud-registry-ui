@@ -10,10 +10,10 @@ describe("apiAddress", () => {
             "https://registry.example.org/ga4gh/registry/v1",
             "https://registry.example.org/ga4gh/registry/v1",
         ],
-        ["http://localhost:8180/x/", "http://localhost:8180/x/"],
-        // as configured, without the "/" that URLs add to a bare origin
+        ["http://localhost:8180/x/", "http://localhost:8180/x"],
+        // without trailing slashes, as the calls use it
         ["https://r.example.org", "https://r.example.org"],
-        ["https://r.example.org/", "https://r.example.org/"],
+        ["https://r.example.org/", "https://r.example.org"],
         // relative: where the browser's calls go
         ["/ga4gh/registry/v1", "https://app.example.org/ga4gh/registry/v1"],
         ["api/v1", "https://app.example.org/dashboard/api/v1"],
