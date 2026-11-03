@@ -4,19 +4,20 @@ The app is configured through environment variables. For `bun run dev`, `bun run
 
 The settings are read when the app starts (`bun run start`, `docker run`, `bun run dev`): change them, then restart the app, without building it again. The `NEXT_PUBLIC_*` settings reach the browser, so they are public: put no secrets in them. Values of `NEXT_PUBLIC_*` settings that are set when the app is built (e.g. in `.env` for `bun run build`, or on Vercel) apply where the environment of the started app doesn't set them; the Docker image is built without settings, so this doesn't apply there.
 
-| Variable                           | Required | Section                 |
-| ---------------------------------- | -------- | ----------------------- |
-| `NEXT_PUBLIC_CLOUD_REGISTRY_URL`   | yes      | [Registry](#registry)   |
-| `NEXT_PUBLIC_APP_TITLE`            | no       | [Branding](branding.md) |
-| `NEXT_PUBLIC_APP_TITLE_SIZE`       | no       | [Branding](branding.md) |
-| `NEXT_PUBLIC_APP_TITLE_FONT`       | no       | [Branding](branding.md) |
-| `NEXT_PUBLIC_APP_LOGO`             | no       | [Branding](branding.md) |
-| `NEXT_PUBLIC_APP_LOGO_DARK`        | no       | [Branding](branding.md) |
-| `NEXT_PUBLIC_FOOTER_LOGO`          | no       | [Branding](branding.md) |
-| `NEXT_PUBLIC_FOOTER_LOGO_DARK`     | no       | [Branding](branding.md) |
-| `NEXT_PUBLIC_FOOTER_START_YEAR`    | no       | [Branding](branding.md) |
-| `LOGIN_PROVIDERS`                  | yes      | [Login](login.md)       |
-| `LOGIN_REDIRECT_URI`               | yes      | [Login](login.md)       |
+| Variable                           | Required | Section                         |
+| ---------------------------------- | -------- | ------------------------------- |
+| `NEXT_PUBLIC_CLOUD_REGISTRY_URL`   | yes      | [Registry](#registry)           |
+| `NEXT_PUBLIC_ACCESS_PAGE_SIZE`     | no       | [Access dialog](#access-dialog) |
+| `NEXT_PUBLIC_APP_TITLE`            | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_APP_TITLE_SIZE`       | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_APP_TITLE_FONT`       | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_APP_LOGO`             | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_APP_LOGO_DARK`        | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_FOOTER_LOGO`          | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_FOOTER_LOGO_DARK`     | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_FOOTER_START_YEAR`    | no       | [Branding](branding.md)         |
+| `LOGIN_PROVIDERS`                  | yes      | [Login](login.md)               |
+| `LOGIN_REDIRECT_URI`               | yes      | [Login](login.md)               |
 
 Missing or invalid settings stop the app with a message that names the setting:
 
@@ -40,3 +41,7 @@ The settings `NEXT_PUBLIC_SERVICE_ENVIRONMENTS` and `NEXT_PUBLIC_SERVICE_URL_SCH
 
 Admin mode needs no settings in the app either; see [Admins and admin
 mode](admins.md).
+
+## Access dialog
+
+`NEXT_PUBLIC_ACCESS_PAGE_SIZE` (default: `5`) sets the entries per page of both tables of the **Manage access** dialog (see [Managing access](../user-guide/access.md#managing-access)): the users and groups with a role, and the open invitations. It must be a whole number of at least 1. With the default, both tabs fit a window of 1366 x 768 pixels without scrolling; with higher values, the dialog may scroll in small windows.

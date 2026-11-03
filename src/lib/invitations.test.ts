@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import { failure } from "@/test/errors";
 import type { Invitation } from "./cloud-registry.types";
 import {
-    acceptanceLabel,
     acceptInvitationError,
     createInvitationError,
     dropPendingToken,
@@ -11,14 +10,13 @@ import {
     isDeadInvitation,
     keepPendingToken,
     listInvitationsError,
-    liveLinks,
+    openInvitations,
     pendingToken,
     readInvitation,
     renewInvitationError,
     renewRevokeError,
     revokeInvitationError,
     sessionStore,
-    splitInvitations,
 } from "./invitations";
 
 const token = "a".repeat(43);
@@ -166,19 +164,6 @@ describe("readInvitation", () => {
     });
 });
 
-describe("acceptanceLabel", () => {
-    it.each([
-        [{ user_id: "u", name: "N", email: "e@x" }, "N (e@x)"],
-        [{ user_id: "u", name: "N" }, "N"],
-        [{ user_id: "u", email: "e@x" }, "e@x"],
-        [{ user_id: "u" }, "u"],
-    ])("names %j", (acceptance, label) => {
-        expect(
-            acceptanceLabel({ ...acceptance, accepted_at: "2026-01-01" }),
-        ).toBe(label);
-    });
-});
-
 describe("messages", () => {
     const conflict = (code: string) => failure(409, { code });
     const expired = "Your session expired. Please log in again.";
@@ -201,7 +186,7 @@ describe("messages", () => {
 
     it("words failed invitations", () => {
         expect(createInvitationError(conflict("invitations-limit"))).toBe(
-            "This service has as many invitations as allowed. Revoke open ones, or wait until they expire.",
+            "This service has reached its limit of invitations, which also counts accepted ones until they expire. Revoke open invitations, or wait until invitations expire.",
         );
         expect(createInvitationError(failure(404))).toBe(
             "The service was deleted, or this registry has no invitations.",
@@ -279,57 +264,91 @@ describe("messages", () => {
 });
 
 describe("invitation lists", () => {
-    const invitation = (id: string, accepted = false): Invitation => ({
+    const invitation = (
+        id: string,
+        createdAt: string,
+        accepted = false,
+    ): Invitation => ({
         id,
         service_id: "s",
         role: "maintainer",
         created_by: "u",
-        created_at: "2026-11-01T00:00:00Z",
+        created_at: createdAt,
         expires_at: "2026-11-08T00:00:00Z",
         ...(accepted && {
             accepted: { user_id: "v", accepted_at: "2026-11-02T00:00:00Z" },
         }),
     });
-    const link = (id: string) => ({
-        id,
-        link: `https://app.example.org/invitations#${id}`,
-        role: "maintainer" as const,
-        expiresAt: "2026-11-08T00:00:00Z",
-    });
+    const ids = (invitations: Invitation[]) => invitations.map((val) => val.id);
 
-    it("splits open and accepted invitations, in order", () => {
+    it("lists open invitations, newest first", () => {
         expect(
-            splitInvitations([
-                invitation("a", true),
-                invitation("b"),
-                invitation("c"),
-                invitation("d", true),
-            ]),
-        ).toEqual({
-            open: [invitation("b"), invitation("c")],
-            accepted: [invitation("a", true), invitation("d", true)],
-        });
-        expect(splitInvitations([])).toEqual({ open: [], accepted: [] });
-    });
-
-    it("keeps the links of open invitations, newest first", () => {
-        const links = [link("a"), link("b"), link("c")];
-        // `b` was accepted, `c` revoked or expired
-        expect(
-            liveLinks(links, [invitation("a"), invitation("b", true)]),
-        ).toEqual([link("a")]);
-        expect(
-            liveLinks(links, [invitation("a"), invitation("c")]).map(
-                (val) => val.id,
+            ids(
+                openInvitations([
+                    invitation("a", "2026-11-01T08:00:00Z"),
+                    invitation("b", "2026-11-01T09:00:00Z"),
+                    invitation("c", "2026-11-01T10:00:00Z"),
+                ]),
             ),
-        ).toEqual(["c", "a"]);
-        // all, while the list can't be loaded
-        expect(liveLinks(links, null).map((val) => val.id)).toEqual([
-            "c",
-            "b",
-            "a",
-        ]);
-        expect(liveLinks([], [invitation("a")])).toEqual([]);
+        ).toEqual(["c", "b", "a"]);
+    });
+
+    it("orders by the time, not as listed", () => {
+        expect(
+            ids(
+                openInvitations([
+                    invitation("b", "2026-11-01T09:00:00Z"),
+                    invitation("c", "2026-11-01T10:00:00Z"),
+                    invitation("a", "2026-11-01T08:00:00Z"),
+                ]),
+            ),
+        ).toEqual(["c", "b", "a"]);
+    });
+
+    it("compares times, not their text", () => {
+        expect(
+            ids(
+                openInvitations([
+                    invitation("a", "2026-11-01T09:30:00+02:00"),
+                    invitation("b", "2026-11-01T08:00:00Z"),
+                ]),
+            ),
+        ).toEqual(["b", "a"]);
+    });
+
+    it("takes the later listed as newer at the same time", () => {
+        const time = "2026-11-01T08:00:00Z";
+        expect(
+            ids(
+                openInvitations([
+                    invitation("a", time),
+                    invitation("b", time),
+                    invitation("c", time),
+                ]),
+            ),
+        ).toEqual(["c", "b", "a"]);
+    });
+
+    it("leaves out accepted invitations", () => {
+        expect(
+            ids(
+                openInvitations([
+                    invitation("a", "2026-11-01T08:00:00Z", true),
+                    invitation("b", "2026-11-01T09:00:00Z"),
+                    invitation("c", "2026-11-01T10:00:00Z", true),
+                ]),
+            ),
+        ).toEqual(["b"]);
+        expect(openInvitations([])).toEqual([]);
+    });
+
+    it("leaves the given list as it is", () => {
+        const listed = [
+            invitation("a", "2026-11-01T08:00:00Z"),
+            invitation("b", "2026-11-01T09:00:00Z"),
+        ];
+        openInvitations(listed);
+        expect(ids(listed)).toEqual(["a", "b"]);
     });
 
     it("tells revocations that show the link is dead", () => {
@@ -345,7 +364,7 @@ describe("invitation lists", () => {
         expect(
             renewInvitationError(failure(409, { code: "invitations-limit" })),
         ).toBe(
-            "This service has as many invitations as allowed. Revoke this invitation, then create a new link.",
+            "This service has reached its limit of invitations: no new link was created, and the old one still works. Revoke this invitation, then create a new link.",
         );
         expect(renewInvitationError(failure(500))).toBe(
             "Cannot create an invitation currently.",

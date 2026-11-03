@@ -3,11 +3,7 @@
  * token in the fragment, which browsers don't send to servers, the token
  * of a guest kept in the tab while they log in, and messages for failures
  */
-import type {
-    Invitation,
-    InvitationAcceptance,
-    Role,
-} from "./cloud-registry.types";
+import type { Invitation } from "./cloud-registry.types";
 import {
     errorDetail,
     isInvitationAccepted,
@@ -112,17 +108,6 @@ function readInvitation(hash: string, storage: () => Storage) {
     return { token, scrub: true };
 }
 
-/**
- * Name the user who accepted an invitation
- * @param acceptance Acceptance of the invitation
- * @returns Name and email address, as far as known, else the identifier
- */
-function acceptanceLabel(acceptance: InvitationAcceptance) {
-    const { name, email, user_id } = acceptance;
-    if (name && email) return `${name} (${email})`;
-    return name || email || user_id;
-}
-
 // registries before cloud-registry 1.0.0 have no invitations (404 or 405)
 const isMissing = (err: unknown) => hasStatus(err, 404) || hasStatus(err, 405);
 
@@ -140,7 +125,7 @@ function listInvitationsError(err: unknown) {
 /** Get the message for a failed creation of an invitation */
 function createInvitationError(err: unknown) {
     if (isInvitationsLimit(err))
-        return "This service has as many invitations as allowed. Revoke open ones, or wait until they expire.";
+        return "This service has reached its limit of invitations, which also counts accepted ones until they expire. Revoke open invitations, or wait until invitations expire.";
     if (isMissing(err))
         return "The service was deleted, or this registry has no invitations.";
     return mutationError(
@@ -191,44 +176,23 @@ function isDeadInvitation(err: unknown) {
 function renewInvitationError(err: unknown) {
     // the old invitation fills a slot, too
     if (isInvitationsLimit(err))
-        return "This service has as many invitations as allowed. Revoke this invitation, then create a new link.";
+        return "This service has reached its limit of invitations: no new link was created, and the old one still works. Revoke this invitation, then create a new link.";
     return createInvitationError(err);
 }
 
-/** Link of an invitation created in this dialog, whose token is known */
-type CreatedLink = {
-    /** Identifier of the invitation */
-    id: string;
-    link: string;
-    role: Role;
-    expiresAt: string;
-};
-
 /**
- * Split invitations into open and accepted ones
- * @param invitations Invitations, as listed
- * @returns Open and accepted invitations, each in the listed order
+ * Get the invitations to show: the open ones, as accepted ones are users
+ * with a role, newest first
+ * @param invitations Invitations, as listed (the registry lists them oldest
+ * first)
+ * @returns Open invitations, by the time of their creation; of those created
+ * at the same time, the later listed first
  */
-function splitInvitations(invitations: Invitation[]) {
-    return {
-        open: invitations.filter((val) => !val.accepted),
-        accepted: invitations.filter((val) => val.accepted),
-    };
-}
-
-/**
- * Get the links that still work: the registry stores only hashes of the
- * tokens, so links are known only for invitations created in this dialog
- * @param links Links created, oldest first
- * @param invitations Invitations, as listed; null if the list can't be
- * loaded, which keeps all links
- * @returns Links of open invitations, newest first
- */
-function liveLinks(links: CreatedLink[], invitations: Invitation[] | null) {
-    const open =
-        invitations &&
-        new Set(splitInvitations(invitations).open.map((val) => val.id));
-    return links.filter((val) => !open || open.has(val.id)).reverse();
+function openInvitations(invitations: Invitation[]) {
+    return invitations
+        .filter((val) => !val.accepted)
+        .reverse()
+        .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
 }
 
 /**
@@ -279,9 +243,7 @@ function acceptInvitationError(err: unknown) {
     };
 }
 
-export type { CreatedLink };
 export {
-    acceptanceLabel,
     acceptInvitationError,
     createInvitationError,
     dropPendingToken,
@@ -291,12 +253,11 @@ export {
     isDeadInvitation,
     keepPendingToken,
     listInvitationsError,
-    liveLinks,
+    openInvitations,
     pendingToken,
     readInvitation,
     renewInvitationError,
     renewRevokeError,
     revokeInvitationError,
     sessionStore,
-    splitInvitations,
 };

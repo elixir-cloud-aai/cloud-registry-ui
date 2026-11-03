@@ -78,9 +78,6 @@ export function isGroup(
 
 export { isForbidden, isUnauthorized };
 
-/** Role holders per page of the access list */
-export const accessPageSize = 8;
-
 /**
  * Get the display name of a user with a role
  * @param val Role of the user

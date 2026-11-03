@@ -29,12 +29,15 @@ whom to ask.
 Owners of a service, and admins, can see and change who has which role on
 it:
 
-1. Open the service and select **Manage access**.
-2. The list shows the users and groups with a role: users by name and
-   user ID once they have used the registry (before, by user ID only),
-   groups by their name in the login provider. Long lists show 8 entries
-   per page, with a search above them that finds users and groups by name,
-   user ID, group or role.
+1. Open the service and select **Manage access**. The dialog has two tabs:
+   **Current Access**, described here, and **Invitations** (see [Inviting
+   by link](#inviting-by-link)).
+2. The list shows the users and groups with a role, also those who joined
+   through an invitation: users by name and user ID once they have used the
+   registry (before, by user ID only), groups by their name in the login
+   provider. Long lists show 5 entries per page, unless the deployment sets
+   another number, with a search above them that finds users and groups by
+   name, user ID, group or role.
 3. Change a role in the list, or remove it with the bin icon.
 4. To grant a role, choose **User** or **Group** under **Grant to**, enter
    the user ID or the group, choose the role and select **Grant**.
@@ -66,42 +69,44 @@ Notes:
 Instead of asking for a user ID, owners of a service, and admins, can
 invite a colleague with a link:
 
-1. Open the service, select **Manage access**, and find **Invite by Link**.
-2. Choose the role the invitation is for, and select **Create link**.
-3. Copy the link (the button next to it), and send it to the person.
+1. Open the service, select **Manage access**, and open the **Invitations**
+   tab, which shows the number of open invitations.
+2. Choose the role the invitation is for, and select **Create link**. The new
+   invitation is at the top of the list.
+3. Copy the link with the copy icon in its row, and send it to the person.
 
-![Managing access to a service, with a new invitation link](../images/manage-access-invite.png){ width="672" }
+![Managing access to a service, with a new invitation](../images/manage-access-invite.png){ width="672" }
 
 Notes:
 
-- **Links are shown only while the dialog is open**, each with its role,
-  when it expires and a copy button; the open invitations created in the
-  dialog also have a copy button in the list. The registry keeps no copy
-  of the links, so copy them before you close the dialog. Afterwards, an
-  open invitation can only get a new link: select the arrows icon (**New
-  link**) in its row, which creates an invitation for the same role and
+- **Links aren't kept:** the registry keeps no copy of a link, so the copy
+  icon is there only while the dialog is open, for the invitations created
+  in it. Copy a link before you close the dialog; if copying fails, the
+  dialog shows the link for you to select. Afterwards, an open invitation
+  can only get a new link: select the arrows icon (**New link**) in its row.
+  This creates an invitation for the same role, at the top of the list, and
   revokes the old one, whose link then stops working.
+- **If the list can't be loaded,** the dialog says so and lists only the
+  invitations created in it, so that you can still copy their links. Reopen
+  the dialog later to revoke invitations or create new ones; the links of
+  invitations you copied keep working.
 - **Share it only with the person you mean:** whoever opens the link and
   logs in gets the role, and the link works once. Send it in a private
   message, not in a channel or on a page that others can read.
-- **The list** below shows the open invitations (role, when created and
-  when they expire). The accepted ones (who accepted, and when) are hidden:
-  select **Show accepted** to see them. The registry lists each invitation
-  only until its expiry, accepted or not; the role stays. Select the bin
-  icon to revoke an open invitation; its link then stops working. An
-  accepted invitation can't be revoked or removed from the list before it
-  expires (it still counts towards the limit below): remove the user's
-  role instead (see [Managing access](#managing-access)).
-- **Who is shown:** for the person who accepted, the list shows their name
-  and email address as far as the registry knows them. The registry knows
-  the email address only if the login provider marks it as verified;
-  otherwise, only the name, or the user ID, is shown.
+- **The list** shows the open invitations, newest first (role, when created
+  and when they expire), 5 per page unless the deployment sets another
+  number. Select the bin icon to revoke an invitation; its link then stops
+  working. Accepted invitations aren't listed: the person is listed under
+  **Current Access**, where you can change or remove their role.
 - **Limits:** invitations expire, and a service can have only so many
-  invitations at a time that haven't expired, open or accepted. If the
-  limit is reached, revoke open invitations or wait until invitations
+  invitations at a time that haven't expired, open or accepted, so accepted
+  invitations count until they expire although they aren't listed. If the
+  limit is reached, the dialog says so and neither **Create link** nor **New
+  link** makes a new invitation; a new link leaves the old invitation and its
+  link as they are. Revoke open invitations or wait until invitations
   expire. The expiry and the limit are settings of the
   registry (see [Compatibility](../operator-guide/index.md#compatibility)).
-- **Registries without invitations:** the section reports that the registry
+- **Registries without invitations:** the tab reports that the registry
   has none, and you grant roles as above. Invitations need cloud-registry
   1.0.0rc1 or later.
 
