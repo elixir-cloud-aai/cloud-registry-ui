@@ -1,4 +1,4 @@
-import type { Browser, Page } from "@playwright/test";
+import type { Browser, Page, Request } from "@playwright/test";
 import {
     api,
     expect,
@@ -177,9 +177,10 @@ test.describe("listing of the registry", () => {
             ).toHaveCount(0);
         };
         const requests: string[] = [];
-        page.on("request", (request) => {
+        const record = (request: Request) => {
             if (request.url() === url) requests.push(request.method());
-        });
+        };
+        page.on("request", record);
 
         // guests, and admins in user mode
         await expectNone(page);
@@ -190,9 +191,11 @@ test.describe("listing of the registry", () => {
         // other users, whatever their mode
         const context = await browser.newContext();
         const other = await context.newPage();
+        other.on("request", record);
         await login(other, "other");
         await expectNone(other);
         await context.close();
+        expect(requests).toEqual([]);
 
         // the same user in admin mode
         await page.getByRole("button", { name: "User mode" }).click();
