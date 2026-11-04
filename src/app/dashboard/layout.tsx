@@ -14,7 +14,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     return (
         <SidebarProvider>
             <AppSidebar />
-            <SidebarInset className="flex flex-col h-screen">
+            {/* `min-w-0`: wide content, e.g. tables, scrolls in its own
+                container instead of widening the page and the top bar */}
+            <SidebarInset className="flex flex-col h-screen min-w-0">
                 <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
                     <SidebarTrigger className="-ml-1" />
                     <Separator

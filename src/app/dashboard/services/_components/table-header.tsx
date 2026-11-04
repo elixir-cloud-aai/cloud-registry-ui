@@ -6,8 +6,8 @@ function ServicesTableHeader() {
             <TableRow>
                 <TableHead>ID</TableHead>
                 <TableHead>Name</TableHead>
-                <TableHead>Artifact</TableHead>
                 <TableHead>Organization</TableHead>
+                <TableHead>Artifact</TableHead>
                 <TableHead>Environment</TableHead>
                 <TableHead>Version</TableHead>
             </TableRow>

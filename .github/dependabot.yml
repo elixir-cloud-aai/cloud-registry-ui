@@ -1,26 +1,72 @@
 version: 2
-# Dependabot reads this file only from the default branch (`staging`) and
-# opens its pull requests against that branch
+# Every entry targets `dev` (`target-branch`), which takes all pull
+# requests whatever the default branch is (`main` only moves forward to
+# releases); commit messages start with `build(deps)` (Conventional
+# Commits). Security updates always target the default branch. Every entry
+# skips releases younger than a week (`cooldown`), to give time to spot
+# compromised ones
 updates:
-  # Actions in the workflows (pinned to commit SHAs, with a version comment)
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: monthly
-    # Skip releases younger than a week (time to spot compromised ones)
-    cooldown:
-      default-days: 7
-    groups:
-      github-actions:
-        patterns: ["*"]
-  # Dependencies in `package.json` and `bun.lock`
+  # Dependencies in `package.json` and the lock (`bun.lock`), updated
+  # together
   - package-ecosystem: bun
     directory: /
     schedule:
       interval: monthly
-    # Skip releases younger than a week (time to spot compromised ones)
     cooldown:
       default-days: 7
+    target-branch: dev
+    commit-message:
+      prefix: build
+      include: scope
+    ignore:
+      # Playwright is pinned exactly, in line with the Playwright image of
+      # the `e2e` job in `.github/workflows/ci.yml`: bump both by hand
+      - dependency-name: "@playwright/test"
     groups:
-      bun-dependencies:
+      node-dependencies:
+        patterns: ["*"]
+  # Packages that build the docs (`docs/requirements.txt`)
+  - package-ecosystem: pip
+    directory: /docs
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    target-branch: dev
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      docs-dependencies:
+        patterns: ["*"]
+  # Actions in the workflows and in the local actions (`.github/actions/`),
+  # including the pins of the shared actions of `elixir-cloud-aai/.github`
+  # (to the commits of its releases, `@<commit> # vX.Y.Z`)
+  - package-ecosystem: github-actions
+    directories: ["/", "/.github/actions/*"]
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    target-branch: dev
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      github-actions:
+        patterns: ["*"]
+  # Images in the `Dockerfile` (Bun); pull requests that bump it must also
+  # bump `bun-version` in the workflows
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    target-branch: dev
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      docker:
         patterns: ["*"]

@@ -1,0 +1,37 @@
+# Settings of the registry for the end-to-end tests: tokens of the mock
+# provider, the app's client ID as audience, and admins by group, as with
+# LS Login
+security:
+    auth:
+        issuers:
+            - http://oidc.localhost:8190/oidc
+        audience:
+            - cloud-registry-ui-e2e
+        # the mock's access tokens have the type JWT, not at+jwt
+        verify_token_type: False
+        userinfo_claims:
+            - eduperson_entitlement
+            - name
+    access_control:
+        claim_groups: eduperson_entitlement
+        # members act as admins only in admin mode, as `opt_in_roles: [admin]`
+        # of the registry's default config sets it
+        group_mapping:
+            "urn:geant:lifescience-ri.eu:group:elixir:ECP_CLN:ADMIN#aai.lifescience-ri.eu": admin
+db:
+    host: mongodb
+server:
+    public_url: http://localhost:8180/
+custom:
+    access_control:
+        # new types of users other than admins are pending until an admin
+        # approves them
+        service_types: moderated
+        # the test users register services in every run: no limit (the
+        # tests of the limit fake it)
+        max_services_per_user: null
+    endpoints:
+        services:
+            url_schemes:
+                - http
+                - https

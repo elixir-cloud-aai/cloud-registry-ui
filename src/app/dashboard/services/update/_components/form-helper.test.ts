@@ -1,0 +1,345 @@
+import { describe, expect, it } from "vitest";
+import {
+    defaultRegistrationRules,
+    type RegistrationRules,
+} from "@/lib/registration-rules";
+import {
+    approvedTypes,
+    type FormData,
+    formDataSchema,
+    hasServiceChanges,
+    newTypeChoice,
+    normalizeFormData,
+    normalizeServiceData,
+    offersNewType,
+    serviceFormSchema,
+    typeErrors,
+    typeOfChoice,
+    typeOptions,
+} from "./form-helper";
+
+const rules = defaultRegistrationRules;
+
+const valid: FormData = {
+    id: "tes-1",
+    name: "TES",
+    url: "https://tes.example.org/ga4gh/tes/v1",
+    organization: { name: "Org", url: "https://example.org" },
+    type: { group: "org.ga4gh", artifact: "tes", version: "1.1.0" },
+    version: "1.0.0",
+    description: "",
+    contactUrl: "",
+    documentationUrl: "",
+    environment: "",
+    createdAt: "",
+    newType: false,
+};
+
+function messages(
+    change: object,
+    registrationRules: RegistrationRules = rules,
+) {
+    return formDataSchema(registrationRules)
+        .safeParse({ ...valid, ...change })
+        .error?.issues.map((val) => val.message);
+}
+
+describe("formDataSchema", () => {
+    it("accepts a complete service", async () => {
+        expect(await messages({})).toBeUndefined();
+        expect(
+            await messages({
+                contactUrl: "mailto:support@example.org",
+                documentationUrl: "https://docs.example.org",
+                environment: "prod",
+                createdAt: "2024-02-29T23:59:60.5+01:00",
+            }),
+        ).toBeUndefined();
+    });
+
+    it.each([
+        [{ name: "" }, "Service name is required."],
+        [
+            { url: "tes.example.org" },
+            "Service URL must be a valid URL, e.g. https://example.org/.",
+        ],
+        [
+            { url: "https://user@tes.example.org" },
+            "Service URL must be a valid URL, e.g. https://example.org/.",
+        ],
+        [
+            { url: "http://tes.example.org" },
+            "Service URL must be an https URL, e.g. https://example.org/.",
+        ],
+        [
+            { organization: { name: "Org", url: "ftp://example.org" } },
+            "Organization URL must be an http(s) URL, e.g. https://example.org/.",
+        ],
+        [
+            { type: { group: " ", artifact: "tes", version: "1" } },
+            "Type group is required.",
+        ],
+        [
+            { contactUrl: "support@example.org" },
+            "Contact URL needs mailto: for email addresses, e.g. mailto:support@example.org.",
+        ],
+        [
+            { contactUrl: "javascript:alert(1)" },
+            "Contact URL must be an http(s) or mailto: URL, e.g. mailto:support@example.org.",
+        ],
+        [
+            { documentationUrl: "docs" },
+            "Documentation URL must be an http(s) URL, e.g. https://docs.example.org/.",
+        ],
+        [
+            { environment: "qa" },
+            "Environment must be one of: 'prod', 'test', 'dev', 'staging'.",
+        ],
+        [
+            { createdAt: "2023-02-29T00:00:00Z" },
+            "Created At must be an RFC 3339 date-time, e.g. 2024-01-01T00:00:00Z.",
+        ],
+        [
+            { createdAt: "2024-01-01T00:00:00+24:00" },
+            "Created At must be an RFC 3339 date-time, e.g. 2024-01-01T00:00:00Z.",
+        ],
+        [
+            { createdAt: "2024-01-01 00:00:00Z" },
+            "Created At must be an RFC 3339 date-time, e.g. 2024-01-01T00:00:00Z.",
+        ],
+    ])("rejects %j", async (change, message) => {
+        expect(await messages(change)).toEqual([message]);
+    });
+
+    it("follows the registry's schemes and environments", async () => {
+        const any = { environments: [], urlSchemes: ["http", "https"] };
+        expect(
+            await messages(
+                { url: "http://tes.example.org", environment: "anything" },
+                any,
+            ),
+        ).toBeUndefined();
+        expect(await messages({ environment: "é".repeat(257) }, any)).toEqual([
+            "Environment must be at most 256 characters.",
+        ]);
+        const qa = { environments: ["qa", "prod"], urlSchemes: ["http"] };
+        expect(await messages({ environment: "qa" }, qa)).toEqual([
+            "Service URL must be an http URL, e.g. http://example.org/.",
+        ]);
+        expect(
+            await messages(
+                { url: "http://tes.example.org", environment: "test" },
+                qa,
+            ),
+        ).toEqual(["Environment must be one of: 'qa', 'prod'."]);
+    });
+});
+
+describe("normalizeFormData", () => {
+    it("fills in defaults", async () => {
+        expect(normalizeFormData()).toEqual({
+            ...valid,
+            id: "",
+            name: "",
+            url: "",
+            version: "",
+            organization: { name: "", url: "" },
+            type: { group: "org.ga4gh", artifact: "", version: "" },
+        });
+    });
+
+    it("keeps the creation time for admins only", async () => {
+        const data = { ...valid, createdAt: "2024-01-01T00:00:00Z" };
+        expect(normalizeFormData(data).createdAt).toBe("");
+        expect(normalizeFormData(data, true)).toEqual(data);
+        expect(normalizeFormData({ name: "x" }, true).createdAt).toBe("");
+    });
+});
+
+describe("normalizeServiceData", () => {
+    it("trims and drops empty optional fields", async () => {
+        const service = normalizeServiceData({
+            ...valid,
+            url: ` ${valid.url} `,
+            type: { group: " org.ga4gh ", artifact: "tes ", version: " 1.1.0" },
+        });
+        expect(service).toEqual({
+            name: "TES",
+            url: valid.url,
+            organization: valid.organization,
+            type: valid.type,
+            version: "1.0.0",
+            description: undefined,
+            contactUrl: undefined,
+            documentationUrl: undefined,
+            environment: undefined,
+        });
+        expect(
+            normalizeServiceData({ ...valid, newType: true }),
+        ).not.toHaveProperty("newType");
+    });
+
+    it("sends the creation time only if an admin changed it", async () => {
+        const initial = { ...valid, createdAt: "2024-01-01T00:00:00Z" };
+        expect(normalizeServiceData(initial, initial)).not.toHaveProperty(
+            "createdAt",
+        );
+        expect(
+            normalizeServiceData(
+                { ...initial, createdAt: "2023-01-01T00:00:00Z" },
+                initial,
+            ).createdAt,
+        ).toBe("2023-01-01T00:00:00Z");
+        expect(normalizeServiceData(initial)).not.toHaveProperty("createdAt");
+    });
+});
+
+describe("serviceFormSchema", () => {
+    async function idMessages(id: string, servicesPath?: string) {
+        return serviceFormSchema("tes-1", rules, servicesPath)
+            .safeParse({ ...valid, id })
+            .error?.issues.map((val) => val.message);
+    }
+
+    it("keeps the current ID, also if new IDs couldn't have it", async () => {
+        expect(
+            serviceFormSchema("a,b", rules).safeParse({ ...valid, id: "a,b" })
+                .success,
+        ).toBe(true);
+        expect(await idMessages("tes-1")).toBeUndefined();
+    });
+
+    it("checks new IDs as the registry does", async () => {
+        expect(await idMessages("tes-2")).toBeUndefined();
+        expect(await idMessages("")).toEqual(["Service ID is required."]);
+        expect(await idMessages("a/b")).toEqual([
+            "Service ID must not contain slashes.",
+        ]);
+        expect(await idMessages("a".repeat(1020), "/services")).toEqual([
+            "Service ID must be at most 1014 characters.",
+        ]);
+    });
+
+    it("checks the other fields too", async () => {
+        expect(
+            serviceFormSchema("tes-1", rules).safeParse({ ...valid, name: "" })
+                .success,
+        ).toBe(false);
+    });
+});
+
+describe("hasServiceChanges", () => {
+    it("ignores the ID and what isn't sent", async () => {
+        expect(hasServiceChanges(valid, valid)).toBe(false);
+        expect(hasServiceChanges({ ...valid, id: "tes-2" }, valid)).toBe(false);
+        expect(
+            hasServiceChanges({ ...valid, url: ` ${valid.url}` }, valid),
+        ).toBe(false);
+        expect(hasServiceChanges({ ...valid, newType: true }, valid)).toBe(
+            false,
+        );
+    });
+
+    it("finds changes of other fields", async () => {
+        expect(hasServiceChanges({ ...valid, name: "TES 2" }, valid)).toBe(
+            true,
+        );
+        expect(
+            hasServiceChanges(
+                { ...valid, createdAt: "2024-01-01T00:00:00Z" },
+                valid,
+            ),
+        ).toBe(true);
+    });
+});
+
+describe("typeOptions", () => {
+    const tes = { group: "org.ga4gh", artifact: "tes", version: "1.1.0" };
+    const wes = { group: "org.ga4gh", artifact: "wes", version: "1.0.0" };
+    const beacon = { group: "org.ga4gh", artifact: "beacon", version: "2.0" };
+
+    it("labels and keys the listed types, in the registry's order", async () => {
+        expect(typeOptions([wes, tes], tes)).toEqual([
+            {
+                label: "org.ga4gh · tes · 1.1.0",
+                value: JSON.stringify(["org.ga4gh", "tes", "1.1.0"]),
+            },
+            {
+                label: "org.ga4gh · wes · 1.0.0",
+                value: JSON.stringify(["org.ga4gh", "wes", "1.0.0"]),
+            },
+        ]);
+    });
+
+    it("keeps the stored type, also if it isn't listed", async () => {
+        expect(typeOptions([tes, wes], beacon).map((val) => val.label)).toEqual(
+            [
+                "org.ga4gh · beacon · 2.0",
+                "org.ga4gh · tes · 1.1.0",
+                "org.ga4gh · wes · 1.0.0",
+            ],
+        );
+        expect(typeOptions([], beacon).map((val) => val.label)).toEqual([
+            "org.ga4gh · beacon · 2.0",
+        ]);
+    });
+});
+
+describe("typeOfChoice", () => {
+    it("sets a listed type", async () => {
+        expect(
+            typeOfChoice(JSON.stringify(["org.ga4gh", "tes", "1.1.0"])),
+        ).toEqual({
+            newType: false,
+            type: { group: "org.ga4gh", artifact: "tes", version: "1.1.0" },
+        });
+    });
+
+    it("starts a new type in the default group", async () => {
+        expect(typeOfChoice(newTypeChoice)).toEqual({
+            newType: true,
+            type: { group: "org.ga4gh", artifact: "", version: "" },
+        });
+    });
+});
+
+describe("offersNewType", () => {
+    it("offers new types to users who may add them", async () => {
+        expect(offersNewType({ mayAdd: true, pending: false })).toBe(true);
+        expect(offersNewType({ mayAdd: false, pending: false })).toBe(false);
+        expect(offersNewType({ mayAdd: false, admin: true })).toBe(false);
+    });
+
+    it("offers none for pending services, except to admins", async () => {
+        expect(offersNewType({ mayAdd: true, pending: true })).toBe(false);
+        // unknown: the service may be pending
+        expect(offersNewType({ mayAdd: true })).toBe(false);
+        expect(
+            offersNewType({ mayAdd: true, pending: true, admin: true }),
+        ).toBe(true);
+        expect(offersNewType({ mayAdd: true, admin: true })).toBe(true);
+    });
+});
+
+describe("typeErrors", () => {
+    it("collects the errors of the touched fields of the type", async () => {
+        expect(
+            typeErrors({
+                "type.group": { isTouched: true, errors: ["group"] },
+                "type.artifact": { isTouched: false, errors: ["artifact"] },
+                "type.version": { isTouched: true, errors: ["version"] },
+                name: { isTouched: true, errors: ["name"] },
+            }),
+        ).toEqual(["group", "version"]);
+        expect(typeErrors({})).toEqual([]);
+    });
+});
+
+describe("approvedTypes", () => {
+    it("leaves out the pending types", async () => {
+        const tes = { group: "org.ga4gh", artifact: "tes", version: "1.1.0" };
+        const own = { group: "org.example", artifact: "x", version: "1.0" };
+        expect(approvedTypes([own, tes], [own])).toEqual([tes]);
+        expect(approvedTypes([tes], [])).toEqual([tes]);
+    });
+});

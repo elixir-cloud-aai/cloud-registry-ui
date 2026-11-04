@@ -1,6 +1,5 @@
 import { getCookie } from "cookies-next/client";
 import { Copy, LogOut } from "lucide-react";
-import Link from "next/link";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -11,11 +10,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useSidebar } from "@/components/ui/sidebar";
 
+// copying the access token puts a bearer token on the clipboard, so only
+// development servers offer it (see "Copying the access token" in
+// `docs/operator-guide/login.md`); Next inlines NODE_ENV at build time, so
+// keep the literal comparison, which drops the item from production bundles
+const canCopyToken = process.env.NODE_ENV === "development";
+
 type Props = {
     user: User;
+    userId?: string;
 };
 
-function AppSidebarFooterMenu({ user }: Props) {
+function AppSidebarFooterMenu({ user, userId }: Props) {
     const { isMobile } = useSidebar();
 
     const copyToken = () => {
@@ -28,6 +34,25 @@ function AppSidebarFooterMenu({ user }: Props) {
                     toast.error("Please try again to copy the token."),
                 );
         }
+    };
+
+    // a form submission, so that leaving pages with unsaved changes still
+    // asks first (beforeunload), and the browser sends the Origin header;
+    // built here, as the menu unmounts when an item is selected
+    const logOut = () => {
+        const form = document.createElement("form");
+        form.method = "post";
+        form.action = "/auth/api/logout";
+        document.body.append(form);
+        form.submit();
+    };
+
+    const copyUserId = () => {
+        if (!userId) return;
+        navigator.clipboard
+            .writeText(userId)
+            .then(() => toast.success("User ID copied successfully."))
+            .catch(() => toast.error("Please try again to copy the user ID."));
     };
 
     return (
@@ -55,16 +80,28 @@ function AppSidebarFooterMenu({ user }: Props) {
                 </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={copyToken}>
-                <Copy />
-                Copy token to Dashboard
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-                <Link href={"/auth/api/logout"} className="text-red-500">
-                    <LogOut />
-                    Log out
-                </Link>
+            {userId && (
+                <DropdownMenuItem onClick={copyUserId}>
+                    <Copy />
+                    <div className="grid flex-1 leading-tight">
+                        <span>Your user ID</span>
+                        <span className="truncate font-mono text-xs text-muted-foreground">
+                            {userId}
+                        </span>
+                    </div>
+                </DropdownMenuItem>
+            )}
+            {canCopyToken && (
+                <DropdownMenuItem onClick={copyToken}>
+                    <Copy />
+                    Copy token to Dashboard
+                </DropdownMenuItem>
+            )}
+            {/* only between items, e.g. not without a user ID in production */}
+            {(userId || canCopyToken) && <DropdownMenuSeparator />}
+            <DropdownMenuItem onSelect={logOut} className="text-red-500">
+                <LogOut />
+                Log out
             </DropdownMenuItem>
         </DropdownMenuContent>
     );

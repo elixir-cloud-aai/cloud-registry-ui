@@ -8,6 +8,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { safeHref } from "@/lib/links";
 
 type Props = {
     serviceInfo: Service;
@@ -15,54 +16,63 @@ type Props = {
 
 function ServiceInfoCardHeader({ serviceInfo }: Props) {
     if (serviceInfo === undefined) return null;
+    const documentationUrl = safeHref(serviceInfo.documentationUrl);
+    const contactUrl = safeHref(serviceInfo.contactUrl, true);
     return (
         <CardHeader className="pb-3">
             <div className="flex justify-between items-start">
                 <div>
                     <CardTitle className="text-xl font-bold flex items-center gap-2">
                         {serviceInfo.name}
-                        <Badge
-                            variant={
-                                serviceInfo.environment === "dev"
-                                    ? "outline"
-                                    : "default"
-                            }
-                            className="capitalize"
-                        >
-                            {serviceInfo.environment}
-                        </Badge>
+                        {serviceInfo.environment && (
+                            <Badge
+                                variant={
+                                    serviceInfo.environment === "dev"
+                                        ? "outline"
+                                        : "default"
+                                }
+                            >
+                                {serviceInfo.environment}
+                            </Badge>
+                        )}
                     </CardTitle>
                     <CardDescription className="font-mono text-xs mt-1">
                         ID: {serviceInfo.id}
                     </CardDescription>
                 </div>
                 <div className="flex gap-2">
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <a
-                                href={serviceInfo.documentationUrl}
-                                target="_blank"
-                                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-                                rel="noopener"
-                            >
-                                <BookOpen className="w-4 h-4 text-slate-500" />
-                            </a>
-                        </TooltipTrigger>
-                        <TooltipContent>Documentation Url</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <a
-                                href={serviceInfo.contactUrl}
-                                target="_blank"
-                                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-                                rel="noopener"
-                            >
-                                <ExternalLink className="w-4 h-4 text-slate-500" />
-                            </a>
-                        </TooltipTrigger>
-                        <TooltipContent>Contact Url</TooltipContent>
-                    </Tooltip>
+                    {documentationUrl && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <a
+                                    href={documentationUrl}
+                                    aria-label="Documentation URL"
+                                    target="_blank"
+                                    className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                                    rel="noopener"
+                                >
+                                    <BookOpen className="w-4 h-4 text-slate-500" />
+                                </a>
+                            </TooltipTrigger>
+                            <TooltipContent>Documentation URL</TooltipContent>
+                        </Tooltip>
+                    )}
+                    {contactUrl && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <a
+                                    href={contactUrl}
+                                    aria-label="Contact URL"
+                                    target="_blank"
+                                    className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+                                    rel="noopener"
+                                >
+                                    <ExternalLink className="w-4 h-4 text-slate-500" />
+                                </a>
+                            </TooltipTrigger>
+                            <TooltipContent>Contact URL</TooltipContent>
+                        </Tooltip>
+                    )}
                 </div>
             </div>
         </CardHeader>

@@ -1,25 +1,47 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { useState } from "react";
+import { PendingBadge } from "@/components/shared/pending";
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useCloudRegistry } from "@/hooks";
+import type { Me, ServiceVerification } from "@/lib/cloud-registry.types";
+import VerifiedBadge from "./verified-badge";
 import ServiceDetailsDialog from "./view-service-dailog";
 
 type Props = {
     services: ExternalService[];
+    verifications: Map<string, ServiceVerification>;
+    pending: Set<string>;
     fetchServices: () => void;
+    refetchMe: () => void;
+    me: Me | null;
+    emptyMessage?: string;
 };
 
-function ServicesTableBody({ services, fetchServices }: Props) {
+function ServicesTableBody({
+    services,
+    verifications,
+    pending,
+    fetchServices,
+    refetchMe,
+    me,
+    emptyMessage = "No services found.",
+}: Props) {
     const { cloudRegistryProvider } = useCloudRegistry();
     const [selectedService, setSelectedService] =
         useState<ExternalService | null>(null);
+
+    if (
+        selectedService &&
+        !services.some((val) => val.id === selectedService.id)
+    )
+        setSelectedService(null);
 
     if (services.length === 0)
         return (
             <TableBody>
                 <TableRow>
                     <TableCell colSpan={6} className="text-center font-bold">
-                        No services found.
+                        {emptyMessage}
                     </TableCell>
                 </TableRow>
             </TableBody>
@@ -35,7 +57,13 @@ function ServicesTableBody({ services, fetchServices }: Props) {
                         className="cursor-pointer"
                     >
                         <TableCell className="font-medium">{val.id}</TableCell>
-                        <TableCell>{val.name}</TableCell>
+                        <TableCell>
+                            <div className="flex items-center gap-2">
+                                {val.name}
+                                {verifications.has(val.id) && <VerifiedBadge />}
+                                {pending.has(val.id) && <PendingBadge />}
+                            </div>
+                        </TableCell>
                         <TableCell>{val.organization.name}</TableCell>
                         <TableCell>{val.type.artifact}</TableCell>
                         <TableCell>{val.environment}</TableCell>
@@ -45,9 +73,17 @@ function ServicesTableBody({ services, fetchServices }: Props) {
             </TableBody>
             <ServiceDetailsDialog
                 service={selectedService}
+                verification={
+                    selectedService
+                        ? verifications.get(selectedService.id)
+                        : undefined
+                }
+                pending={!!selectedService && pending.has(selectedService.id)}
                 open={!!selectedService}
                 fetchServices={fetchServices}
+                refetchMe={refetchMe}
                 cloudRegistryProvider={cloudRegistryProvider}
+                me={me}
                 onOpenChange={(open) => !open && setSelectedService(null)}
             />
         </>

@@ -1,5 +1,5 @@
 import type { Service } from "@elixir-cloud/cloud-registry/providers";
-import { Building2, Clock, Settings, Tag } from "lucide-react";
+import { Building2, ClipboardList, Clock, Settings, Tag } from "lucide-react";
 import { CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -7,6 +7,10 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { safeHref } from "@/lib/links";
+import { registrationRules } from "@/lib/registration-rules";
+import ApiAddress from "./api-address";
+import { registrationRuleRows } from "./rules-helper";
 
 type Props = {
     serviceInfo: Service;
@@ -14,6 +18,9 @@ type Props = {
 
 function ServiceInfoCardContent({ serviceInfo }: Props) {
     if (serviceInfo === undefined) return null;
+    const organizationUrl = safeHref(serviceInfo.organization.url);
+    // registries older than cloud-registry 0.6.0 publish no rules
+    const rules = registrationRules(serviceInfo);
 
     return (
         <CardContent className="space-y-6">
@@ -27,30 +34,36 @@ function ServiceInfoCardContent({ serviceInfo }: Props) {
                         <Building2 className="w-4 h-4" />
                         <span className="font-medium">Organization</span>
                     </div>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <a
-                                href={serviceInfo.organization.url}
-                                className="text-blue-600 hover:underline block pl-6 max-w-max"
-                            >
-                                {serviceInfo.organization.name}
-                            </a>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            {serviceInfo.organization.url}
-                        </TooltipContent>
-                    </Tooltip>
+                    {organizationUrl ? (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <a
+                                    href={organizationUrl}
+                                    className="text-blue-600 hover:underline block pl-6 max-w-max"
+                                >
+                                    {serviceInfo.organization.name}
+                                </a>
+                            </TooltipTrigger>
+                            <TooltipContent>{organizationUrl}</TooltipContent>
+                        </Tooltip>
+                    ) : (
+                        <span className="block pl-6 max-w-max">
+                            {serviceInfo.organization.name}
+                        </span>
+                    )}
                 </div>
 
                 <div className="space-y-2">
                     <div className="flex items-center gap-2 text-slate-500">
                         <Tag className="w-4 h-4" />
-                        <span className="font-medium">Build Version</span>
+                        <span className="font-medium">Registry Version</span>
                     </div>
                     <code className="text-xs bg-slate-100 px-2 py-1 rounded ml-6 text-slate-800">
                         {serviceInfo.version}
                     </code>
                 </div>
+
+                <ApiAddress />
 
                 <Separator className="md:col-span-2" />
 
@@ -61,41 +74,99 @@ function ServiceInfoCardContent({ serviceInfo }: Props) {
                     </div>
                     <ul className="pl-6 space-y-1 text-xs">
                         <li>
-                            <span className="text-slate-400">Artifact:</span>{" "}
-                            {serviceInfo.type.artifact}
-                        </li>
-                        <li>
                             <span className="text-slate-400">Group:</span>{" "}
                             {serviceInfo.type.group}
                         </li>
                         <li>
+                            <span className="text-slate-400">Artifact:</span>{" "}
+                            {serviceInfo.type.artifact}
+                        </li>
+                        <li>
                             <span className="text-slate-400">
                                 Spec Version:
-                            </span>
+                            </span>{" "}
                             {serviceInfo.type.version}
                         </li>
                     </ul>
                 </div>
 
-                <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-slate-500 mb-1">
-                        <Clock className="w-4 h-4" />
-                        <span className="font-medium">Lifecycle</span>
+                {(serviceInfo.createdAt ||
+                    serviceInfo.updatedAt ||
+                    serviceInfo.environment) && (
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-slate-500 mb-1">
+                            <Clock className="w-4 h-4" />
+                            <span className="font-medium">Lifecycle</span>
+                        </div>
+                        <div className="pl-6 text-xs text-slate-600 space-y-0.5">
+                            {serviceInfo.createdAt && (
+                                <p>
+                                    <span className="text-slate-400">
+                                        Created At:
+                                    </span>{" "}
+                                    {new Date(
+                                        serviceInfo.createdAt,
+                                    ).toLocaleString()}
+                                </p>
+                            )}
+                            {serviceInfo.updatedAt && (
+                                <p>
+                                    <span className="text-slate-400">
+                                        Updated At:
+                                    </span>{" "}
+                                    {new Date(
+                                        serviceInfo.updatedAt,
+                                    ).toLocaleString()}
+                                </p>
+                            )}
+                            {serviceInfo.environment && (
+                                <p>
+                                    <span className="text-slate-400">
+                                        Environment:
+                                    </span>{" "}
+                                    {serviceInfo.environment}
+                                </p>
+                            )}
+                        </div>
                     </div>
-                    <div className="pl-6 text-xs text-slate-600 space-y-0.5">
-                        <p>
-                            Created At:{" "}
-                            {new Date(serviceInfo.createdAt).toLocaleString()}
-                        </p>
-                        <p>
-                            Updated At:{" "}
-                            {new Date(serviceInfo.updatedAt).toLocaleString()}
-                        </p>
-                        <p>
-                            Environment: {serviceInfo.environment.toUpperCase()}
-                        </p>
-                    </div>
-                </div>
+                )}
+
+                {rules && (
+                    <>
+                        <Separator className="md:col-span-2" />
+                        <section
+                            aria-labelledby="registration-rules"
+                            className="space-y-3 md:col-span-2"
+                        >
+                            <div className="flex items-center gap-2 text-slate-500 mb-1">
+                                <ClipboardList className="w-4 h-4" />
+                                <h3
+                                    id="registration-rules"
+                                    className="font-medium"
+                                >
+                                    Registration Rules
+                                </h3>
+                            </div>
+                            <dl className="pl-6 grid grid-cols-1 sm:grid-cols-[max-content_1fr] gap-x-4 gap-y-1 text-xs">
+                                {registrationRuleRows(rules).map(
+                                    ({ label, value }) => (
+                                        <div key={label} className="contents">
+                                            <dt className="text-slate-400">
+                                                {label}
+                                            </dt>
+                                            <dd className="text-slate-600 mb-1 sm:mb-0">
+                                                {value}
+                                            </dd>
+                                        </div>
+                                    ),
+                                )}
+                            </dl>
+                            <p className="pl-6 text-xs text-muted-foreground">
+                                The limits apply to users other than admins.
+                            </p>
+                        </section>
+                    </>
+                )}
             </div>
         </CardContent>
     );

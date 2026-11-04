@@ -1,4 +1,4 @@
-import { Info } from "lucide-react";
+import { Info, LogIn } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -6,8 +6,8 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { AdminModeToggle } from "../admin-mode";
 import { ThemeToggle } from "../theme";
-import Image from "next/image";
 import { getCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
 
@@ -29,16 +29,15 @@ async function AppTopbarActions() {
 
             <ThemeToggle />
 
+            {idToken && <AdminModeToggle />}
+
             {!idToken && (
-                <Link href={"/auth/api/login-redirect"}>
-                    <Image
-                        src="/ls-login-grey-wide.jpg"
-                        height={80}
-                        width={130}
-                        alt="Logged in with LS Login"
-                        loading="eager"
-                    />
-                </Link>
+                <Button size="sm" asChild>
+                    <Link href={"/auth/login"}>
+                        <LogIn />
+                        Log in
+                    </Link>
+                </Button>
             )}
         </div>
     );

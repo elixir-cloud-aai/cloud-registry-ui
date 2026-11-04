@@ -11,12 +11,13 @@ import {
     SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useUserInfo } from "@/hooks";
+import { useMe, useUserInfo } from "@/hooks";
 import AppSidebarFooterMenu from "./app-sidebar-footer-menu";
 import AppSidebarFooterMenuNoUser from "./app-sidebar-footer-menu-nologin";
 
 export function AppSidebarFooter() {
     const { user, loading } = useUserInfo();
+    const { me } = useMe();
 
     if (loading) {
         return (
@@ -60,7 +61,12 @@ export function AppSidebarFooter() {
                             <ChevronsUpDown className="ml-auto size-4" />
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
-                    {user && <AppSidebarFooterMenu user={user} />}
+                    {user && (
+                        <AppSidebarFooterMenu
+                            user={user}
+                            userId={me?.user_id}
+                        />
+                    )}
                     {!user && <AppSidebarFooterMenuNoUser />}
                 </DropdownMenu>
             </SidebarMenuItem>

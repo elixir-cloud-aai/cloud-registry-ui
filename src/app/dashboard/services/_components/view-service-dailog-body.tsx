@@ -3,19 +3,21 @@ import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { BuildingIcon, ClockIcon, StarIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import type { Verification } from "@/lib/cloud-registry.types";
 import { Field, SectionCard } from "./service-dailog-card-misc";
 
 type Props = {
     service: ExternalService;
+    verification?: Verification;
 };
 
-function ViewServiceDialogBody({ service }: Props) {
+function ViewServiceDialogBody({ service, verification }: Props) {
     const handleCopyJson = () => {
         navigator.clipboard.writeText(JSON.stringify(service, null, 2));
         toast.success("Copied to clipboard");
     };
     return (
-        <div className="px-6 py-5 overflow-y-auto max-h-[60vh] flex flex-col gap-5">
+        <div className="min-w-0 px-6 py-5 overflow-y-auto max-h-[60vh] flex flex-col gap-5">
             <div className="grid grid-cols-2 gap-4">
                 <Field label="Service ID" value={service.id} />
                 <Field label="Environment" value={service.environment} />
@@ -26,11 +28,18 @@ function ViewServiceDialogBody({ service }: Props) {
                 <Field label="Version" value={service.version} mono />
             </div>
 
+            {verification && (
+                <Field
+                    label="Verified At"
+                    value={new Date(verification.verified_at).toLocaleString()}
+                />
+            )}
+
             <div className="flex flex-col gap-1.5">
                 <span className="text-[10px] font-medium tracking-widest uppercase text-muted-foreground">
                     Description
                 </span>
-                <div className="bg-muted/50 rounded-md px-3 py-2.5 border text-sm leading-relaxed text-foreground break-all">
+                <div className="bg-muted/50 rounded-md px-3 py-2.5 border text-sm leading-relaxed text-foreground wrap-break-word">
                     {service.description}
                 </div>
             </div>
@@ -108,7 +117,7 @@ function ViewServiceDialogBody({ service }: Props) {
                         Copy JSON
                     </Button>
                 </div>
-                <pre className="bg-[#1e1e1e] text-[#9cdcfe] text-[11px] leading-relaxed font-mono rounded-md p-4 overflow-x-auto">
+                <pre className="bg-[#1e1e1e] text-[#9cdcfe] text-[11px] leading-relaxed font-mono rounded-md p-4 whitespace-pre-wrap wrap-anywhere">
                     {JSON.stringify(service, null, 2)}
                 </pre>
             </div>

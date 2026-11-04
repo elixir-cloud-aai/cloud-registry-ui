@@ -1,224 +1,776 @@
-/**
- * @description adds authentication to all fetch calls.
- * the code is copied as it is from
- * @elixir-cloud-aai/cloud-component/ecc-client-elixir-cloud-registry/src/providers/rest-cr-provider.ts
- * there is only addition of the Authorization header in all fetch calls
- */
 
 import type {
-    CloudRegistryProvider,
-    ExternalService,
-    ExternalServiceRegister,
-    Service,
-    ServiceRegister,
-    ServiceType,
+  CloudRegistryProvider,
+  ExternalService,
+  ExternalServiceRegister,
+  Service,
+  ServiceType,
 } from "@elixir-cloud/cloud-registry/providers";
 
-class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
-    constructor(
-        public readonly baseUrl: string,
-        private token: string,
-    ) {}
+import type {
+  ApiError,
+  Approvals,
+  CloudRegistryProviderOptions,
+  GroupName,
+  GroupPermission,
+  Invitation,
+  InvitationCreated,
+  InvitationRegister,
+  Me,
+  Permission,
+  PermissionRegister,
+  ServiceId,
+  ServicePermissions,
+  ServiceRole,
+  ServiceVerification,
+  UserId,
+  Verification,
+  VerificationRegister,
+  VerifiedServices,
+} from "./cloud-registry.types";
+import { registrationRules } from "./registration-rules";
 
-    /**
-     * Fetch list of services from the registry
-     * @returns Promise resolving to array of services
-     */
-    async getServices(): Promise<ExternalService[]> {
-        const url = `${this.baseUrl}/services`;
-        const response = await fetch(url, {
-            headers: {
-                Authorization: `Bearer ${this.token}`,
-            },
-        });
-        if (!response.ok) {
-            throw new Error(`Failed to fetch services: ${response.statusText}`);
-        }
-        return response.json();
-    }
+type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
-    /**
-     * Fetch a specific service by ID
-     * @param serviceId ID of the service to fetch
-     * @returns Promise resolving to service details
-     */
-    async getServiceById(serviceId: string): Promise<ExternalService> {
-        const encodedServiceId = encodeURIComponent(serviceId);
-        const url = `${this.baseUrl}/services/${encodedServiceId}`;
-        const response = await fetch(url, {
-            headers: {
-                Authorization: `Bearer ${this.token}`,
-            },
-        });
-        if (!response.ok) {
-            throw new Error(`Failed to fetch service: ${response.statusText}`);
-        }
-        return response.json();
-    }
+// Whether the registries (by base URL) have GET /approvals, for the
+// providers of all pages; see `hasApprovals`.
+const approvalsSupport = new Map<string, Promise<boolean>>();
 
-    /**
-     * Fetch types of services exposed by the registry
-     * @returns Promise resolving to array of service types
-     */
-    async getServiceTypes(): Promise<ServiceType[]> {
-        const url = `${this.baseUrl}/services/types`;
-        const response = await fetch(url, {
-            headers: {
-                Authorization: `Bearer ${this.token}`,
-            },
-        });
-        if (!response.ok) {
-            throw new Error(
-                `Failed to fetch service types: ${response.statusText}`,
-            );
-        }
-        return response.json();
-    }
-
-    /**
-     * Fetch information about the registry
-     * @returns Promise resolving to service information
-     */
-    async getServiceInfo(): Promise<Service> {
-        const url = `${this.baseUrl}/service-info`;
-        const response = await fetch(url, {
-            headers: {
-                Authorization: `Bearer ${this.token}`,
-            },
-        });
-        if (!response.ok) {
-            throw new Error(
-                `Failed to fetch service info: ${response.statusText}`,
-            );
-        }
-        return response.json();
-    }
-
-    /**
-     * Create a service in the registry
-     * @param service Service metadata to register
-     * @returns Promise resolving to service identifier
-     */
-    async createService(service: ExternalServiceRegister): Promise<string> {
-        const url = `${this.baseUrl}/services`;
-        const response = await fetch(url, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${this.token}`,
-            },
-            body: JSON.stringify(service),
-        });
-
-        if (!response.ok) {
-            throw new Error(`Failed to create service: ${response.statusText}`);
-        }
-
-        return response.json();
-    }
-
-    /**
-     * Create or update a service with a specific ID
-     * @param id Service identifier
-     * @param service Service metadata to register
-     * @returns Promise resolving to service identifier
-     */
-    async createServiceWithId(
-        id: string,
-        service: ExternalServiceRegister,
-    ): Promise<string> {
-        const encodedServiceId = encodeURIComponent(id);
-        const url = `${this.baseUrl}/services/${encodedServiceId}`;
-        const response = await fetch(url, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${this.token}`,
-            },
-            body: JSON.stringify(service),
-        });
-
-        if (!response.ok) {
-            throw new Error(
-                `Failed to create service with ID: ${response.statusText}`,
-            );
-        }
-
-        return response.json();
-    }
-
-    /**
-     * Update a service in the registry
-     * @param id Service identifier
-     * @param service Service metadata to update
-     * @returns Promise resolving to service identifier
-     */
-    async updateService(
-        id: string,
-        service: ExternalServiceRegister,
-    ): Promise<string> {
-        const encodedServiceId = encodeURIComponent(id);
-        const url = `${this.baseUrl}/services/${encodedServiceId}`;
-        const response = await fetch(url, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${this.token}`,
-            },
-            body: JSON.stringify(service),
-        });
-
-        if (!response.ok) {
-            throw new Error(`Failed to update service: ${response.statusText}`);
-        }
-
-        return response.json();
-    }
-
-    /**
-     * Delete a service from the registry
-     * @param id Service identifier
-     * @returns Promise resolving to service identifier
-     */
-    async deleteService(id: string): Promise<string> {
-        const encodedServiceId = encodeURIComponent(id);
-        const url = `${this.baseUrl}/services/${encodedServiceId}`;
-        const response = await fetch(url, {
-            method: "DELETE",
-            headers: {
-                Authorization: `Bearer ${this.token}`,
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error(`Failed to delete service: ${response.statusText}`);
-        }
-
-        return response.json();
-    }
-
-    /**
-     * Create or update the service info
-     * @param service Service info to register
-     * @returns Promise resolving when service info is updated
-     */
-    async createOrUpdateServiceInfo(service: ServiceRegister): Promise<void> {
-        const url = `${this.baseUrl}/service-info`;
-        const response = await fetch(url, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${this.token}`,
-            },
-            body: JSON.stringify(service),
-        });
-
-        if (!response.ok) {
-            throw new Error(
-                `Failed to create/update service info: ${response.statusText}`,
-            );
-        }
-    }
+interface RequestOptions {
+  method?: HttpMethod;
+  body?: unknown;
+  authenticated?: boolean;
 }
 
-export { AuthenticatedCloudRegistryProvider };
+/**
+ * `.` or `..`, the whole ID or between slashes or backslashes, which browsers
+ * take as slashes (`UserId` and `Group` in the registry's API)
+ */
+const dotSegment = /(^|[/\\])\.\.?([/\\]|$)/;
+
+/**
+ * Get the error for an answer about another user than the requested one:
+ * cloud-registry 0.6.0 and 1.0.0rc1 take the paths of users' roles for those
+ * of a user `users/<ID>`, and answer `200 OK`, so only the answer tells.
+ * Registries return the ID from the path as it is
+ * @param what What the registry did
+ * @returns The error, with the message for the user
+ */
+function tooOldRegistry(what: string) {
+  const detail = `This registry is too old for this version of the app: ${what}. Ask its admins to upgrade it; until then, this app can't change the roles of users.`;
+  return Object.assign(new Error(detail), { detail });
+}
+
+class AuthenticatedCloudRegistryProvider
+  implements CloudRegistryProvider
+{
+  private readonly baseUrl: string;
+  private readonly token?: string;
+  private readonly roles: string[];
+
+  constructor(options: CloudRegistryProviderOptions);
+  constructor(baseUrl: string, token?: string);
+  constructor(
+    optionsOrUrl: CloudRegistryProviderOptions | string,
+    token?: string,
+  ) {
+    const options: CloudRegistryProviderOptions =
+      typeof optionsOrUrl === "string"
+        ? { baseUrl: optionsOrUrl, token }
+        : optionsOrUrl;
+
+    this.baseUrl = options.baseUrl.replace(/\/+$/, "");
+    this.token = options.token;
+    this.roles = options.roles ?? [];
+  }
+
+  /** Whether requests can be authenticated, i.e. the user is logged in. */
+  get isAuthenticated(): boolean {
+    return !!this.token;
+  }
+
+  /**
+   * Path of the services on the registry's server, under which the
+   * registry grants roles, e.g. `/ga4gh/registry/v1/services`.
+   */
+  get servicesPath(): string {
+    const path = URL.canParse(this.baseUrl)
+      ? new URL(this.baseUrl).pathname.replace(/\/+$/, "")
+      : "";
+    // as the registry's routes have it, not percent-encoded
+    try {
+      return `${decodeURIComponent(path)}/services`;
+    } catch {
+      return `${path}/services`;
+    }
+  }
+
+  // --------------------------------------------------
+  // HTTP helpers
+  // --------------------------------------------------
+
+  private url(path: string): string {
+    return `${this.baseUrl}${path}`;
+  }
+
+  private idPath(id: string): string {
+    // encodeURIComponent leaves dots, and URLs resolve dot segments, so
+    // `.` and `..` would reach other paths
+    if (id === "." || id === "..") throw new Error(`Invalid ID: '${id}'`);
+    return encodeURIComponent(id);
+  }
+
+  private principalPath(id: string): string {
+    // the path would have a double slash, which the registry redirects to
+    // that of another user or group
+    if (id.startsWith("/")) {
+      throw Object.assign(new Error(`Invalid ID: '${id}'`), {
+        detail: `The app can't change the role of '${id}', as IDs can't start with '/'.`,
+      });
+    }
+    // a proxy that decodes slashes would resolve them to another path
+    if (dotSegment.test(id)) {
+      throw Object.assign(new Error(`Invalid ID: '${id}'`), {
+        detail: `The app can't change the role of '${id}', as IDs can't have the parts '.' or '..'.`,
+      });
+    }
+    return this.idPath(id);
+  }
+
+  /**
+   * Shared HTTP request handler.
+   *
+   * Public endpoints do not receive Authorization.
+   * Authenticated endpoints require a bearer token.
+   */
+  private async request<T>(
+    path: string,
+    options: RequestOptions = {},
+  ): Promise<T> {
+    const {
+      method = "GET",
+      body,
+      authenticated = false,
+    } = options;
+
+    const headers = new Headers();
+
+    if (body !== undefined) {
+      headers.set("Content-Type", "application/json");
+    }
+
+    if (authenticated) {
+      if (!this.token) {
+        throw new Error(
+          "Authentication is required for this operation.",
+        );
+      }
+
+      headers.set("Authorization", `Bearer ${this.token}`);
+      // with the user's token only: the roles are the user's
+      if (this.roles.length) {
+        headers.set("X-Request-Roles", this.roles.join(","));
+      }
+    }
+
+    const response = await fetch(this.url(path), {
+      method,
+      headers,
+      ...(body !== undefined
+        ? { body: JSON.stringify(body) }
+        : {}),
+    });
+
+    // Deployments may require login for reads: retry once with the token.
+    if (response.status === 401 && !authenticated && this.token) {
+      return this.request(path, { ...options, authenticated: true });
+    }
+
+    if (!response.ok) {
+      let message = `Request failed: ${response.status} ${response.statusText}`.trimEnd();
+      let body: ApiError = {};
+
+      try {
+        // Any content type, e.g. application/problem+json.
+        body = ((await response.json()) ?? {}) as ApiError;
+
+        if (typeof body.detail === "string") {
+          message = body.detail;
+        } else if (typeof body.message === "string") {
+          message = body.message;
+        }
+      } catch {
+        // The error response may not contain JSON.
+      }
+
+      // Keep the status, e.g. to tell 401 from 403, and the problem details.
+      throw Object.assign(new Error(message), {
+        status: response.status,
+        title: body.title,
+        detail: body.detail,
+        code: body.code,
+        serviceId: body.serviceId,
+      });
+    }
+
+    // Handle endpoints that return no content.
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    const contentType = response.headers.get("content-type");
+
+    if (!contentType?.includes("application/json")) {
+      return undefined as T;
+    }
+
+    return (await response.json()) as T;
+  }
+
+  // --------------------------------------------------
+  // User
+  // --------------------------------------------------
+
+  /**
+   * GET /me
+   * Authenticated.
+   *
+   * Returns the current user and their service roles.
+   */
+  async getCurrentUser(): Promise<Me> {
+    return this.request("/me", {
+      authenticated: true,
+    });
+  }
+
+  // --------------------------------------------------
+  // Services
+  // --------------------------------------------------
+
+  /**
+   * GET /services
+   * Public.
+   */
+  async getServices(): Promise<ExternalService[]> {
+    return this.request("/services");
+  }
+
+  /**
+   * GET /services/{serviceId}
+   * Public.
+   */
+  async getServiceById(
+    serviceId: ServiceId,
+  ): Promise<ExternalService> {
+    return this.request(
+      `/services/${this.idPath(serviceId)}`,
+    );
+  }
+
+  /**
+   * GET /services/types
+   * Public.
+   */
+  async getServiceTypes(): Promise<ServiceType[]> {
+    return this.request("/services/types");
+  }
+
+  /**
+   * POST /services/types
+   * Authenticated.
+   *
+   * Register a service type.
+   */
+  async addServiceType(serviceType: ServiceType): Promise<ServiceType> {
+    return this.request("/services/types", {
+      method: "POST",
+      body: serviceType,
+      authenticated: true,
+    });
+  }
+
+  /**
+   * DELETE /services/types
+   * Authenticated (admins).
+   *
+   * Remove a service type that no service has.
+   */
+  async removeServiceType(serviceType: ServiceType): Promise<ServiceType> {
+    const { group, artifact, version } = serviceType;
+    const query = new URLSearchParams({ group, artifact, version });
+    return this.request(`/services/types?${query}`, {
+      method: "DELETE",
+      authenticated: true,
+    });
+  }
+
+  /**
+   * PUT /services/types/approval
+   * Authenticated (admins).
+   *
+   * Approve a pending service type, and so the services that have it.
+   */
+  async approveServiceType(serviceType: ServiceType): Promise<ServiceType> {
+    const { group, artifact, version } = serviceType;
+    return this.request("/services/types/approval", {
+      method: "PUT",
+      body: { group, artifact, version },
+      authenticated: true,
+    });
+  }
+
+  /**
+   * GET /approvals
+   * Authenticated.
+   *
+   * List the pending service types and services that the user may see.
+   */
+  async getApprovals(): Promise<Approvals> {
+    return this.request("/approvals", {
+      authenticated: true,
+    });
+  }
+
+  /**
+   * Find out whether the registry has GET /approvals (cloud-registry 0.5.0
+   * and later). Not a registry operation. Only support is kept, until the
+   * page is reloaded: registries without it are asked again by each page,
+   * e.g. once an upgrade has rolled out.
+   *
+   * Registries that publish registration rules (0.6.0 and later, see
+   * `publishesRules`) have the route. Only for others is the route itself
+   * probed, see `probeApprovals`: registries that require a login for it
+   * answer that request with a 401, which browsers and the registry's log
+   * report as an error.
+   *
+   * @returns false if the route is missing (404), true if the rules are
+   * published or for any other status (e.g. 401 or 5xx; the request with
+   * the token then reports errors)
+   * @throws TypeError if the registry can't be reached, or an error if the
+   * probe isn't answered within 10 seconds
+   */
+  async hasApprovals(): Promise<boolean> {
+    let support = approvalsSupport.get(this.baseUrl);
+    if (!support) {
+      support = this.publishesRules()
+        .then((rules) => rules || this.probeApprovals())
+        .then(
+          (found) => {
+            if (!found) approvalsSupport.delete(this.baseUrl);
+            return found;
+          },
+          (err: unknown) => {
+            // ask again next time, e.g. once the registry is up
+            approvalsSupport.delete(this.baseUrl);
+            throw err;
+          },
+        );
+      approvalsSupport.set(this.baseUrl, support);
+    }
+    return support;
+  }
+
+  /**
+   * Check whether the service info has registration rules. Not by
+   * `getServiceInfo()`, as this request needs a timeout of its own, so that
+   * a stalled service info leaves time for the probe, and is sent without a
+   * token, also on a 401: it is public, and needs no CORS preflight then.
+   * Sent in addition to the read of the rules by the pages that use them,
+   * as often as `hasApprovals` has to ask.
+   *
+   * @returns Whether it has them; false if it can't be read in 5 seconds,
+   * which leaves the answer to the probe
+   */
+  private async publishesRules(): Promise<boolean> {
+    try {
+      const response = await fetch(this.url("/service-info"), {
+        cache: "no-store",
+        signal: AbortSignal.timeout(5_000),
+      });
+      return (
+        response.ok && registrationRules(await response.json()) !== undefined
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Probe for GET /approvals.
+   *
+   * Sent without a token on purpose, and so not by `request()`, which
+   * would add it on a 401: without one, browsers send no CORS preflight
+   * and can read the status, 401 from registries with approvals and 404
+   * from older ones. With a token, browsers reject the preflight's 404,
+   * and the request fails without a status.
+   *
+   * @returns false if the route is missing (404), true for any other status
+   */
+  private async probeApprovals(): Promise<boolean> {
+    const response = await fetch(this.url("/approvals"), {
+      cache: "no-store",
+      // a stalled probe must not hold up the pages until a reload
+      signal: AbortSignal.timeout(10_000),
+    });
+    return response.status !== 404;
+  }
+
+  /**
+   * POST /services
+   * Authenticated.
+   */
+  async createService(
+    service: ExternalServiceRegister,
+  ): Promise<string> {
+    return this.request("/services", {
+      method: "POST",
+      body: service,
+      authenticated: true,
+    });
+  }
+
+  /**
+   * PUT /services/{serviceId}
+   * Authenticated.
+   *
+   * Create or update a service with a specific ID.
+   */
+  async createServiceWithId(
+    id: ServiceId,
+    service: ExternalServiceRegister,
+  ): Promise<string> {
+    return this.request(
+      `/services/${this.idPath(id)}`,
+      {
+        method: "PUT",
+        body: service,
+        authenticated: true,
+      },
+    );
+  }
+
+  /**
+   * PUT /services/{serviceId}
+   * Authenticated.
+   *
+   * Update a service.
+   */
+  async updateService(
+    id: ServiceId,
+    service: ExternalServiceRegister,
+  ): Promise<string> {
+    return this.createServiceWithId(id, service);
+  }
+
+  /**
+   * DELETE /services/{serviceId}
+   * Authenticated.
+   */
+  async deleteService(
+    id: ServiceId,
+  ): Promise<string> {
+    return this.request(
+      `/services/${this.idPath(id)}`,
+      {
+        method: "DELETE",
+        authenticated: true,
+      },
+    );
+  }
+
+  /**
+   * POST /services/{serviceId}/rename
+   * Authenticated (admins).
+   *
+   * Change the ID of a service; its roles and verification move with it.
+   *
+   * @param id Current ID of the service
+   * @param newId New ID of the service
+   * @returns Promise resolving to the new ID
+   */
+  async renameService(
+    id: ServiceId,
+    newId: ServiceId,
+  ): Promise<ServiceId> {
+    return this.request(
+      `/services/${this.idPath(id)}/rename`,
+      {
+        method: "POST",
+        body: { id: newId },
+        authenticated: true,
+      },
+    );
+  }
+
+  // --------------------------------------------------
+  // Permissions
+  // --------------------------------------------------
+
+  /**
+   * GET /services/{serviceId}/permissions
+   * Authenticated.
+   *
+   * List the roles of users and groups.
+   */
+  async getServicePermissions(
+    serviceId: ServiceId,
+  ): Promise<ServicePermissions> {
+    return this.request(
+      `/services/${this.idPath(serviceId)}/permissions`,
+      {
+        authenticated: true,
+      },
+    );
+  }
+
+  /**
+   * PUT /services/{serviceId}/permissions/users/{userId}
+   * Authenticated.
+   *
+   * Grant a role to a user.
+   */
+  async grantServicePermission(
+    serviceId: ServiceId,
+    userId: UserId,
+    permission: PermissionRegister,
+  ): Promise<Permission> {
+    const granted = await this.request<Permission>(
+      `/services/${this.idPath(serviceId)}/permissions/users/${this.principalPath(userId)}`,
+      {
+        method: "PUT",
+        body: permission,
+        authenticated: true,
+      },
+    );
+    if (granted?.user_id !== undefined && granted.user_id !== userId) {
+      throw tooOldRegistry(
+        `it granted the role to '${granted.user_id}', not to '${userId}'`,
+      );
+    }
+    return granted;
+  }
+
+  /**
+   * DELETE /services/{serviceId}/permissions/users/{userId}
+   * Authenticated.
+   *
+   * Revoke a user's permission.
+   */
+  async revokeServicePermission(
+    serviceId: ServiceId,
+    userId: UserId,
+  ): Promise<UserId> {
+    const revoked = await this.request<UserId>(
+      `/services/${this.idPath(serviceId)}/permissions/users/${this.principalPath(userId)}`,
+      {
+        method: "DELETE",
+        authenticated: true,
+      },
+    );
+    if (typeof revoked === "string" && revoked !== userId) {
+      throw tooOldRegistry(
+        `it removed the role of '${revoked}', not of '${userId}'`,
+      );
+    }
+    return revoked;
+  }
+
+  /**
+   * PUT /services/{serviceId}/permissions/groups/{group}
+   * Authenticated.
+   *
+   * Grant a role to a group.
+   */
+  async grantGroupPermission(
+    serviceId: ServiceId,
+    group: GroupName,
+    permission: PermissionRegister,
+  ): Promise<GroupPermission> {
+    return this.request(
+      `/services/${this.idPath(serviceId)}/permissions/groups/${this.principalPath(group)}`,
+      {
+        method: "PUT",
+        body: permission,
+        authenticated: true,
+      },
+    );
+  }
+
+  /**
+   * DELETE /services/{serviceId}/permissions/groups/{group}
+   * Authenticated.
+   *
+   * Revoke a group's permission.
+   */
+  async revokeGroupPermission(
+    serviceId: ServiceId,
+    group: GroupName,
+  ): Promise<GroupName> {
+    return this.request(
+      `/services/${this.idPath(serviceId)}/permissions/groups/${this.principalPath(group)}`,
+      {
+        method: "DELETE",
+        authenticated: true,
+      },
+    );
+  }
+
+  // --------------------------------------------------
+  // Invitations
+  // --------------------------------------------------
+
+  /**
+   * POST /services/{serviceId}/invitations
+   * Authenticated (owners, admins).
+   *
+   * Create an invitation to a service for a role, with a label if given.
+   *
+   * @returns The invitation, with its token, which only this response has
+   */
+  async createInvitation(
+    serviceId: ServiceId,
+    invitation: InvitationRegister,
+  ): Promise<InvitationCreated> {
+    return this.request(
+      `/services/${this.idPath(serviceId)}/invitations`,
+      {
+        method: "POST",
+        body: invitation,
+        authenticated: true,
+      },
+    );
+  }
+
+  /**
+   * GET /services/{serviceId}/invitations
+   * Authenticated (owners, admins).
+   *
+   * List the invitations that weren't accepted, also expired ones; registries
+   * up to cloud-registry 1.0.0rc1 list the open and accepted ones that haven't
+   * expired, without their status.
+   */
+  async getServiceInvitations(
+    serviceId: ServiceId,
+  ): Promise<Invitation[]> {
+    return this.request(
+      `/services/${this.idPath(serviceId)}/invitations`,
+      {
+        authenticated: true,
+      },
+    );
+  }
+
+  /**
+   * DELETE /services/{serviceId}/invitations/{invitationId}
+   * Authenticated (owners, admins).
+   *
+   * Revoke an open invitation, or remove an expired one.
+   */
+  async revokeInvitation(
+    serviceId: ServiceId,
+    invitationId: string,
+  ): Promise<string> {
+    return this.request(
+      `/services/${this.idPath(serviceId)}/invitations/${this.idPath(invitationId)}`,
+      {
+        method: "DELETE",
+        authenticated: true,
+      },
+    );
+  }
+
+  /**
+   * POST /invitations/accept
+   * Authenticated.
+   *
+   * Accept an invitation, which grants its role to the current user. The
+   * token goes in the body, not in the URL, so that it stays out of logs.
+   *
+   * @returns The role granted on the service
+   */
+  async acceptInvitation(token: string): Promise<ServiceRole> {
+    return this.request("/invitations/accept", {
+      method: "POST",
+      body: { token },
+      authenticated: true,
+    });
+  }
+
+  // --------------------------------------------------
+  // Verification
+  // --------------------------------------------------
+
+  /**
+   * GET /services/{serviceId}/verification
+   * Public.
+   */
+  async getServiceVerification(
+    serviceId: ServiceId,
+  ): Promise<ServiceVerification> {
+    return this.request(
+      `/services/${this.idPath(serviceId)}/verification`,
+    );
+  }
+
+  /**
+   * PUT /services/{serviceId}/verification
+   * Authenticated.
+   *
+   * Verify a service.
+   */
+  async verifyService(
+    serviceId: ServiceId,
+    verification: VerificationRegister,
+  ): Promise<void> {
+    return this.request(
+      `/services/${this.idPath(serviceId)}/verification`,
+      {
+        method: "PUT",
+        body: verification,
+        authenticated: true,
+      },
+    );
+  }
+
+  /**
+   * DELETE /services/{serviceId}/verification
+   * Authenticated.
+   *
+   * Remove service verification.
+   */
+  async removeServiceVerification(
+    serviceId: ServiceId,
+  ): Promise<void> {
+    return this.request(
+      `/services/${this.idPath(serviceId)}/verification`,
+      {
+        method: "DELETE",
+        authenticated: true,
+      },
+    );
+  }
+
+  /**
+   * GET /verifications
+   * Public.
+   *
+   * List verified services.
+   */
+  async getVerifications(): Promise<VerifiedServices> {
+    return this.request("/verifications");
+  }
+
+  // --------------------------------------------------
+  // Registry information
+  // --------------------------------------------------
+
+  /**
+   * GET /service-info
+   * Public.
+   */
+  async getServiceInfo(): Promise<Service> {
+    return this.request("/service-info");
+  }
+}
+
+export { AuthenticatedCloudRegistryProvider, dotSegment };
