@@ -41,10 +41,9 @@ describes.
 
 If the app ran with an older registry, it can't repair the result: it reports
 an error for such a grant, but the wrong role stays stored, and a downgrade
-leaves the real user's role as it was. With that registry, **Remove** on `bob`
-removes the role of `users/bob`, if there is one, and otherwise fails, usually
-with "not found", but never touches `bob`'s role, so check all role changes made in that
-time. Upgrade the registry, then remove the wrong roles as the guide describes.
+leaves the real user's role as it was. With that registry, **Remove** fails
+without sending anything, as the app can't read the IDs of those who hold roles,
+so check all role changes made in that time. Upgrade the registry, then remove the wrong roles as the guide describes.
 To go back from this
 version, move the registry and the app back together, as the guide describes
 under **Going back**.
@@ -132,8 +131,8 @@ services had to be set in the app as well (`NEXT_PUBLIC_SERVICE_ENVIRONMENTS`
 and `NEXT_PUBLIC_SERVICE_URL_SCHEMES`), in line with the registry's config.
 Now, the app reads them from the registry's service info (see
 [Registry](configuration.md#registry)), so they can't differ from what the
-registry enforces (cloud-registry 0.6.0 and later publish them; with older
-registries, the edit form takes any environment and any `http` or `https`
+registry enforces (cloud-registry 1.0.0rc2 and later publish them under the
+name the app reads; with older registries, the edit form takes any environment and any `http` or `https`
 URL, and the registry checks them). Remove the two settings from your
 deployment (`docker run -e`, `.env`, Vercel project): if they are still
 set, the app ignores them and logs a warning when it starts ("Ignoring

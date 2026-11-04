@@ -157,6 +157,8 @@ function Invitations({
     ) => {
         if (!provider) return;
         setChanging(true);
+        // a list read before the change would drop the link of a new invitation
+        latestRequest.current++;
         latestCopy.current++;
         setUncopied(undefined);
         // new links are shown only while the dialog is open

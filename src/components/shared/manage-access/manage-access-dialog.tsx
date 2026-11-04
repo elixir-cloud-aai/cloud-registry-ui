@@ -62,30 +62,34 @@ function ManageAccessDialog({
     const pageSize = accessPageSize();
 
     const fetchPermissions = useCallback(() => {
-        if (!provider) return Promise.resolve();
+        // tells whether the user may still manage access; if not, the dialog
+        // closes
+        if (!provider) return Promise.resolve(true);
         const request = ++latestRequest.current;
         return provider
             .getServicePermissions(serviceId)
             .then((val) => {
                 if (request === latestRequest.current) setPermissions(val);
+                return true;
             })
             .catch((err) => {
-                if (request !== latestRequest.current) return;
+                if (request !== latestRequest.current) return true;
                 if (isUnauthorized(err)) {
                     setCloseReason(
                         "Your session expired. Please log in again.",
                     );
-                    return;
+                    return false;
                 }
                 if (isForbidden(err)) {
                     setCloseReason(
                         "You can no longer manage access to this service.",
                     );
-                    return;
+                    return false;
                 }
                 // an outdated list must not be acted on
                 setPermissions(null);
                 toast.error(listError(err));
+                return true;
             })
             .finally(() => {
                 if (request === latestRequest.current) setLoading(false);
@@ -108,7 +112,7 @@ function ManageAccessDialog({
         promise: Promise<unknown>,
         loadingMessage: string,
         successMessage: string,
-        groupGrant = false,
+        { groupGrant = false, deletesInvitations = false } = {},
     ) => {
         setChanging(true);
         toast.promise(promise, {
@@ -123,7 +127,12 @@ function ManageAccessDialog({
             () => true,
             () => false,
         );
-        await fetchPermissions();
+        const allowed = await fetchPermissions();
+        // also after a failure: the role may be gone anyway, e.g. if someone
+        // else removed it. Before the end of the change, as switching tabs
+        // doesn't list them during a change
+        if (deletesInvitations && allowed)
+            setInvitationsRefresh((count) => count + 1);
         if (changed) onChange?.();
         setChanging(false);
         return changed;
@@ -141,7 +150,7 @@ function ManageAccessDialog({
             promise,
             `Granting ${role} role to ${principal}`,
             `Granted ${role} role to ${principal}`,
-            kind === "group",
+            { groupGrant: kind === "group" },
         );
     };
 
@@ -157,22 +166,20 @@ function ManageAccessDialog({
         else grant("user", val.userId, role);
     };
 
-    const handleRevoke = async (val: Permission | GroupPermission) => {
+    const handleRevoke = (val: Permission | GroupPermission) => {
         if (!provider) return;
         const principal = isGroup(val) ? val.group : val.userId;
         const promise = isGroup(val)
             ? provider.revokeGroupPermission(serviceId, val.group)
             : provider.revokeServicePermission(serviceId, val.userId);
-        const changed = await applyChange(
+        applyChange(
             promise,
             `Removing roles of ${principal}`,
             `Removed roles of ${principal}`,
+            // the registry deletes the invitations that a user created with
+            // their role, and their links stop working
+            { deletesInvitations: !isGroup(val) },
         );
-        // the registry deletes the invitations that a user created with their
-        // role, and their links stop working. Not for the user's own role:
-        // they may no longer read the list, and the dialog then closes
-        if (changed && !isGroup(val) && val.userId !== currentUserId)
-            setInvitationsRefresh((count) => count + 1);
     };
 
     return (

@@ -102,19 +102,26 @@ describe("grantServicePermission", () => {
         ).resolves.toBeUndefined();
     });
 
-    it("fails if the registry granted the role to another user", async () => {
-        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
-        fetchMock.mockResolvedValue(
-            json({ userId: "users/bob@x", role: "owner" }),
-        );
-        const error = await provider
-            .grantServicePermission("a", "bob@x", role)
-            .catch((err: unknown) => err);
-        expect(error).toBeInstanceOf(Error);
-        expect(error).toMatchObject({
-            detail: "This registry is too old for this version of the app: it granted the role to 'users/bob@x', not to 'bob@x'. Ask its admins to upgrade it; until then, this app can't change the roles of users.",
-        });
-    });
+    it.each([
+        ["userId"],
+        // as cloud-registry 0.6.0 and 1.0.0rc1 answer
+        ["user_id"],
+    ])(
+        "fails if the registry granted the role to another user (%s)",
+        async (field) => {
+            const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+            fetchMock.mockResolvedValue(
+                json({ [field]: "users/bob@x", role: "owner" }),
+            );
+            const error = await provider
+                .grantServicePermission("a", "bob@x", role)
+                .catch((err: unknown) => err);
+            expect(error).toBeInstanceOf(Error);
+            expect(error).toMatchObject({
+                detail: "This registry is too old for this version of the app: it granted the role to 'users/bob@x', not to 'bob@x'. Ask its admins to upgrade it; until then, this app can't change the roles of users.",
+            });
+        },
+    );
 });
 
 describe("requests", () => {

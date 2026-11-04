@@ -377,6 +377,35 @@ test.describe("invitations", () => {
         expect(accepted.status).toBe(404);
     });
 
+    test("removing one's own role deletes one's invitations, and the dialog stays for admins", async ({
+        page,
+        browser,
+    }) => {
+        const service = await registerService(browser, "owner", "Own role");
+        const path = `/services/${service.id}`;
+        const admin = await login(page, "admin", { adminMode: true });
+        const granted = await api(
+            await tokenOf(browser, "owner"),
+            "PUT",
+            `${path}/permissions/users/${encodeURIComponent(users.admin.sub)}`,
+            { role: "maintainer" },
+        );
+        expect(granted.status).toBe(200);
+        await createInvitations(admin, `${path}/invitations`, ["Theirs"]);
+
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        await page.getByRole("button", { name: "Manage access" }).click();
+        const dialog = page.getByRole("dialog");
+        const tab = dialog.getByRole("tab", { name: /Invitations/ });
+        await expect(tab).toContainText("1");
+
+        await dialog
+            .getByRole("button", { name: `Remove ${users.admin.sub}` })
+            .click();
+        await expect(tab).toContainText("0");
+        await expect(dialog).toBeVisible();
+    });
+
     test("links stay while the dialog is open, and can be renewed", async ({
         page,
         browser,

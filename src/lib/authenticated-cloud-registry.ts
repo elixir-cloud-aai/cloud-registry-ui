@@ -535,7 +535,7 @@ class AuthenticatedCloudRegistryProvider
     userId: UserId,
     permission: PermissionRegister,
   ): Promise<Permission> {
-    const granted = await this.request<Permission>(
+    const granted = await this.request<Permission & { user_id?: UserId }>(
       `/services/${this.idPath(serviceId)}/permissions/users/${this.principalPath(userId)}`,
       {
         method: "PUT",
@@ -543,9 +543,11 @@ class AuthenticatedCloudRegistryProvider
         authenticated: true,
       },
     );
-    if (granted?.userId !== undefined && granted.userId !== userId) {
+    // these registries answer with the former name of the field
+    const grantee = granted?.userId ?? granted?.user_id;
+    if (grantee !== undefined && grantee !== userId) {
       throw tooOldRegistry(
-        `it granted the role to '${granted.userId}', not to '${userId}'`,
+        `it granted the role to '${grantee}', not to '${userId}'`,
       );
     }
     return granted;

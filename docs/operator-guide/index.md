@@ -49,7 +49,8 @@ Releases are published as GitHub releases and as images on Docker Hub, `elixircl
 Features need a registry of the version below. From 1.0.0-rc2, registries
 older than the rows marked as required state **aren't supported**:
 0.6.0 and 1.0.0rc1 don't fail, they give roles to the wrong user (see below).
-The other rows say which version brought a feature:
+The other rows say which version brought a feature; the app reads all of them
+under the names of 1.0.0rc2, so it doesn't offer them with older registries:
 
 | Feature                                                                                      | Needs cloud-registry |
 | -------------------------------------------------------------------------------------------- | -------------------- |
@@ -72,10 +73,10 @@ it has no fallback.** Don't run it with older registries, not even for a while:
   `users/bob` instead of `bob`. `bob` gets no access, and a downgrade leaves
   `bob`'s role as it was. The app notices from the answer and reports an error,
   but the wrong role is stored by then.
-- **The app can't clean up:** with these registries, **Remove** on `bob` never
-  touches `bob`'s role. It removes that of `users/bob`, if there is one, which
-  the app reports as an error, and otherwise fails, usually with "not found". So
-  it doesn't take access away until the registry is upgraded.
+- **The app can't clean up:** with these registries, the app can't read the IDs
+  of those who hold roles, as they have other names (see below), so **Remove**
+  fails without sending anything, and searching the list can fail too. So it
+  doesn't take access away until the registry is upgraded.
 - Earlier versions don't find these paths.
 
 No order of apps and registry pods is safe during a rolling update: see
@@ -111,7 +112,8 @@ services](../user-guide/registering.md#limit-on-registered-services)) comes
 from cloud-registry 1.0.0rc1: the registry sets it (`custom.access_control.max_services_per_user`,
 see the [registry's
 documentation](https://cloud-registry.readthedocs.io/en/latest/)), and the
-app reads it from the service info. Older registries have no limit.
+app reads it from the service info of 1.0.0rc2 and later. Registries older than
+1.0.0rc1 have no limit.
 
 Invitations to services (see [Inviting by
 link](../user-guide/access.md#inviting-by-link)) need cloud-registry
