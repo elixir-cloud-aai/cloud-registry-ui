@@ -46,13 +46,13 @@ UI versions follow the registry in major and minor version: UI 1.0.x works with 
 
 Releases are published as GitHub releases and as images on Docker Hub, `elixircloud/cloud-registry-ui:<version>` (`latest` for the highest release without a pre-release suffix such as `-rc1`, 0.x releases included), built by the release workflow (`.github/workflows/release.yml`) with an SBOM and the build provenance attached, and signed (see [Verifying images](deployment.md#verifying-images)). Until 1.0.0, all releases are marked as pre-releases on GitHub.
 
-Features need a registry of the version below. From 1.0.0-rc2, registries
-older than the rows marked as required state **aren't supported**:
-0.6.0 and 1.0.0rc1 don't fail, they give roles to the wrong user (see below).
-The other rows say which version brought a feature; the app reads all of them
-under the names of 1.0.0rc2, so it doesn't offer them with older registries:
+From 1.0.0-rc2, registries older than the rows marked as required state
+**aren't supported**: 0.6.0 and 1.0.0rc1 don't fail, they give roles to the
+wrong user (see below). The other rows say which version of the registry brought
+a feature; the app reads all of them under the names of 1.0.0rc2, so it doesn't
+offer them with older registries:
 
-| Feature                                                                                      | Needs cloud-registry |
+| Feature                                                                                      | Since cloud-registry |
 | -------------------------------------------------------------------------------------------- | -------------------- |
 | [Admin mode](admins.md#admin-mode)                                                           | 0.6.0                |
 | Several login providers (the registry namespaces user IDs by issuer, see [Login](login.md))  | 0.6.0                |
@@ -75,8 +75,7 @@ it has no fallback.** Don't run it with older registries, not even for a while:
   but the wrong role is stored by then.
 - **The app can't clean up:** with these registries, the app can't read the IDs
   of those who hold roles, as they have other names (see below), so **Remove**
-  fails without sending anything, and searching the list can fail too. So it
-  doesn't take access away until the registry is upgraded.
+  fails, and searching the list can fail too. So it doesn't take access away until the registry is upgraded.
 - Earlier versions don't find these paths.
 
 No order of apps and registry pods is safe during a rolling update: see

@@ -100,10 +100,9 @@ registry's admins.
 The limit is set by the registry (`custom.access_control.max_services_per_user`,
 50 by default) and published in its service info
 (`registrationRules.maxServicesPerUser`, from cloud-registry 1.0.0rc2). If it
-is 0, only admins can
-register services; an admin who is not in admin mode is told to switch to
-admin mode first (see [Admin mode](admin-mode.md)). Registries older than
-cloud-registry 1.0.0rc1 have no limit.
+is 0, only admins can register services; an admin who is not in admin mode is told to switch to
+admin mode first (see [Admin mode](admin-mode.md)). With older registries, the
+app doesn't know the limit; those before 1.0.0rc1 have none.
 
 ## Editing a service
 
