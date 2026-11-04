@@ -2,7 +2,9 @@ version: 2
 # Every entry targets `dev` (`target-branch`), which takes all pull
 # requests whatever the default branch is (`main` only moves forward to
 # releases); commit messages start with `build(deps)` (Conventional
-# Commits). Security updates always target the default branch
+# Commits). Security updates always target the default branch. Every entry
+# skips releases younger than a week (`cooldown`), to give time to spot
+# compromised ones
 updates:
   # Dependencies in `package.json` and the lock (`bun.lock`), updated
   # together
@@ -10,6 +12,8 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
     target-branch: dev
     commit-message:
       prefix: build
@@ -26,6 +30,8 @@ updates:
     directory: /docs
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
     target-branch: dev
     commit-message:
       prefix: build
@@ -40,6 +46,8 @@ updates:
     directories: ["/", "/.github/actions/*"]
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
     target-branch: dev
     commit-message:
       prefix: build
@@ -53,6 +61,8 @@ updates:
     directory: /
     schedule:
       interval: monthly
+    cooldown:
+      default-days: 7
     target-branch: dev
     commit-message:
       prefix: build

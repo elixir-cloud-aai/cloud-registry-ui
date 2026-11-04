@@ -82,7 +82,8 @@ test changes.
 Dependabot (`.github/dependabot.yml`) opens grouped pull requests against
 `dev` each month, with commit messages starting with
 `build(deps)`, for the Bun dependencies, the docs packages, the actions and
-the Docker image. `@playwright/test` is left out: bump it by hand, together
+the Docker image, skipping releases younger than a week (security updates
+aren't delayed). `@playwright/test` is left out: bump it by hand, together
 with the Playwright image of the `e2e` job (`.github/workflows/ci.yml`).
 Pull requests that bump the Bun image of the `Dockerfile` must also bump
 `bun-version` in the workflows. Codecov uploads use the organisation secret `CODECOV_TOKEN`.
