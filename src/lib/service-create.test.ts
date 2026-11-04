@@ -40,6 +40,28 @@ describe("withFormRules", () => {
         expect(await wrapped.getServiceInfo()).toEqual({ id: "x" });
     });
 
+    it("hides rules under the former name from the form", async () => {
+        const wrapped = withFormRules({
+            getServiceInfo: async () => ({
+                id: "x",
+                registration_rules: { environments: ["qa"] },
+            }),
+        });
+        expect(await wrapped.getServiceInfo()).toEqual({ id: "x" });
+    });
+
+    it.each([[undefined], [null], ["x"]])(
+        "leaves the form its fallback for an answer of %j",
+        async (answer) => {
+            const wrapped = withFormRules({
+                getServiceInfo: async () => answer,
+            });
+            await expect(wrapped.getServiceInfo()).resolves.toMatchObject({
+                registration_rules: undefined,
+            });
+        },
+    );
+
     it("passes on failures", async () => {
         const wrapped = withFormRules({
             getServiceInfo: () => Promise.reject(failure(503)),

@@ -56,6 +56,7 @@ function ManageAccessDialog({
     const [inviting, setInviting] = useState(false);
     const [invitationCount, setInvitationCount] = useState<number>();
     const [invitationsRefresh, setInvitationsRefresh] = useState(0);
+    const [linksGone, setLinksGone] = useState(0);
     // why the dialog must close, e.g. after removing one's own owner role
     const [closeReason, setCloseReason] = useState<string | null>(null);
     const latestRequest = useRef(0);
@@ -166,13 +167,13 @@ function ManageAccessDialog({
         else grant("user", val.userId, role);
     };
 
-    const handleRevoke = (val: Permission | GroupPermission) => {
+    const handleRevoke = async (val: Permission | GroupPermission) => {
         if (!provider) return;
         const principal = isGroup(val) ? val.group : val.userId;
         const promise = isGroup(val)
             ? provider.revokeGroupPermission(serviceId, val.group)
             : provider.revokeServicePermission(serviceId, val.userId);
-        applyChange(
+        const changed = await applyChange(
             promise,
             `Removing roles of ${principal}`,
             `Removed roles of ${principal}`,
@@ -180,6 +181,9 @@ function ManageAccessDialog({
             // their role, and their links stop working
             { deletesInvitations: !isGroup(val) },
         );
+        // the links known here are those of the current user's invitations
+        if (changed && !isGroup(val) && val.userId === currentUserId)
+            setLinksGone((count) => count + 1);
     };
 
     return (
@@ -275,6 +279,7 @@ function ManageAccessDialog({
                             serviceId={serviceId}
                             pageSize={pageSize}
                             refresh={invitationsRefresh}
+                            linksGone={linksGone}
                             labelRequired={invitationLabelRequired()}
                             disabled={changing}
                             onChanging={setInviting}

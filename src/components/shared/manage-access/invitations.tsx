@@ -39,6 +39,9 @@ type Props = {
     pageSize: number;
     /** The list is loaded again when this changes */
     refresh?: number;
+    /** The links created here are dropped when this changes, also if the list
+     * can't be loaded again to tell */
+    linksGone?: number;
     /** Whether new invitations need a label */
     labelRequired: boolean;
     disabled?: boolean;
@@ -67,6 +70,7 @@ function Invitations({
     serviceId,
     pageSize,
     refresh,
+    linksGone,
     labelRequired,
     disabled = false,
     onChanging,
@@ -149,6 +153,10 @@ function Invitations({
     useEffect(() => {
         fetchInvitations();
     }, [fetchInvitations, refresh]);
+
+    useEffect(() => {
+        if (linksGone) setCreated([]);
+    }, [linksGone]);
 
     // a change, then the list again, as it may have changed anyway
     const run = async (

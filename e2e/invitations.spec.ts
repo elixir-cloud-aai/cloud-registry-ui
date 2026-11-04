@@ -406,6 +406,56 @@ test.describe("invitations", () => {
         await expect(dialog).toBeVisible();
     });
 
+    test("links of one's removed role aren't offered if the list can't be loaded", async ({
+        page,
+        browser,
+        problems,
+    }) => {
+        const service = await registerService(browser, "owner", "Own links");
+        const path = `/services/${service.id}`;
+        await watchClipboard(page);
+        await login(page, "admin", { adminMode: true });
+        const granted = await api(
+            await tokenOf(browser, "owner"),
+            "PUT",
+            `${path}/permissions/users/${encodeURIComponent(users.admin.sub)}`,
+            { role: "maintainer" },
+        );
+        expect(granted.status).toBe(200);
+
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        await createLink(page);
+        const dialog = page.getByRole("dialog");
+        await page.route(`${registry}${path}/invitations`, (route) =>
+            route.request().method() === "GET"
+                ? route.fulfill({
+                      status: 500,
+                      contentType: "application/problem+json",
+                      headers: { "Access-Control-Allow-Origin": "*" },
+                      body: JSON.stringify({ title: "Server error" }),
+                  })
+                : route.fallback(),
+        );
+        await dialog.getByRole("tab", { name: "Current Access" }).click();
+        await dialog
+            .getByRole("button", { name: `Remove ${users.admin.sub}` })
+            .click();
+        await expect(
+            page.getByText(`Removed roles of ${users.admin.sub}`),
+        ).toBeVisible();
+
+        await dialog.getByRole("tab", { name: /^Invitations/ }).click();
+        await expect(
+            dialog.getByText(
+                "Cannot load the invitations. Please try again later.",
+            ),
+        ).toBeVisible();
+        await expect(copyButtons(page)).toHaveCount(0);
+        // the failures on purpose
+        expect(problems.filter((val) => !val.includes("500"))).toEqual([]);
+        problems.length = 0;
+    });
+
     test("links stay while the dialog is open, and can be renewed", async ({
         page,
         browser,
