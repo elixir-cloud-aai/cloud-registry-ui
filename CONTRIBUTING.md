@@ -184,10 +184,12 @@ versions):
        git push origin "v${version}"
    ```
 
-   Moving `main` deploys it, also for pre-releases: `deploy-prod.yml`
-   deploys every push to Vercel production, and a Vercel project follows this
-   repository (check its settings before you move `main`, it may deploy too).
-   So move `main` no earlier than the registry the release needs is deployed.
+   Moving `main` starts a deploy to Vercel production, also for pre-releases,
+   without approval and before the tag: `deploy-prod.yml` runs on every push
+   to `main`. A Vercel project also follows this repository (check its
+   settings before you move `main`, it may deploy too). So move `main` no
+   earlier than the registry the release needs is deployed, and check that
+   the deploy succeeded.
 4. Approve the jobs of the release workflow (`.github/workflows/release.yml`)
    in the `release` environment, after checking that the run is for the tag
    you pushed. It checks that GitHub verified the tag's signature, that its
