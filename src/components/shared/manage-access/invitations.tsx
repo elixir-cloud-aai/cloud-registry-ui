@@ -39,6 +39,9 @@ type Props = {
     pageSize: number;
     /** The list is loaded again when this changes */
     refresh?: number;
+    /** The links created here are dropped when this changes, also if the list
+     * can't be loaded again to tell */
+    linksGone?: number;
     /** Whether new invitations need a label */
     labelRequired: boolean;
     disabled?: boolean;
@@ -67,6 +70,7 @@ function Invitations({
     serviceId,
     pageSize,
     refresh,
+    linksGone,
     labelRequired,
     disabled = false,
     onChanging,
@@ -150,6 +154,10 @@ function Invitations({
         fetchInvitations();
     }, [fetchInvitations, refresh]);
 
+    useEffect(() => {
+        if (linksGone) setCreated([]);
+    }, [linksGone]);
+
     // a change, then the list again, as it may have changed anyway
     const run = async (
         change: (val: AccessProvider) => Promise<void>,
@@ -157,6 +165,8 @@ function Invitations({
     ) => {
         if (!provider) return;
         setChanging(true);
+        // a list read before the change would drop the link of a new invitation
+        latestRequest.current++;
         latestCopy.current++;
         setUncopied(undefined);
         // new links are shown only while the dialog is open

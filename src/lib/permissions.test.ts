@@ -17,7 +17,7 @@ import {
 const me = (admin: boolean, services: [string, string][] = []) =>
     ({
         admin,
-        services: services.map(([service_id, role]) => ({ service_id, role })),
+        services: services.map(([serviceId, role]) => ({ serviceId, role })),
     }) as unknown as Me;
 
 describe("service permissions", () => {

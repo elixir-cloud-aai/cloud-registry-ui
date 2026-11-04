@@ -318,7 +318,7 @@ async function registerService(browser: Browser, user: User, name: string) {
 
 /**
  * Let the page see other registration rules than the registry's own
- * (`registration_rules` of `GET /service-info`)
+ * (`registrationRules` of `GET /service-info`)
  * @param page Page
  * @param rules Rules that replace the published ones
  */
@@ -330,7 +330,7 @@ async function publishRules(page: Page, rules: object) {
             response,
             json: {
                 ...info,
-                registration_rules: { ...info.registration_rules, ...rules },
+                registrationRules: { ...info.registrationRules, ...rules },
             },
         });
     });

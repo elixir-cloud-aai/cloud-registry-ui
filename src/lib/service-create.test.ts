@@ -10,8 +10,67 @@ import {
     checkedProvider,
     createError,
     createFailedToast,
+    withFormRules,
 } from "./service-create";
 import { servicesLimitMessage } from "./service-limits";
+
+describe("withFormRules", () => {
+    it("gives the form the rules under the name it reads", async () => {
+        const registrationRules = { environments: ["qa"] };
+        const provider = {
+            getServiceInfo: vi.fn(async () => ({
+                id: "x",
+                registrationRules,
+            })),
+            other: "kept",
+        };
+        const wrapped = withFormRules(provider);
+        expect(await wrapped.getServiceInfo()).toEqual({
+            id: "x",
+            registrationRules,
+            registration_rules: registrationRules,
+        });
+        expect(wrapped.other).toBe("kept");
+    });
+
+    it("adds no rules if the registry publishes none", async () => {
+        const wrapped = withFormRules({
+            getServiceInfo: async () => ({ id: "x" }),
+        });
+        expect(await wrapped.getServiceInfo()).toEqual({ id: "x" });
+    });
+
+    it("hides rules under the former name from the form", async () => {
+        const wrapped = withFormRules({
+            getServiceInfo: async () => ({
+                id: "x",
+                registration_rules: { environments: ["qa"] },
+            }),
+        });
+        expect(await wrapped.getServiceInfo()).toEqual({ id: "x" });
+    });
+
+    it.each([[undefined], [null], ["x"]])(
+        "leaves the form its fallback for an answer of %j",
+        async (answer) => {
+            const wrapped = withFormRules({
+                getServiceInfo: async () => answer,
+            });
+            await expect(wrapped.getServiceInfo()).resolves.toMatchObject({
+                registration_rules: undefined,
+            });
+        },
+    );
+
+    it("passes on failures", async () => {
+        const wrapped = withFormRules({
+            getServiceInfo: () => Promise.reject(failure(503)),
+        });
+        await expect(wrapped.getServiceInfo()).rejects.toMatchObject({
+            status: 503,
+        });
+    });
+});
 
 describe("createError", () => {
     it("is the provider's error, with all its fields", () => {

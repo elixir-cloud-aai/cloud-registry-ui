@@ -19,7 +19,7 @@ function removedSettingsWarnings() {
     for (const [name, rule] of Object.entries(removedSettings))
         if (process.env[name] !== undefined)
             console.warn(
-                `Ignoring setting ${name}: the app reads the allowed ${rule} of services from the registry's service info (registration_rules). Remove the setting.`,
+                `Ignoring setting ${name}: the app reads the allowed ${rule} of services from the registry's service info (registrationRules). Remove the setting.`,
             );
 }
 

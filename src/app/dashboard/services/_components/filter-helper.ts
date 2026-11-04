@@ -84,7 +84,7 @@ function matchesSearch(service: ExternalService, search: string) {
  * @returns The IDs of the services
  */
 export function myServices(me: Pick<Me, "services"> | null) {
-    return new Set(me?.services.map((val) => val.service_id));
+    return new Set(me?.services.map((val) => val.serviceId));
 }
 
 /** What the toggles filter by, by service ID */

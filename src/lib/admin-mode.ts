@@ -38,11 +38,11 @@ function requestRoles(adminMode: boolean) {
  * the header), so that users can always switch back; `"user"` for users who
  * may switch to admin mode; undefined (no switch) for others, and for
  * admins of registries without admin mode (admins without asking for the
- * role, or without `admin_available`)
+ * role, or without `adminAvailable`)
  */
 function adminModeState(me: Me | null, adminMode: boolean) {
     if (adminMode) return me?.admin ? "admin" : "unavailable";
-    if (me?.admin_available && !me.admin) return "user";
+    if (me?.adminAvailable && !me.admin) return "user";
     return undefined;
 }
 

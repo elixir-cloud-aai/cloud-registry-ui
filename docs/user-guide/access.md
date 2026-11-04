@@ -64,7 +64,12 @@ Notes:
 - **The last owner** can't be removed, nor made a maintainer: grant another
   owner first, or delete the service.
 - **Your own role:** if you remove your own owner role, you can no longer
-  manage access, and the dialog closes.
+  manage access, and the dialog closes, unless you still can as an admin or
+  through a group.
+- **Invitations of removed users:** removing a user's role also deletes the
+  invitations to the service that they created and nobody accepted, open or
+  expired. Their links stop working, and the **Invitations** tab no longer
+  lists them.
 - **User IDs and groups** may contain slashes, though not start with one, and
   can't have the parts `.` or `..` between slashes or backslashes (e.g.
   `a/../b`). User IDs may be `groups` or

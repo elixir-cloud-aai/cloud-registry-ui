@@ -172,9 +172,9 @@ describe("myServices", () => {
         expect(
             myServices(
                 me([
-                    { service_id: "a", role: "owner" },
-                    { service_id: "a", role: "maintainer", group: "team" },
-                    { service_id: "c", role: "maintainer", group: "team" },
+                    { serviceId: "a", role: "owner" },
+                    { serviceId: "a", role: "maintainer", group: "team" },
+                    { serviceId: "c", role: "maintainer", group: "team" },
                 ]),
             ),
         ).toEqual(new Set(["a", "c"]));

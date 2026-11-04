@@ -70,10 +70,10 @@ function verifiedServices(
     return new Map(
         verifications
             .filter((val) => {
-                const service = servicesById.get(val.service_id);
+                const service = servicesById.get(val.serviceId);
                 return !!service && matchesVerification(service, val);
             })
-            .map((val) => [val.service_id, val]),
+            .map((val) => [val.serviceId, val]),
     );
 }
 

@@ -295,7 +295,7 @@ function ServiceDetails({
                 <ManageAccessDialog
                     provider={cloudRegistryProvider}
                     serviceId={service.id}
-                    currentUserId={me?.user_id}
+                    currentUserId={me?.userId}
                     open={manageOpen}
                     onOpenChange={setManageOpen}
                     onChange={onAccessChange}

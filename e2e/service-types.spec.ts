@@ -57,7 +57,7 @@ test.describe("pending entries", () => {
     test("are read from registries that publish no rules", async ({ page }) => {
         await page.route(`${registry}/service-info`, async (route) => {
             const response = await route.fetch();
-            const { registration_rules: _, ...info } = await response.json();
+            const { registrationRules: _, ...info } = await response.json();
             await route.fulfill({ response, json: info });
         });
         const reads = watchApprovals(page);
@@ -185,7 +185,7 @@ test.describe("service types", () => {
             const me = await response.json();
             await route.fulfill({
                 response,
-                json: { ...me, may_add_service_types: false },
+                json: { ...me, mayAddServiceTypes: false },
             });
         });
         await login(page, "owner");
@@ -324,7 +324,7 @@ test.describe("service types", () => {
             "GET",
             "/approvals",
         );
-        expect(approvals.body.service_types).toContainEqual({
+        expect(approvals.body.serviceTypes).toContainEqual({
             group: "org.ga4gh",
             artifact,
             version: "1.0.0",

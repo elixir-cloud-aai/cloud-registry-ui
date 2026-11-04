@@ -109,7 +109,7 @@ export function filterHolders(
     return permissions.filter((val) =>
         (isGroup(val)
             ? [val.group, val.role]
-            : [val.user_id, val.name ?? "", val.role]
+            : [val.userId, val.name ?? "", val.role]
         ).some((field) => field.toLowerCase().includes(value)),
     );
 }

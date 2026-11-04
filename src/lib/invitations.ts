@@ -253,7 +253,7 @@ function shownInvitations(invitations: Invitation[]) {
     return invitations
         .filter((val) => invitationStatus(val) !== "accepted")
         .reverse()
-        .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+        .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
 
 /**

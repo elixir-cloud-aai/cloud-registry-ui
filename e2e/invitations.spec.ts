@@ -1,5 +1,8 @@
 import type { Page } from "@playwright/test";
-import type { Invitation } from "../src/lib/cloud-registry.types";
+import type {
+    Invitation,
+    InvitationCreated,
+} from "../src/lib/cloud-registry.types";
 import {
     api,
     expect,
@@ -187,7 +190,7 @@ const expire =
                 ? {
                       ...val,
                       status: "expired",
-                      expires_at: "2026-10-01T00:00:00.000Z",
+                      expiresAt: "2026-10-01T00:00:00.000Z",
                   }
                 : val,
         );
@@ -325,6 +328,132 @@ test.describe("invitations", () => {
             { token },
         );
         expect(accepted.status).toBe(404);
+    });
+
+    test("removing a user's role deletes the invitations they created", async ({
+        page,
+        browser,
+    }) => {
+        const service = await registerService(browser, "owner", "Creator");
+        const owner = await login(page, "owner");
+        const other = await tokenOf(browser, "other");
+        const path = `/services/${service.id}`;
+        const granted = await api(
+            owner,
+            "PUT",
+            `${path}/permissions/users/${encodeURIComponent(users.other.sub)}`,
+            { role: "owner" },
+        );
+        expect(granted.status).toBe(200);
+        const invited = await api(other, "POST", `${path}/invitations`, {
+            role: "maintainer",
+            label: "Theirs",
+        });
+        expect(invited.status).toBe(201);
+        await createInvitations(owner, `${path}/invitations`, ["Mine"]);
+
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        await page.getByRole("button", { name: "Manage access" }).click();
+        const dialog = page.getByRole("dialog");
+        const tab = dialog.getByRole("tab", { name: /Invitations/ });
+        await expect(tab).toContainText("2");
+
+        await dialog
+            .getByRole("button", { name: `Remove ${users.other.sub}` })
+            .click();
+        // the number follows without opening the tab
+        await expect(tab).toContainText("1");
+
+        await tab.click();
+        await expect(dialog.getByText("Mine")).toBeVisible();
+        await expect(dialog.getByText("Theirs")).toHaveCount(0);
+
+        const accepted = await api(
+            await tokenOf(browser, "admin"),
+            "POST",
+            "/invitations/accept",
+            { token: (invited.body as InvitationCreated).token },
+        );
+        expect(accepted.status).toBe(404);
+    });
+
+    test("removing one's own role deletes one's invitations, and the dialog stays for admins", async ({
+        page,
+        browser,
+    }) => {
+        const service = await registerService(browser, "owner", "Own role");
+        const path = `/services/${service.id}`;
+        const admin = await login(page, "admin", { adminMode: true });
+        const granted = await api(
+            await tokenOf(browser, "owner"),
+            "PUT",
+            `${path}/permissions/users/${encodeURIComponent(users.admin.sub)}`,
+            { role: "maintainer" },
+        );
+        expect(granted.status).toBe(200);
+        await createInvitations(admin, `${path}/invitations`, ["Theirs"]);
+
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        await page.getByRole("button", { name: "Manage access" }).click();
+        const dialog = page.getByRole("dialog");
+        const tab = dialog.getByRole("tab", { name: /Invitations/ });
+        await expect(tab).toContainText("1");
+
+        await dialog
+            .getByRole("button", { name: `Remove ${users.admin.sub}` })
+            .click();
+        await expect(tab).toContainText("0");
+        await expect(dialog).toBeVisible();
+    });
+
+    test("links of one's removed role aren't offered if the list can't be loaded", async ({
+        page,
+        browser,
+        problems,
+    }) => {
+        const service = await registerService(browser, "owner", "Own links");
+        const path = `/services/${service.id}`;
+        await watchClipboard(page);
+        await login(page, "admin", { adminMode: true });
+        const granted = await api(
+            await tokenOf(browser, "owner"),
+            "PUT",
+            `${path}/permissions/users/${encodeURIComponent(users.admin.sub)}`,
+            { role: "maintainer" },
+        );
+        expect(granted.status).toBe(200);
+
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        await createLink(page);
+        const dialog = page.getByRole("dialog");
+        await page.route(`${registry}${path}/invitations`, (route) =>
+            route.request().method() === "GET"
+                ? route.fulfill({
+                      status: 500,
+                      contentType: "application/problem+json",
+                      headers: { "Access-Control-Allow-Origin": "*" },
+                      body: JSON.stringify({ title: "Server error" }),
+                  })
+                : route.fallback(),
+        );
+        await dialog.getByRole("tab", { name: "Current Access" }).click();
+        await dialog
+            .getByRole("button", { name: `Remove ${users.admin.sub}` })
+            .click();
+        await expect(
+            page.getByText(`Removed roles of ${users.admin.sub}`),
+        ).toBeVisible();
+
+        await dialog.getByRole("tab", { name: /^Invitations/ }).click();
+        await expect(
+            dialog.getByText(
+                "Cannot load the invitations. Please try again later.",
+            ),
+        ).toBeVisible();
+        await expect(copyButtons(page)).toHaveCount(0);
+        // the failures on purpose
+        expect(problems.filter((val) => !val.includes("500"))).toEqual([]);
+        problems.length = 0;
     });
 
     test("links stay while the dialog is open, and can be renewed", async ({
@@ -689,12 +818,12 @@ test.describe("invitations", () => {
                 response,
                 json: [
                     {
-                        user_id: `${"long-id-".repeat(13)}@lifescience-ri.eu`,
+                        userId: `${"long-id-".repeat(13)}@lifescience-ri.eu`,
                         name: "Long Name ".repeat(13),
                         role: "owner",
                     },
                     {
-                        user_id: `${"unnamed-".repeat(13)}@lifescience-ri.eu`,
+                        userId: `${"unnamed-".repeat(13)}@lifescience-ri.eu`,
                         role: "maintainer",
                     },
                     {
@@ -702,7 +831,7 @@ test.describe("invitations", () => {
                         role: "maintainer",
                     },
                     ...Array.from({ length: 9 }, (_, idx) => ({
-                        user_id: `member-${idx}@lifescience-ri.eu`,
+                        userId: `member-${idx}@lifescience-ri.eu`,
                         name: `Member ${idx}`,
                         role: "maintainer",
                     })),
@@ -716,14 +845,14 @@ test.describe("invitations", () => {
                 response,
                 json: Array.from({ length: 12 }, (_, idx) => ({
                     id: `invitation-${idx}`,
-                    service_id: service.id,
+                    serviceId: service.id,
                     role: "maintainer",
                     // the longest labels stay on one line
                     label: "x".repeat(100),
                     status: idx % 2 ? "expired" : "open",
-                    created_by: users.owner.sub,
-                    created_at: `2026-11-01T${String(idx).padStart(2, "0")}:00:00Z`,
-                    expires_at: "2099-11-08T00:00:00Z",
+                    createdBy: users.owner.sub,
+                    createdAt: `2026-11-01T${String(idx).padStart(2, "0")}:00:00Z`,
+                    expiresAt: "2099-11-08T00:00:00Z",
                 })),
             });
         });
@@ -799,13 +928,13 @@ test.describe("invitations", () => {
                 response,
                 json: [false, true].map((expired, idx) => ({
                     id: `invitation-${idx}`,
-                    service_id: service.id,
+                    serviceId: service.id,
                     role: "maintainer",
                     label: "x".repeat(100),
                     status: expired ? "expired" : "open",
-                    created_by: users.owner.sub,
-                    created_at: "2026-11-01T00:00:00Z",
-                    expires_at: expired
+                    createdBy: users.owner.sub,
+                    createdAt: "2026-11-01T00:00:00Z",
+                    expiresAt: expired
                         ? "2026-11-02T00:00:00Z"
                         : "2099-11-08T00:00:00Z",
                 })),
@@ -846,13 +975,13 @@ test.describe("invitations", () => {
                 response,
                 json: Array.from({ length: 3 }, (_, idx) => ({
                     id: `invitation-${idx}`,
-                    service_id: service.id,
+                    serviceId: service.id,
                     role: "maintainer",
                     label: `Label ${idx}`,
                     status: "open",
-                    created_by: users.owner.sub,
-                    created_at: `2026-11-01T0${idx}:00:00Z`,
-                    expires_at: "2099-11-08T00:00:00Z",
+                    createdBy: users.owner.sub,
+                    createdAt: `2026-11-01T0${idx}:00:00Z`,
+                    expiresAt: "2099-11-08T00:00:00Z",
                 })),
             });
         });
@@ -1160,12 +1289,12 @@ test.describe("invitations", () => {
                 ...val,
                 ...(val.id === taken && {
                     accepted: {
-                        user_id: users.other.sub,
-                        accepted_at: "2026-11-02T00:00:00.000Z",
+                        userId: users.other.sub,
+                        acceptedAt: "2026-11-02T00:00:00.000Z",
                     },
                 }),
                 ...(val.id === late && {
-                    expires_at: "2026-10-01T00:00:00.000Z",
+                    expiresAt: "2026-10-01T00:00:00.000Z",
                 }),
             })),
         );

@@ -38,8 +38,8 @@ describe("addTypeDescription", () => {
 describe("typeLimitNote", () => {
     const user = {
         admin: false,
-        admin_available: false,
-        may_add_service_types: true,
+        adminAvailable: false,
+        mayAddServiceTypes: true,
     };
     const none = { maxUnusedServiceTypes: 0 };
 
@@ -47,7 +47,7 @@ describe("typeLimitNote", () => {
         expect(typeLimitNote(user, none)).toBe(
             "Only admins can add service types in this registry. Please ask an admin to add the type you need.",
         );
-        expect(typeLimitNote({ ...user, admin_available: true }, none)).toBe(
+        expect(typeLimitNote({ ...user, adminAvailable: true }, none)).toBe(
             "Only admins can add service types in this registry. Switch to admin mode to add one.",
         );
     });
@@ -59,7 +59,7 @@ describe("typeLimitNote", () => {
         expect(typeLimitNote({ ...user, admin: true }, none)).toBe(undefined);
         // GET /me says so, e.g. in mode `controlled`
         expect(
-            typeLimitNote({ ...user, may_add_service_types: false }, none),
+            typeLimitNote({ ...user, mayAddServiceTypes: false }, none),
         ).toBe(undefined);
         expect(typeLimitNote(null, none)).toBe(undefined);
     });

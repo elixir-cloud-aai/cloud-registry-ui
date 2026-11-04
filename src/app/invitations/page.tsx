@@ -106,13 +106,13 @@ function Page() {
                 <CardHeader>
                     <CardTitle>Invitation Accepted</CardTitle>
                     <CardDescription>
-                        You are now {accepted.role} of {accepted.service_id}.
+                        You are now {accepted.role} of {accepted.serviceId}.
                     </CardDescription>
                 </CardHeader>
                 <CardFooter>
                     <Button asChild>
                         <Link
-                            href={`/dashboard/services/view/${encodeURIComponent(accepted.service_id)}`}
+                            href={`/dashboard/services/view/${encodeURIComponent(accepted.serviceId)}`}
                         >
                             View service
                         </Link>

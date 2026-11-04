@@ -87,7 +87,7 @@ describe("grantServicePermission", () => {
 
     it("takes the registry's answer for the requested user", async () => {
         const provider = new AuthenticatedCloudRegistryProvider(base, "t");
-        const granted = { user_id: "bob@x", role: "owner" };
+        const granted = { userId: "bob@x", role: "owner" };
         fetchMock.mockResolvedValue(json(granted));
         await expect(
             provider.grantServicePermission("a", "bob@x", role),
@@ -102,19 +102,26 @@ describe("grantServicePermission", () => {
         ).resolves.toBeUndefined();
     });
 
-    it("fails if the registry granted the role to another user", async () => {
-        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
-        fetchMock.mockResolvedValue(
-            json({ user_id: "users/bob@x", role: "owner" }),
-        );
-        const error = await provider
-            .grantServicePermission("a", "bob@x", role)
-            .catch((err: unknown) => err);
-        expect(error).toBeInstanceOf(Error);
-        expect(error).toMatchObject({
-            detail: "This registry is too old for this version of the app: it granted the role to 'users/bob@x', not to 'bob@x'. Ask its admins to upgrade it; until then, this app can't change the roles of users.",
-        });
-    });
+    it.each([
+        ["userId"],
+        // as cloud-registry 0.6.0 and 1.0.0rc1 answer
+        ["user_id"],
+    ])(
+        "fails if the registry granted the role to another user (%s)",
+        async (field) => {
+            const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+            fetchMock.mockResolvedValue(
+                json({ [field]: "users/bob@x", role: "owner" }),
+            );
+            const error = await provider
+                .grantServicePermission("a", "bob@x", role)
+                .catch((err: unknown) => err);
+            expect(error).toBeInstanceOf(Error);
+            expect(error).toMatchObject({
+                detail: "This registry is too old for this version of the app: it granted the role to 'users/bob@x', not to 'bob@x'. Ask its admins to upgrade it; until then, this app can't change the roles of users.",
+            });
+        },
+    );
 });
 
 describe("requests", () => {
@@ -598,7 +605,7 @@ describe("listing of the registry", () => {
 
     it.each(operations)("%s reads a listed registry", async (_, call) => {
         fetchMock.mockResolvedValue(
-            json({ listed: true, service_id: "org.example.registry" }, 201),
+            json({ listed: true, serviceId: "org.example.registry" }, 201),
         );
         await expect(call(provider())).resolves.toEqual({
             listed: true,
@@ -612,7 +619,7 @@ describe("listing of the registry", () => {
     });
 
     it("leaves out an identifier that is no text", async () => {
-        fetchMock.mockResolvedValue(json({ listed: true, service_id: 1 }));
+        fetchMock.mockResolvedValue(json({ listed: true, serviceId: 1 }));
         await expect(provider().getSelfListing()).resolves.toEqual({
             listed: true,
         });
@@ -673,7 +680,7 @@ describe("hasApprovals", () => {
         );
 
     it("trusts published rules without requesting the route", async () => {
-        fetchMock.mockResolvedValueOnce(json({ registration_rules: {} }));
+        fetchMock.mockResolvedValueOnce(json({ registrationRules: {} }));
         const provider = new AuthenticatedCloudRegistryProvider(
             `${base}/1`,
             "t",
@@ -704,7 +711,7 @@ describe("hasApprovals", () => {
         ["fails", () => new Response(null, { status: 500 })],
         ["needs a login", unauthorized],
         ["isn't JSON", () => new Response("<html>")],
-        ["has empty rules", () => json({ registration_rules: null })],
+        ["has empty rules", () => json({ registrationRules: null })],
     ])("probes if the service info %s", async (name, response) => {
         fetchMock
             .mockResolvedValueOnce(response())
@@ -731,7 +738,7 @@ describe("hasApprovals", () => {
             .mockResolvedValueOnce(json({ id: "older" }))
             .mockResolvedValueOnce(new Response(null, { status: 404 }));
         expect(await provider.hasApprovals()).toBe(false);
-        fetchMock.mockResolvedValueOnce(json({ registration_rules: {} }));
+        fetchMock.mockResolvedValueOnce(json({ registrationRules: {} }));
         expect(await provider.hasApprovals()).toBe(true);
         expect(fetchMock).toHaveBeenCalledTimes(3);
     });
@@ -742,7 +749,7 @@ describe("hasApprovals", () => {
             .mockRejectedValueOnce(new TypeError("offline"))
             .mockRejectedValueOnce(new TypeError("offline"));
         await expect(provider.hasApprovals()).rejects.toThrow("offline");
-        fetchMock.mockResolvedValueOnce(json({ registration_rules: {} }));
+        fetchMock.mockResolvedValueOnce(json({ registrationRules: {} }));
         expect(await provider.hasApprovals()).toBe(true);
         expect(fetchMock).toHaveBeenCalledTimes(3);
     });

@@ -24,7 +24,7 @@ export interface Permission {
   name?: string;
   role: Role;
   /** User identifier (token sub); may contain slashes. */
-  user_id: UserId;
+  userId: UserId;
 }
 
 /**
@@ -53,7 +53,7 @@ export interface ServiceRole {
   /** Present when the role was granted to a group. */
   group?: string;
   role: Role;
-  service_id: ServiceId;
+  serviceId: ServiceId;
 }
 
 /**
@@ -66,13 +66,13 @@ export interface Me {
    * Whether the user may switch to admin mode (cloud-registry#240); missing
    * in registries without admin mode.
    */
-  admin_available?: boolean;
+  adminAvailable?: boolean;
   /** Whether the caller may add service types (cloud-registry#235). */
-  may_add_service_types?: boolean;
+  mayAddServiceTypes?: boolean;
   /** Whether the types the caller adds are pending (cloud-registry#238). */
-  service_types_pending?: boolean;
+  serviceTypesPending?: boolean;
   services: ServiceRole[];
-  user_id: UserId;
+  userId: UserId;
 }
 
 /**
@@ -86,13 +86,13 @@ export type ServicePermissions = (Permission | GroupPermission)[];
  * Who accepted an invitation, and when (cloud-registry#101).
  */
 export interface InvitationAcceptance {
-  user_id: UserId;
+  userId: UserId;
   /** Display name, if the identity provider released it. */
   name?: string;
   /** Email address, if the identity provider released it. */
   email?: string;
   /** RFC 3339 date-time. */
-  accepted_at: string;
+  acceptedAt: string;
 }
 
 /** Status of an invitation; accepted ones are only listed if asked for. */
@@ -116,18 +116,18 @@ export interface InvitationRegister {
  */
 export interface Invitation {
   id: string;
-  service_id: ServiceId;
+  serviceId: ServiceId;
   role: Role;
   /** Not set if none was given, and by cloud-registry up to 1.0.0rc1. */
   label?: string;
   /** Not set by cloud-registry up to 1.0.0rc1. */
   status?: InvitationStatus;
   /** Identifier of the user who created it. */
-  created_by: UserId;
+  createdBy: UserId;
   /** RFC 3339 date-time. */
-  created_at: string;
+  createdAt: string;
   /** RFC 3339 date-time; it can no longer be accepted then. */
-  expires_at: string;
+  expiresAt: string;
   /** Not set for open invitations. */
   accepted?: InvitationAcceptance;
 }
@@ -148,14 +148,14 @@ export interface InvitationCreated extends Omit<Invitation, "accepted"> {
 export interface Verification {
   type: ServiceType;
   url: string;
-  verified_at: string;
+  verifiedAt: string;
 }
 
 /**
  * Verification of a service with its identifier.
  */
 export interface ServiceVerification extends Verification {
-  service_id: ServiceId;
+  serviceId: ServiceId;
 }
 
 /**
@@ -179,7 +179,7 @@ export type VerifiedServices = ServiceVerification[];
  * Pending service types and services that the caller may see.
  */
 export interface Approvals {
-  service_types: ServiceType[];
+  serviceTypes: ServiceType[];
   services: ExternalService[];
 }
 

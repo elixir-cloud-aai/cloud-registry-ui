@@ -105,7 +105,7 @@ test.describe("manage access", () => {
             const held = await response.json();
             await route.fulfill({
                 response,
-                json: [...held, { user_id: "/bob", role: "maintainer" }],
+                json: [...held, { userId: "/bob", role: "maintainer" }],
             });
         });
         await page.goto(`/dashboard/services/view/${service.id}`);
@@ -138,7 +138,7 @@ test.describe("manage access", () => {
                           contentType: "application/json",
                           headers: { "Access-Control-Allow-Origin": "*" },
                           body: JSON.stringify({
-                              user_id: "users/dave@example.org",
+                              userId: "users/dave@example.org",
                               role: "maintainer",
                           }),
                       })
@@ -212,8 +212,8 @@ test.describe("manage access", () => {
         ];
         const held = async () =>
             (await api(owner, "GET", path)).body.map(
-                (val: { user_id?: string; group?: string }) =>
-                    val.user_id ?? `group:${val.group}`,
+                (val: { userId?: string; group?: string }) =>
+                    val.userId ?? `group:${val.group}`,
             );
         const before = await held();
 

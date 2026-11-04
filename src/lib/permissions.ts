@@ -9,7 +9,7 @@ import type { Me } from "./cloud-registry.types";
 
 function hasRole(me: Me | null, serviceId: string, roles: string[]) {
     return !!me?.services.some(
-        (val) => val.service_id === serviceId && roles.includes(val.role),
+        (val) => val.serviceId === serviceId && roles.includes(val.role),
     );
 }
 

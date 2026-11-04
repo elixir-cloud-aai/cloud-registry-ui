@@ -193,7 +193,7 @@ export function typeOfChoice(choice: string) {
 /**
  * Check whether the edit form offers new service types
  * @param options `mayAdd`: whether the user may add types
- * (`may_add_service_types` of `GET /me`); `pending`: whether the service
+ * (`mayAddServiceTypes` of `GET /me`); `pending`: whether the service
  * is pending, undefined if unknown; `admin`: whether the user acts as admin
  * @returns Whether to offer them: pending services take only approved
  * types from users other than admins, so these users get them only for

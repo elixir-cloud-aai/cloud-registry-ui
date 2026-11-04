@@ -64,7 +64,7 @@ export function AppSidebarFooter() {
                     {user && (
                         <AppSidebarFooterMenu
                             user={user}
-                            userId={me?.user_id}
+                            userId={me?.userId}
                         />
                     )}
                     {!user && <AppSidebarFooterMenuNoUser />}

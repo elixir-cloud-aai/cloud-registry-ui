@@ -66,7 +66,7 @@ describe("publicSettingsChecks", () => {
         const { publicSettingsChecks } = await load();
         expect(publicSettingsChecks).not.toThrow();
         expect(warn).toHaveBeenCalledExactlyOnceWith(
-            `Ignoring setting ${name}: the app reads the allowed ${rule} of services from the registry's service info (registration_rules). Remove the setting.`,
+            `Ignoring setting ${name}: the app reads the allowed ${rule} of services from the registry's service info (registrationRules). Remove the setting.`,
         );
     });
 

@@ -105,15 +105,15 @@ function AccessList({
                         {pageItems.map((val) => {
                             const key = isGroup(val)
                                 ? `group:${val.group}`
-                                : `user:${val.user_id}`;
+                                : `user:${val.userId}`;
                             const label = isGroup(val)
                                 ? val.group
-                                : val.user_id;
+                                : val.userId;
                             const name = isGroup(val)
                                 ? undefined
                                 : userName(val);
                             const you =
-                                !isGroup(val) && val.user_id === currentUserId;
+                                !isGroup(val) && val.userId === currentUserId;
 
                             return (
                                 <TableRow key={key}>
@@ -135,7 +135,7 @@ function AccessList({
                                                     {you && " (you)"}
                                                 </span>
                                                 <span className="truncate font-mono text-xs text-muted-foreground">
-                                                    {val.user_id}
+                                                    {val.userId}
                                                 </span>
                                             </div>
                                         ) : (
@@ -143,9 +143,9 @@ function AccessList({
                                             // registry: the ID alone
                                             <span
                                                 className="block truncate font-mono text-xs"
-                                                title={val.user_id}
+                                                title={val.userId}
                                             >
-                                                {val.user_id}
+                                                {val.userId}
                                                 {you && (
                                                     <span className="font-sans font-medium">
                                                         {" "}

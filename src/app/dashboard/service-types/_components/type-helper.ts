@@ -28,19 +28,19 @@ export function addTypeDescription(pending: boolean, limit?: number) {
 
 /**
  * Get the note for users whom `GET /me` lets add service types, but who may
- * have added no unused types (`max_unused_service_types` is 0), so that the
+ * have added no unused types (`maxUnusedServiceTypes` is 0), so that the
  * registry refuses every new type of theirs
  * @param me The user, from `GET /me`
  * @param rules The registry's rules
  * @returns The note, if the page doesn't offer adding types for this reason
  */
 export function typeLimitNote(
-    me: Pick<Me, "admin" | "admin_available" | "may_add_service_types"> | null,
+    me: Pick<Me, "admin" | "adminAvailable" | "mayAddServiceTypes"> | null,
     rules: Pick<RegistrationRules, "maxUnusedServiceTypes">,
 ) {
-    if (!me?.may_add_service_types || mayAddServiceTypes(me, rules))
+    if (!me?.mayAddServiceTypes || mayAddServiceTypes(me, rules))
         return undefined;
-    return me.admin_available
+    return me.adminAvailable
         ? "Only admins can add service types in this registry. Switch to admin mode to add one."
         : "Only admins can add service types in this registry. Please ask an admin to add the type you need.";
 }

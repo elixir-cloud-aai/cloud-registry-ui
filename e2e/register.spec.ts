@@ -76,7 +76,7 @@ test.describe("registering services", () => {
         ).toBeVisible();
         const mine = await api(token, "GET", "/me");
         const ids: string[] = mine.body.services.map(
-            (val: { service_id: string }) => val.service_id,
+            (val: { serviceId: string }) => val.serviceId,
         );
         const created = await Promise.all(
             ids.map(
@@ -94,7 +94,7 @@ test.describe("registering services", () => {
     }) => {
         await addTesType(browser);
         // a registry that allows https only (the stack allows http, too)
-        await publishRules(page, { url_schemes: ["https"] });
+        await publishRules(page, { urlSchemes: ["https"] });
         let registrations = 0;
         page.on("request", (request) => {
             if (
@@ -159,7 +159,7 @@ test.describe("registering services", () => {
     }) => {
         await addTesType(browser);
         // `GET /me` still says that they may add types
-        await publishRules(page, { max_unused_service_types: 0 });
+        await publishRules(page, { maxUnusedServiceTypes: 0 });
         await login(page, "owner");
         // the form follows the user and the rules once they are loaded
         const loaded = Promise.all([
@@ -190,7 +190,7 @@ test.describe("registering services", () => {
             const me = await response.json();
             await route.fulfill({
                 response,
-                json: { ...me, may_add_service_types: false },
+                json: { ...me, mayAddServiceTypes: false },
             });
         });
         await login(page, "owner");

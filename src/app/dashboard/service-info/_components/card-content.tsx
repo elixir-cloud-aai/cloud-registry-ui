@@ -20,7 +20,7 @@ type Props = {
 function ServiceInfoCardContent({ serviceInfo }: Props) {
     if (serviceInfo === undefined) return null;
     const organizationUrl = safeHref(serviceInfo.organization.url);
-    // registries older than cloud-registry 0.6.0 publish no rules
+    // registries older than cloud-registry 1.0.0rc2 publish no rules
     const rules = registrationRules(serviceInfo);
 
     return (

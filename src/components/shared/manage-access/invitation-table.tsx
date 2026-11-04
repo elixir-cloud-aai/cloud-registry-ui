@@ -61,7 +61,7 @@ function InvitationTable({
                     const what = val.label
                         ? `${val.role} invitation "${val.label}"`
                         : `${val.role} invitation`;
-                    const name = `${what} created ${when(val.created_at)}`;
+                    const name = `${what} created ${when(val.createdAt)}`;
                     return (
                         <TableRow key={val.id}>
                             <TableCell className="max-w-0 w-full">
@@ -89,7 +89,7 @@ function InvitationTable({
                                         )}
                                     </span>
                                     <span className="truncate text-xs text-muted-foreground">
-                                        created {when(val.created_at)}
+                                        created {when(val.createdAt)}
                                         {!expired && !link && (
                                             <span className="hidden sm:inline">
                                                 , link no longer shown
@@ -97,7 +97,7 @@ function InvitationTable({
                                         )}
                                     </span>
                                     <span className="truncate text-xs text-muted-foreground sm:hidden">
-                                        expires {when(val.expires_at)}
+                                        expires {when(val.expiresAt)}
                                     </span>
                                     {!expired && !link && (
                                         <span className="truncate text-xs text-muted-foreground sm:hidden">
@@ -107,7 +107,7 @@ function InvitationTable({
                                 </div>
                             </TableCell>
                             <TableCell className="hidden text-xs sm:table-cell">
-                                {when(val.expires_at)}
+                                {when(val.expiresAt)}
                             </TableCell>
                             <TableCell>
                                 <div className="flex justify-end">

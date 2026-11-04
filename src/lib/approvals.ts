@@ -18,7 +18,7 @@ import type {
 import { hasStatus, isUnauthorized } from "./permissions";
 import { compareTypes, typeKey } from "./service-types";
 
-const noApprovals: Approvals = { service_types: [], services: [] };
+const noApprovals: Approvals = { serviceTypes: [], services: [] };
 
 /**
  * Get the pending service types and services that the user may see
@@ -90,7 +90,7 @@ function withPendingTypes(
     const listed = new Set(serviceTypes.map(typeKey));
     return [
         ...serviceTypes,
-        ...(approvals?.service_types ?? []).filter(
+        ...(approvals?.serviceTypes ?? []).filter(
             (val) => !listed.has(typeKey(val)),
         ),
     ].sort(compareTypes);
