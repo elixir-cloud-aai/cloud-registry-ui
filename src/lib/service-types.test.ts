@@ -40,7 +40,7 @@ describe("service types", () => {
 });
 
 describe("mayAddServiceTypes", () => {
-    const user = { admin: false, may_add_service_types: true };
+    const user = { admin: false, mayAddServiceTypes: true };
 
     it("follows GET /me", () => {
         expect(mayAddServiceTypes(user, {})).toBe(true);
@@ -48,7 +48,7 @@ describe("mayAddServiceTypes", () => {
             true,
         );
         expect(
-            mayAddServiceTypes({ ...user, may_add_service_types: false }, {}),
+            mayAddServiceTypes({ ...user, mayAddServiceTypes: false }, {}),
         ).toBe(false);
         // registries before cloud-registry 0.5.0 don't say
         expect(mayAddServiceTypes({ admin: false }, {})).toBe(false);
@@ -64,13 +64,13 @@ describe("mayAddServiceTypes", () => {
 });
 
 describe("offersNewTypes", () => {
-    const user = { admin: false, may_add_service_types: true };
+    const user = { admin: false, mayAddServiceTypes: true };
 
     it("follows GET /me if it says", () => {
         expect(offersNewTypes(user, {})).toBe(true);
         expect(offersNewTypes(user, { maxUnusedServiceTypes: 0 })).toBe(false);
         expect(
-            offersNewTypes({ ...user, may_add_service_types: false }, {}),
+            offersNewTypes({ ...user, mayAddServiceTypes: false }, {}),
         ).toBe(false);
     });
 

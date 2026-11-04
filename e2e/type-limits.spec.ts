@@ -30,7 +30,7 @@ test.describe("service type limits", () => {
     test("users who may have no unused types aren't offered adding types", async ({
         page,
     }) => {
-        await publishRules(page, { max_unused_service_types: 0 });
+        await publishRules(page, { maxUnusedServiceTypes: 0 });
         await login(page, "other");
         await page.goto("/dashboard/service-types");
 
@@ -50,7 +50,7 @@ test.describe("service type limits", () => {
     test("admins in admin mode add types also without unused types", async ({
         page,
     }) => {
-        await publishRules(page, { max_unused_service_types: 0 });
+        await publishRules(page, { maxUnusedServiceTypes: 0 });
         await login(page, "admin", { adminMode: true });
         await page.goto("/dashboard/service-types");
 
@@ -75,7 +75,7 @@ test.describe("service type limits", () => {
     });
 
     test("the dialog names the limit of unused types", async ({ page }) => {
-        await publishRules(page, { max_unused_service_types: 3 });
+        await publishRules(page, { maxUnusedServiceTypes: 3 });
         await login(page, "owner");
         await page.goto("/dashboard/service-types");
 

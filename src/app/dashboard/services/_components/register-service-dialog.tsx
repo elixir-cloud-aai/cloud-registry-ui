@@ -32,7 +32,11 @@ import {
 } from "@/components/ui/dialog";
 import { useCloudRegistry, useMe, useRegistrationRules } from "@/hooks";
 import { unknownRegistrationRules } from "@/lib/registration-rules";
-import { checkedProvider, createFailedToast } from "@/lib/service-create";
+import {
+    checkedProvider,
+    createFailedToast,
+    withFormRules,
+} from "@/lib/service-create";
 import { servicesLimit } from "@/lib/service-limits";
 import { offersNewTypes } from "@/lib/service-types";
 
@@ -79,7 +83,7 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
     const provider = useMemo(() => {
         if (!cloudRegistryProvider) return cloudRegistryProvider;
         const checked = checkedProvider(
-            cloudRegistryProvider,
+            withFormRules(cloudRegistryProvider),
             () => checkRules.current,
         );
         const sending = (send: () => Promise<string>) => {
@@ -122,7 +126,7 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
         const { message, ...data } = await createFailedToast(e.detail, {
             limit,
             readLimit: () => servicesLimit(cloudRegistryProvider),
-            adminAvailable: !!me?.admin_available && !me.admin,
+            adminAvailable: !!me?.adminAvailable && !me.admin,
         });
         toast.error(message, data);
     };
@@ -163,7 +167,7 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
 
     return (
         <div className="min-w-0">
-            {allowNewType && me?.service_types_pending && (
+            {allowNewType && me?.serviceTypesPending && (
                 <p className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
                     <ClockIcon className="size-4 shrink-0" />
                     New service types are pending until an admin approves them,

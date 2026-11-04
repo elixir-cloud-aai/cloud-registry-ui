@@ -338,7 +338,7 @@ class AuthenticatedCloudRegistryProvider
    * page is reloaded: registries without it are asked again by each page,
    * e.g. once an upgrade has rolled out.
    *
-   * Registries that publish registration rules (0.6.0 and later, see
+   * Registries that publish registration rules (1.0.0rc2 and later, see
    * `publishesRules`) have the route. Only for others is the route itself
    * probed, see `probeApprovals`: registries that require a login for it
    * answer that request with a 401, which browsers and the registry's log
@@ -543,9 +543,9 @@ class AuthenticatedCloudRegistryProvider
         authenticated: true,
       },
     );
-    if (granted?.user_id !== undefined && granted.user_id !== userId) {
+    if (granted?.userId !== undefined && granted.userId !== userId) {
       throw tooOldRegistry(
-        `it granted the role to '${granted.user_id}', not to '${userId}'`,
+        `it granted the role to '${granted.userId}', not to '${userId}'`,
       );
     }
     return granted;
@@ -781,15 +781,15 @@ class AuthenticatedCloudRegistryProvider
    */
   private async selfListing(method: HttpMethod): Promise<SelfListing> {
     const state = await this.request<
-      { listed?: unknown; service_id?: unknown } | undefined
+      { listed?: unknown; serviceId?: unknown } | undefined
     >("/service-info/listing", { method, authenticated: true });
     if (typeof state?.listed !== "boolean") {
       throw new Error("The registry's answer doesn't say whether it is listed.");
     }
     return {
       listed: state.listed,
-      ...(typeof state.service_id === "string"
-        ? { serviceId: state.service_id }
+      ...(typeof state.serviceId === "string"
+        ? { serviceId: state.serviceId }
         : {}),
     };
   }

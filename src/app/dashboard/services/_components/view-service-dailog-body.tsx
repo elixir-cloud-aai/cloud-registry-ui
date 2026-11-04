@@ -31,7 +31,7 @@ function ViewServiceDialogBody({ service, verification }: Props) {
             {verification && (
                 <Field
                     label="Verified At"
-                    value={new Date(verification.verified_at).toLocaleString()}
+                    value={new Date(verification.verifiedAt).toLocaleString()}
                 />
             )}
 

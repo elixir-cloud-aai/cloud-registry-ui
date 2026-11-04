@@ -75,7 +75,7 @@ describe("grantSchema", () => {
 describe("access helpers", () => {
     it("tells groups from users", () => {
         expect(isGroup({ group: "g", role: "owner" } as never)).toBe(true);
-        expect(isGroup({ user_id: "u", role: "owner" } as never)).toBe(false);
+        expect(isGroup({ userId: "u", role: "owner" } as never)).toBe(false);
     });
 
     it("words failures", () => {
@@ -110,18 +110,18 @@ describe("access helpers", () => {
 
 describe("role holders", () => {
     const holders = [
-        { user_id: "bob@example.org", name: "Bob Builder", role: "owner" },
-        { user_id: "carol@example.org", role: "maintainer" },
+        { userId: "bob@example.org", name: "Bob Builder", role: "owner" },
+        { userId: "carol@example.org", role: "maintainer" },
         { group: "urn:example:compute-team", role: "maintainer" },
     ] as const;
 
     it("names users by their display name, if known", () => {
         expect(userName(holders[0])).toBe("Bob Builder");
         expect(userName(holders[1])).toBeUndefined();
-        expect(userName({ user_id: "u", name: "  ", role: "owner" })).toBe(
+        expect(userName({ userId: "u", name: "  ", role: "owner" })).toBe(
             undefined,
         );
-        expect(userName({ user_id: "u", name: " N ", role: "owner" })).toBe(
+        expect(userName({ userId: "u", name: " N ", role: "owner" })).toBe(
             "N",
         );
     });
@@ -129,7 +129,7 @@ describe("role holders", () => {
     it("filters by name, user ID, group and role, ignoring case", () => {
         const found = (query: string) =>
             filterHolders([...holders], query).map((val) =>
-                isGroup(val) ? val.group : val.user_id,
+                isGroup(val) ? val.group : val.userId,
             );
         expect(found("")).toHaveLength(3);
         expect(found("  ")).toHaveLength(3);

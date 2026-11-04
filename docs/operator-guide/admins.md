@@ -29,7 +29,7 @@ it, and whom users should contact, in your deployment's own docs.
 
 Admin mode (cloud-registry 0.6.0 and later): admins act as admins only in
 admin mode, so that admin rights are a deliberate choice. Users who may be
-admins (`admin_available` of `GET /me`) see a toggle in the top bar, "User
+admins (`adminAvailable` of `GET /me`) see a toggle in the top bar, "User
 mode" or "Admin mode"; they start in user mode, with the rights of other
 users. In admin mode, every request with the user's token asks for the
 admin role (header `X-Request-Roles: admin`), so the registry must allow

@@ -123,8 +123,9 @@ for registrations:
   services](registering.md#limit-on-registered-services)).
 
 The limits apply to users other than admins; 0 means that only admins add
-types, or register services. Registries older than cloud-registry 0.6.0
-publish no rules, and the page then leaves them out.
+types, or register services. Registries older than cloud-registry 1.0.0rc2
+publish no rules under the name the app reads, and the page then leaves them
+out.
 
 In admin mode, the page also says whether the registry is listed among its
 own services, and lets you change that (see [Listing the registry

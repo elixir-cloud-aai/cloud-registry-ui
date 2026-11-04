@@ -26,8 +26,8 @@ test.describe("service info", () => {
     test("explains limits of 0", async ({ page }) => {
         await publishRules(page, {
             environments: [],
-            max_unused_service_types: 0,
-            max_services_per_user: 0,
+            maxUnusedServiceTypes: 0,
+            maxServicesPerUser: 0,
         });
         await page.goto("/dashboard/service-info");
 
@@ -46,7 +46,7 @@ test.describe("service info", () => {
     }) => {
         await page.route(`${registry}/service-info`, async (route) => {
             const response = await route.fetch();
-            const { registration_rules: _, ...info } = await response.json();
+            const { registrationRules: _, ...info } = await response.json();
             await route.fulfill({ response, json: info });
         });
         await page.goto("/dashboard/service-info");

@@ -99,7 +99,7 @@ function Page() {
             .then(([val, approvals]) => {
                 if (!current) return;
                 setServiceTypes(
-                    approvedTypes(val, approvals?.service_types ?? []),
+                    approvedTypes(val, approvals?.serviceTypes ?? []),
                 );
                 setPendingTypesKnown(approvals !== null);
             })
@@ -187,7 +187,7 @@ function Page() {
                     verification={verification}
                     admin={me?.admin}
                     pending={pending}
-                    typesPending={me?.service_types_pending}
+                    typesPending={me?.serviceTypesPending}
                     serviceTypes={serviceTypes}
                     // as in the create form: without the registry's
                     // answer, the registry decides when the form is sent

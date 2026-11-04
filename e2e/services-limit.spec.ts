@@ -37,9 +37,9 @@ test.describe("services limit", () => {
                 response,
                 json: {
                     ...info,
-                    registration_rules: {
-                        ...info.registration_rules,
-                        max_services_per_user: 3,
+                    registrationRules: {
+                        ...info.registrationRules,
+                        maxServicesPerUser: 3,
                     },
                 },
             });

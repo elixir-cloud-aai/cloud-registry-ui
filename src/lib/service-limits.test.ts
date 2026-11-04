@@ -10,14 +10,14 @@ import {
 
 describe("maxServicesPerUser", () => {
     it.each([
-        [{ registration_rules: { max_services_per_user: 50 } }, 50],
-        [{ registration_rules: { max_services_per_user: 0 } }, 0],
+        [{ registrationRules: { maxServicesPerUser: 50 } }, 50],
+        [{ registrationRules: { maxServicesPerUser: 0 } }, 0],
         // no limit, or registries without rules
-        [{ registration_rules: {} }, undefined],
-        [{ registration_rules: { max_services_per_user: -1 } }, undefined],
-        [{ registration_rules: { max_services_per_user: 1.5 } }, undefined],
-        [{ registration_rules: { max_services_per_user: "5" } }, undefined],
-        [{ registration_rules: null }, undefined],
+        [{ registrationRules: {} }, undefined],
+        [{ registrationRules: { maxServicesPerUser: -1 } }, undefined],
+        [{ registrationRules: { maxServicesPerUser: 1.5 } }, undefined],
+        [{ registrationRules: { maxServicesPerUser: "5" } }, undefined],
+        [{ registrationRules: null }, undefined],
         [{}, undefined],
         [null, undefined],
         ["x", undefined],
@@ -30,7 +30,7 @@ describe("servicesLimit", () => {
     it("reads the registry's service info", async () => {
         const provider = {
             getServiceInfo: async () =>
-                ({ registration_rules: { max_services_per_user: 3 } }) as never,
+                ({ registrationRules: { maxServicesPerUser: 3 } }) as never,
         };
         expect(await servicesLimit(provider)).toBe(3);
     });

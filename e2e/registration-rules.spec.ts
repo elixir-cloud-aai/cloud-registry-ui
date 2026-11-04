@@ -21,7 +21,7 @@ async function publishRules(page: Page, rules: object) {
             response,
             json: {
                 ...info,
-                registration_rules: { ...info.registration_rules, ...rules },
+                registrationRules: { ...info.registrationRules, ...rules },
             },
         });
     });
@@ -64,7 +64,7 @@ test.describe("registration rules", () => {
         browser,
     }) => {
         const service = await registerService(browser, "owner", "Any env");
-        await publishRules(page, { environments: [], url_schemes: ["https"] });
+        await publishRules(page, { environments: [], urlSchemes: ["https"] });
         await login(page, "owner");
 
         await page.goto(`/dashboard/services/update/${service.id}`);

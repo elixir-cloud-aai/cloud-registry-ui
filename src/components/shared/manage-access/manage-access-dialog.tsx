@@ -154,20 +154,25 @@ function ManageAccessDialog({
     ) => {
         if (role === val.role) return;
         if (isGroup(val)) grant("group", val.group, role);
-        else grant("user", val.user_id, role);
+        else grant("user", val.userId, role);
     };
 
-    const handleRevoke = (val: Permission | GroupPermission) => {
+    const handleRevoke = async (val: Permission | GroupPermission) => {
         if (!provider) return;
-        const principal = isGroup(val) ? val.group : val.user_id;
+        const principal = isGroup(val) ? val.group : val.userId;
         const promise = isGroup(val)
             ? provider.revokeGroupPermission(serviceId, val.group)
-            : provider.revokeServicePermission(serviceId, val.user_id);
-        applyChange(
+            : provider.revokeServicePermission(serviceId, val.userId);
+        const changed = await applyChange(
             promise,
             `Removing roles of ${principal}`,
             `Removed roles of ${principal}`,
         );
+        // the registry deletes the invitations that a user created with their
+        // role, and their links stop working. Not for the user's own role:
+        // they may no longer read the list, and the dialog then closes
+        if (changed && !isGroup(val) && val.userId !== currentUserId)
+            setInvitationsRefresh((count) => count + 1);
     };
 
     return (
@@ -237,7 +242,9 @@ function ManageAccessDialog({
                                 permissions={permissions}
                                 pageSize={pageSize}
                                 currentUserId={currentUserId}
-                                disabled={changing}
+                                // also while inviting: a new list could miss
+                                // the invitation that is being created
+                                disabled={changing || inviting}
                                 onRoleChange={handleRoleChange}
                                 onRevoke={handleRevoke}
                             />

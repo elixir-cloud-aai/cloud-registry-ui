@@ -279,13 +279,13 @@ describe("invitation lists", () => {
         accepted = false,
     ): Invitation => ({
         id,
-        service_id: "s",
+        serviceId: "s",
         role: "maintainer",
-        created_by: "u",
-        created_at: createdAt,
-        expires_at: "2026-11-08T00:00:00Z",
+        createdBy: "u",
+        createdAt: createdAt,
+        expiresAt: "2026-11-08T00:00:00Z",
         ...(accepted && {
-            accepted: { user_id: "v", accepted_at: "2026-11-02T00:00:00Z" },
+            accepted: { userId: "v", acceptedAt: "2026-11-02T00:00:00Z" },
         }),
     });
     const ids = (invitations: Invitation[]) => invitations.map((val) => val.id);
@@ -460,11 +460,11 @@ describe("invitation lists", () => {
 describe("invitation status", () => {
     const base: Invitation = {
         id: "a",
-        service_id: "s",
+        serviceId: "s",
         role: "maintainer",
-        created_by: "u",
-        created_at: "2026-10-20T00:00:00Z",
-        expires_at: "2026-11-08T00:00:00Z",
+        createdBy: "u",
+        createdAt: "2026-10-20T00:00:00Z",
+        expiresAt: "2026-11-08T00:00:00Z",
     };
     const past = "2000-01-01T00:00:00Z";
 
@@ -477,7 +477,7 @@ describe("invitation status", () => {
 
     it("takes the registry's word over the time", () => {
         expect(
-            invitationStatus({ ...base, status: "open", expires_at: past }),
+            invitationStatus({ ...base, status: "open", expiresAt: past }),
         ).toBe("open");
     });
 
@@ -494,10 +494,10 @@ describe("invitation status", () => {
         // they don't list expired invitations, and the clock of the browser
         // mustn't make open ones removable
         it("is open also after the time of the browser passed", () => {
-            expect(invitationStatus({ ...base, expires_at: past })).toBe(
+            expect(invitationStatus({ ...base, expiresAt: past })).toBe(
                 "open",
             );
-            expect(isExpiredInvitation({ ...base, expires_at: past })).toBe(
+            expect(isExpiredInvitation({ ...base, expiresAt: past })).toBe(
                 false,
             );
         });
@@ -507,8 +507,8 @@ describe("invitation status", () => {
                 invitationStatus({
                     ...base,
                     accepted: {
-                        user_id: "v",
-                        accepted_at: "2026-11-02T00:00:00Z",
+                        userId: "v",
+                        acceptedAt: "2026-11-02T00:00:00Z",
                     },
                 }),
             ).toBe("accepted");
@@ -615,12 +615,12 @@ describe("createLabelledInvitation", () => {
 describe("removing expired invitations", () => {
     const expired = (id: string, label?: string): Invitation => ({
         id,
-        service_id: "s",
+        serviceId: "s",
         role: "maintainer",
         status: "expired",
-        created_by: "u",
-        created_at: "2026-10-20T00:00:00Z",
-        expires_at: "2026-10-27T00:00:00Z",
+        createdBy: "u",
+        createdAt: "2026-10-20T00:00:00Z",
+        expiresAt: "2026-10-27T00:00:00Z",
         ...(label && { label }),
     });
 

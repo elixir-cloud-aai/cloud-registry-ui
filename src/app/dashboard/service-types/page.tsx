@@ -66,7 +66,7 @@ function Page() {
                 if (request !== latestRequest.current) return;
                 setServiceTypes(withPendingTypes(val, approvals));
                 setPending(
-                    new Set(approvals?.service_types.map(typeKey) ?? []),
+                    new Set(approvals?.serviceTypes.map(typeKey) ?? []),
                 );
                 if (!approvals)
                     toast.error(
@@ -142,7 +142,7 @@ function Page() {
                         }
                         admin="View and manage all service types"
                     />
-                    {mayAdd && me?.service_types_pending && (
+                    {mayAdd && me?.serviceTypesPending && (
                         <p className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                             <ClockIcon className="size-4 shrink-0" />
                             New service types are pending until an admin
@@ -173,7 +173,7 @@ function Page() {
                 {mayAdd && (
                     <ServiceTypeAddDialog
                         provider={cloudRegistryProvider}
-                        pending={me?.service_types_pending}
+                        pending={me?.serviceTypesPending}
                         limit={unusedTypesLimit(me, rules)}
                         onAdded={fetchServiceTypes}
                     />

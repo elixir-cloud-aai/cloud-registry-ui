@@ -63,7 +63,7 @@ checks that:
   docs](https://cloud-registry.readthedocs.io/en/latest/api/#registrations)).
 
 If the app can't read the registry's rules (e.g. registries older than
-cloud-registry 0.6.0, or while they are loading), it leaves the schemes and
+cloud-registry 1.0.0rc2, or while they are loading), it leaves the schemes and
 environments to the registry.
 
 The registry checks the entries again: e.g. a service with the same URL and
@@ -99,7 +99,7 @@ registry's admins.
 
 The limit is set by the registry (`custom.access_control.max_services_per_user`,
 50 by default) and published in its service info
-(`registration_rules.max_services_per_user`). If it is 0, only admins can
+(`registrationRules.maxServicesPerUser`). If it is 0, only admins can
 register services; an admin who is not in admin mode is told to switch to
 admin mode first (see [Admin mode](admin-mode.md)). Registries older than
 cloud-registry 1.0.0rc1 have no limit.

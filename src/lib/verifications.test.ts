@@ -8,8 +8,8 @@ import { matchesVerification, verifiedServices } from "./verifications";
 const type = { group: "org.ga4gh", artifact: "tes", version: "1.1.0" };
 const service = (id: string, url = "https://tes.example.org") =>
     ({ id, url, type }) as ExternalService;
-const verification = (service_id: string, url = "https://tes.example.org") =>
-    ({ service_id, url, type }) as unknown as ServiceVerification;
+const verification = (serviceId: string, url = "https://tes.example.org") =>
+    ({ serviceId, url, type }) as unknown as ServiceVerification;
 
 describe("matchesVerification", () => {
     const verified = verification("s1");

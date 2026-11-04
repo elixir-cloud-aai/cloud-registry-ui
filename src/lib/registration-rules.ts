@@ -1,13 +1,14 @@
 /**
  * @description the registry's rules for registrations, as its service info
- * publishes them (`registration_rules` of `GET /service-info`, since
- * cloud-registry 0.6.0): the one place that reads them. Use
+ * publishes them (`registrationRules` of `GET /service-info`; before
+ * cloud-registry 1.0.0rc2, `registration_rules`, which isn't read): the one
+ * place that reads them. Use
  * `useRegistrationRules()` in components, `readRegistrationRules()`
  * elsewhere, and `serviceSchema()` (`service-schema.ts`) to check
  * registrations as the registry does. Each rule falls back to the
  * registry's default (`defaultRegistrationRules`) if it is missing or
- * invalid. Registries older than cloud-registry 0.6.0 publish no rules:
- * they count as unknown, like a failed read, and forms then leave the
+ * invalid. Registries older than cloud-registry 1.0.0rc2 publish no rules
+ * under this name: they count as unknown, like a failed read, and forms then leave the
  * checks of the rules to the registry (`unknownRegistrationRules`).
  */
 
@@ -64,7 +65,7 @@ const rulesSchema = z.object({
             ...new Set(values.filter((value) => value && value !== ",")),
         ])
         .catch(() => [...defaultRegistrationRules.environments]),
-    url_schemes: z
+    urlSchemes: z
         .array(z.string())
         .transform((values) => [
             ...new Set(
@@ -75,12 +76,12 @@ const rulesSchema = z.object({
         ])
         .refine((values) => values.length > 0)
         .catch(() => [...defaultRegistrationRules.urlSchemes]),
-    service_types: z
+    serviceTypes: z
         .enum(["open", "controlled", "moderated"])
         .optional()
         .catch(undefined),
-    max_unused_service_types: limit,
-    max_services_per_user: limit,
+    maxUnusedServiceTypes: limit,
+    maxServicesPerUser: limit,
 });
 
 /**
@@ -88,26 +89,19 @@ const rulesSchema = z.object({
  * @param info Service info, as `GET /service-info` returns it
  * @returns The rules; the registry's defaults for those it doesn't publish
  * or that are invalid; undefined if it publishes none (registries older
- * than cloud-registry 0.6.0)
+ * than cloud-registry 1.0.0rc2)
  */
 function registrationRules(info: unknown): RegistrationRules | undefined {
     if (
         info === null ||
         typeof info !== "object" ||
-        !("registration_rules" in info) ||
-        info.registration_rules === null ||
-        typeof info.registration_rules !== "object" ||
-        Array.isArray(info.registration_rules)
+        !("registrationRules" in info) ||
+        info.registrationRules === null ||
+        typeof info.registrationRules !== "object" ||
+        Array.isArray(info.registrationRules)
     )
         return undefined;
-    const rules = rulesSchema.parse(info.registration_rules);
-    return {
-        environments: rules.environments,
-        urlSchemes: rules.url_schemes,
-        serviceTypes: rules.service_types,
-        maxUnusedServiceTypes: rules.max_unused_service_types,
-        maxServicesPerUser: rules.max_services_per_user,
-    };
+    return rulesSchema.parse(info.registrationRules);
 }
 
 /**

@@ -49,7 +49,7 @@ function compareTypes(a: ServiceType, b: ServiceType) {
 /**
  * Check whether users other than admins may add no service types at all
  * @param rules The registry's rules
- * @returns Whether their limit of unused types (`max_unused_service_types`)
+ * @returns Whether their limit of unused types (`maxUnusedServiceTypes`)
  * is 0: the registry then refuses every new type of theirs (`409`,
  * `unused-types-limit`), also of services, in every mode
  */
@@ -80,15 +80,15 @@ function unusedTypesLimit(
  * @param me The user, from `GET /me`; null if logged out or not loaded
  * @param rules The registry's rules, e.g. from `useRegistrationRules()`
  * @returns Whether the registry lets the user add types
- * (`may_add_service_types`) and, for users other than admins, the limit of
+ * (`mayAddServiceTypes`) and, for users other than admins, the limit of
  * unused types isn't 0 (`noUnusedTypes()`), although `GET /me` then still
  * says that they may add types
  */
 function mayAddServiceTypes(
-    me: Pick<Me, "admin" | "may_add_service_types"> | null | undefined,
+    me: Pick<Me, "admin" | "mayAddServiceTypes"> | null | undefined,
     rules: Pick<RegistrationRules, "maxUnusedServiceTypes">,
 ) {
-    if (!me?.may_add_service_types) return false;
+    if (!me?.mayAddServiceTypes) return false;
     return me.admin || !noUnusedTypes(rules);
 }
 
@@ -100,14 +100,14 @@ function mayAddServiceTypes(
  * @returns `mayAddServiceTypes()` if `GET /me` says whether the user may
  * add types; else (e.g. after an error, or from registries without the
  * flag) whether the user is an admin or the rules let other users add
- * types: not only admins (`service_types: controlled`), and not without
+ * types: not only admins (`serviceTypes: controlled`), and not without
  * unused types (`noUnusedTypes()`)
  */
 function offersNewTypes(
-    me: Pick<Me, "admin" | "may_add_service_types"> | null | undefined,
+    me: Pick<Me, "admin" | "mayAddServiceTypes"> | null | undefined,
     rules: Pick<RegistrationRules, "serviceTypes" | "maxUnusedServiceTypes">,
 ) {
-    if (me?.may_add_service_types !== undefined)
+    if (me?.mayAddServiceTypes !== undefined)
         return mayAddServiceTypes(me, rules);
     return (
         !!me?.admin ||

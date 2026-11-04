@@ -70,6 +70,18 @@ during an upgrade, it creates links without the label and says so, and doesn't
 list expired invitations, as that registry doesn't; this is no reason to run
 that pairing, which gives roles to the wrong user, as described above.
 
+**Names of the registry's API:** cloud-registry 1.0.0rc2 moves the fields and
+query parameters it adds to camelCase (e.g. `userId`, `registrationRules`,
+`createdAt`), without aliases, and needs a fresh database, and the app only
+follows the new names (see [Compatibility](index.md#compatibility) and the
+[registry's upgrade guide](https://cloud-registry.readthedocs.io/en/latest/upgrading/#from-100rc1)).
+There is nothing to change in the app's settings.
+
+**Removing a user's role** now also deletes the invitations to the service that
+they created and nobody accepted, as the registry does this. The **Invitations**
+tab follows at once (see [Managing
+access](../user-guide/access.md#managing-access)).
+
 **Listing the registry itself:** in admin mode, the service info page can list
 the registry among its own services (see [Listing the registry
 itself](admins.md#listing-the-registry-itself)). With a registry older than

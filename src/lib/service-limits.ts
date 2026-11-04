@@ -1,7 +1,7 @@
 /**
  * @description the registry's limit of services per user (cloud-registry
  * #124; `409` with code `services-limit`), as its service info publishes it
- * (`registration_rules.max_services_per_user`)
+ * (`registrationRules.maxServicesPerUser`)
  */
 import type { AuthenticatedCloudRegistryProvider } from "./authenticated-cloud-registry";
 import { withFieldLabels } from "./errors";

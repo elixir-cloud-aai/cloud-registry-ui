@@ -20,7 +20,7 @@ const type = (artifact: string): ServiceType => ({
 });
 const service = (id: string) => ({ id }) as ExternalService;
 const approvals: Approvals = {
-    service_types: [type("wes")],
+    serviceTypes: [type("wes")],
     services: [service("pending")],
 };
 
@@ -42,7 +42,7 @@ function provider(
 }
 
 describe("getApprovalsOrNull", () => {
-    const none = { service_types: [], services: [] };
+    const none = { serviceTypes: [], services: [] };
 
     it("gets the pending entries", async () => {
         expect(await getApprovalsOrNull(provider())).toBe(approvals);
@@ -96,7 +96,7 @@ describe("withPendingServices and withPendingTypes", () => {
         expect(
             withPendingTypes([type("tes"), type("drs")], {
                 ...approvals,
-                service_types: [type("wes"), type("tes")],
+                serviceTypes: [type("wes"), type("tes")],
             }).map((val) => val.artifact),
         ).toEqual(["drs", "tes", "wes"]);
         expect(withPendingTypes([type("tes")], null)).toHaveLength(1);

@@ -228,9 +228,9 @@ async function shoot(target, name, tall) {
 async function seed(tokens) {
     const listed = await api(tokens.admin, "GET", "/services");
     if (listed.body.length) return;
-    const adminId = (await api(tokens.admin, "GET", "/me")).body.user_id;
-    const ownerId = (await api(tokens.owner, "GET", "/me")).body.user_id;
-    const otherId = (await api(tokens.other, "GET", "/me")).body.user_id;
+    const adminId = (await api(tokens.admin, "GET", "/me")).body.userId;
+    const ownerId = (await api(tokens.owner, "GET", "/me")).body.userId;
+    const otherId = (await api(tokens.other, "GET", "/me")).body.userId;
     for (const type of Object.values(types))
         await api(tokens.admin, "POST", "/services/types", type);
     for (const { id, ...val } of services) {
@@ -334,8 +334,8 @@ try {
                     ? {
                           ...val,
                           status: "expired",
-                          created_at: "2026-10-20T09:12:00.000Z",
-                          expires_at: "2026-10-27T09:12:00.000Z",
+                          createdAt: "2026-10-20T09:12:00.000Z",
+                          expiresAt: "2026-10-27T09:12:00.000Z",
                       }
                     : val,
             ),

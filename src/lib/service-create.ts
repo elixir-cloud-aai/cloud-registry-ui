@@ -64,6 +64,28 @@ function checkedProvider<
 }
 
 /**
+ * Get a registry client for the create form, which reads the allowed
+ * environments from `registration_rules` of the service info: the name up to
+ * cloud-registry 1.0.0rc1, as cloud-components hasn't moved to
+ * `registrationRules`. Drop this once it has
+ * @param provider The registry's client
+ * @returns A client like `provider`, whose service info also has the rules
+ * under the former name, if it has them
+ */
+function withFormRules<P extends { getServiceInfo(): Promise<object> }>(
+    provider: P,
+): P {
+    return Object.assign(Object.create(provider), {
+        getServiceInfo: async () => {
+            const info = await provider.getServiceInfo();
+            return "registrationRules" in info
+                ? { ...info, registration_rules: info.registrationRules }
+                : info;
+        },
+    }) as P;
+}
+
+/**
  * Get the error of a failed registration
  * @param detail Detail of the event `ecc-service-create-failed`
  * @returns The provider's error (`cause`), with all its fields (e.g. the
@@ -133,4 +155,4 @@ async function createFailedToast(
     };
 }
 
-export { checkedProvider, createError, createFailedToast };
+export { checkedProvider, createError, createFailedToast, withFormRules };
