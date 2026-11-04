@@ -126,4 +126,8 @@ The limits apply to users other than admins; 0 means that only admins add
 types, or register services. Registries older than cloud-registry 0.6.0
 publish no rules, and the page then leaves them out.
 
+In admin mode, the page also says whether the registry is listed among its
+own services, and lets you change that (see [Listing the registry
+itself](admin-mode.md#listing-the-registry-itself)).
+
 ![The service info of the registry](../images/service-info.png)

@@ -19,6 +19,7 @@ import type {
   Me,
   Permission,
   PermissionRegister,
+  SelfListing,
   ServiceId,
   ServicePermissions,
   ServiceRole,
@@ -770,6 +771,42 @@ class AuthenticatedCloudRegistryProvider
    */
   async getServiceInfo(): Promise<Service> {
     return this.request("/service-info");
+  }
+
+  /**
+   * GET, PUT or DELETE /service-info/listing
+   * Authenticated (admins).
+   *
+   * The only place that knows the API's field for the identifier.
+   */
+  private async selfListing(method: HttpMethod): Promise<SelfListing> {
+    const state = await this.request<
+      { listed?: unknown; service_id?: unknown } | undefined
+    >("/service-info/listing", { method, authenticated: true });
+    if (typeof state?.listed !== "boolean") {
+      throw new Error("The registry's answer doesn't say whether it is listed.");
+    }
+    return {
+      listed: state.listed,
+      ...(typeof state.service_id === "string"
+        ? { serviceId: state.service_id }
+        : {}),
+    };
+  }
+
+  /** Tell whether the registry is listed among its services. */
+  async getSelfListing(): Promise<SelfListing> {
+    return this.selfListing("GET");
+  }
+
+  /** Add the registry to its services, or bring its entry up to date. */
+  async addSelfListing(): Promise<SelfListing> {
+    return this.selfListing("PUT");
+  }
+
+  /** Remove the registry from its services. */
+  async removeSelfListing(): Promise<SelfListing> {
+    return this.selfListing("DELETE");
   }
 }
 

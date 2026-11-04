@@ -70,6 +70,12 @@ during an upgrade, it creates links without the label and says so, and doesn't
 list expired invitations, as that registry doesn't; this is no reason to run
 that pairing, which gives roles to the wrong user, as described above.
 
+**Listing the registry itself:** in admin mode, the service info page can list
+the registry among its own services (see [Listing the registry
+itself](admins.md#listing-the-registry-itself)). With a registry older than
+1.0.0rc2 (e.g. an earlier development version), the page says that it can't tell
+whether the registry is listed; the rest of the app works.
+
 ## 1.0.0-rc1
 
 Upgrade the registry to cloud-registry 1.0.0rc1 together with the app

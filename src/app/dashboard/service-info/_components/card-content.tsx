@@ -11,6 +11,7 @@ import { safeHref } from "@/lib/links";
 import { registrationRules } from "@/lib/registration-rules";
 import ApiAddress from "./api-address";
 import { registrationRuleRows } from "./rules-helper";
+import SelfListing from "./self-listing";
 
 type Props = {
     serviceInfo: Service;
@@ -167,6 +168,8 @@ function ServiceInfoCardContent({ serviceInfo }: Props) {
                         </section>
                     </>
                 )}
+
+                <SelfListing />
             </div>
         </CardContent>
     );
