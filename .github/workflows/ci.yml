@@ -78,15 +78,16 @@ jobs:
                     exit 1
                   fi
                   version="${version#bun@}"
-                  # the Bun image of each stage, also after flags such as
-                  # `--platform` or with the registry's name
-                  images="$(grep -iE '^[[:space:]]*FROM[[:space:]]' Dockerfile | grep -oE '(docker\.io/)?oven/bun:[^[:space:]]+' | sed 's|^docker\.io/||')" || true
+                  # the image of each stage (the first word after `FROM` and
+                  # its flags, such as `--platform`): every stage must use
+                  # the Bun image, from Docker Hub
+                  images="$(awk 'toupper($1) == "FROM" { for (i = 2; i <= NF; i++) if ($i !~ /^--/) { print $i; break } }' Dockerfile)"
                   if [[ -z "${images}" ]]; then
-                    echo "::error file=Dockerfile::The Dockerfile has no Bun images"
+                    echo "::error file=Dockerfile::The Dockerfile has no stages"
                     exit 1
                   fi
                   while read -r image; do
-                    if [[ ! "${image}" =~ ^oven/bun:"${version}"@sha256:[0-9a-f]{64}$ ]]; then
+                    if [[ ! "${image}" =~ ^(docker\.io/)?oven/bun:"${version}"@sha256:[0-9a-f]{64}$ ]]; then
                       echo "::error file=Dockerfile::${image} isn't oven/bun:${version} (packageManager in package.json), pinned by digest"
                       exit 1
                     fi
