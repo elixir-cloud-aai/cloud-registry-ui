@@ -11,16 +11,18 @@ import { BreadcrumbClient } from "./breadcrumb-client";
 
 function AppBreadcrumb() {
     return (
-        <Breadcrumb>
-            <BreadcrumbList>
+        <Breadcrumb className="min-w-0">
+            <BreadcrumbList className="flex-nowrap">
                 <BreadcrumbItem className="hidden md:block">
                     <BreadcrumbLink href="/dashboard">
                         {appTitle}
                     </BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                    <BreadcrumbPage>{<BreadcrumbClient />}</BreadcrumbPage>
+                <BreadcrumbItem className="min-w-0">
+                    <BreadcrumbPage className="block truncate">
+                        {<BreadcrumbClient />}
+                    </BreadcrumbPage>
                 </BreadcrumbItem>
             </BreadcrumbList>
         </Breadcrumb>

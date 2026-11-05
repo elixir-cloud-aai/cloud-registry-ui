@@ -16,7 +16,7 @@ async function AppTopbarActions() {
     const idToken = await getCookie("id_token", { cookies });
 
     return (
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <Tooltip>
                 <TooltipTrigger>
                     <Button variant="ghost" size="icon" asChild>
