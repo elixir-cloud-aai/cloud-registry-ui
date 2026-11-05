@@ -135,7 +135,28 @@ describe("importServiceInfo", () => {
     });
 });
 
+describe("getServicesAsUser", () => {
+    it("reads with the user's token", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValue(json([]));
+        await provider.getServicesAsUser();
+        expect(lastRequest()).toMatchObject({
+            url: `${base}/services`,
+            auth: "Bearer t",
+        });
+    });
+});
+
 describe("syncService", () => {
+    it("can ask to sync only if sync is on", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValue(json({ status: "synced" }));
+        await provider.syncService("a", { onlyIfEnabled: true });
+        expect(lastRequest().url).toBe(
+            `${base}/services/a/sync?onlyIfEnabled=true`,
+        );
+    });
+
     it("turns sync on with the user's token, and returns the state", async () => {
         const provider = new AuthenticatedCloudRegistryProvider(base, "t");
         const state = { status: "synced" };

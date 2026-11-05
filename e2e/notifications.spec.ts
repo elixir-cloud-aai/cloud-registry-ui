@@ -157,6 +157,37 @@ test.describe("notifications", () => {
         ).toBeVisible();
     });
 
+    test("names pending services, which only the user's token lists", async ({
+        page,
+    }) => {
+        await page.route(`${registry}/notifications`, (route) =>
+            route.request().method() === "GET"
+                ? route.fulfill({
+                      json: [
+                          {
+                              id: "1",
+                              type: "pending-service",
+                              serviceId: "x",
+                              reason: "pending",
+                          },
+                      ],
+                  })
+                : route.fallback(),
+        );
+        await page.route(`${registry}/services`, (route) =>
+            route.request().method() === "GET"
+                ? route.fulfill({
+                      json: route.request().headers().authorization
+                          ? [{ id: "x", name: "Pending TES" }]
+                          : [],
+                  })
+                : route.fallback(),
+        );
+        await login(page, "other");
+        await page.getByRole("button", { name: /^Notifications/ }).click();
+        await expect(page.getByText("Pending TES awaits approval")).toBeVisible();
+    });
+
     test("shows only fixed texts", async ({ page }) => {
         const raw = "connect ECONNREFUSED 10.0.0.1:443";
         await page.route(`${registry}/notifications`, (route) =>

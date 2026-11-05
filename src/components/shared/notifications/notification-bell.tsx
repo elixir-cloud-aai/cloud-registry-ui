@@ -99,6 +99,7 @@ function NotificationBell() {
         session.current++;
         reading.current = false;
         setNotifications(undefined);
+        setNames(new Map());
         setOpen(false);
     }, []);
 
@@ -141,7 +142,10 @@ function NotificationBell() {
     useEffect(() => {
         stopped.current = false;
         reading.current = false;
-        token.current = getCookie("access_token");
+        const now = getCookie("access_token");
+        // names depend on who reads them
+        if (now !== token.current) setNames(new Map());
+        token.current = now;
         read();
         const refresh = () => {
             if (document.visibilityState === "visible") read();
@@ -156,9 +160,9 @@ function NotificationBell() {
         };
     }, [read]);
 
-    // the names of the services, once the list is opened; pending ones aren't
-    // listed publicly, and keep their identifier, so that they aren't asked for
-    // again
+    // the names of the services, once the list is opened, with the user's
+    // token, as pending ones aren't listed publicly; those without a name keep
+    // their identifier, so that they aren't asked for again
     const count = notifications?.length ?? 0;
     const namesMissing = !!notifications?.some(
         (val) => val.serviceId && !names.has(val.serviceId),
@@ -166,10 +170,11 @@ function NotificationBell() {
     useEffect(() => {
         if (!open || !namesMissing || !cloudRegistryProvider) return;
         let current = true;
+        const lookup = session.current;
         cloudRegistryProvider
-            .getServices()
+            .getServicesAsUser()
             .then((services) => {
-                if (!current) return;
+                if (!current || lookup !== session.current) return;
                 const known = new Map(
                     services.map((val) => [val.id, val.name]),
                 );
