@@ -2,14 +2,14 @@
 # title, lint and formatting (Biome), unit tests with coverage (reported to
 # Codecov), type checks and the build, an audit of the production
 # dependencies for known vulnerabilities, the Docker image and its scan for
-# known vulnerabilities (Trivy), the end-to-end tests against a registry
-# and a mock login provider, and the docs. The gate `passed` ("CI passed") is the only required check and needs
-# every other job to succeed. No `paths:` filters, so that the gate always
-# reports; to skip a job with `if:`, allow that skip in the gate. Runs also
-# when a pull request is edited, so that the title check follows the title;
-# all jobs run then, as a run that skipped the tests would report "CI
-# passed" for the commit. Bun comes in the version of `packageManager` in
-# `package.json` (`bun-version-file`)
+# known vulnerabilities (Trivy), the end-to-end tests against a registry and
+# a mock login provider, and the docs. The gate `passed` ("CI passed") is
+# the only required check and needs every other job to succeed. No `paths:`
+# filters, so that the gate always reports; to skip a job with `if:`, allow
+# that skip in the gate. Runs also when a pull request is edited, so that
+# the title check follows the title; all jobs run then, as a run that
+# skipped the tests would report "CI passed" for the commit. Bun comes in
+# the version of `packageManager` in `package.json` (`bun-version-file`)
 
 name: CI
 on:
