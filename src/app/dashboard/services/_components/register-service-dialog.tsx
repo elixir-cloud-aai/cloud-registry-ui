@@ -154,10 +154,16 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
                 ),
             // not if they fail: every type would then look unregistered
             getServiceTypes: () =>
-                checked.getServiceTypes().then((types) => {
-                    setTypesLoaded(true);
-                    return types;
-                }),
+                checked.getServiceTypes().then(
+                    (types) => {
+                        setTypesLoaded(true);
+                        return types;
+                    },
+                    (err) => {
+                        setTypesLoaded(false);
+                        throw err;
+                    },
+                ),
         }) as typeof checked;
     }, [cloudRegistryProvider, onSending]);
 
