@@ -303,6 +303,25 @@ try {
 
     // owners
     const owner = pages.owner;
+    // a synced service for these pages: a real sync would need a service that
+    // serves the service info of the example
+    const north = (await api(tokens.owner, "GET", "/services/tes-north")).body;
+    const syncedAt = new Date().toISOString();
+    const northSync = {
+        serviceId: north.id,
+        url: north.url,
+        type: north.type,
+        status: "synced",
+        serviceInfoId: north.id,
+        lastAttemptAt: syncedAt,
+        lastSuccessAt: syncedAt,
+    };
+    await owner.route(`${registry}/syncs`, (route) =>
+        route.fulfill({ json: [northSync] }),
+    );
+    await owner.route(`${registry}/services/tes-north/sync`, (route) =>
+        route.fulfill({ json: northSync }),
+    );
     await owner.goto(`${appUrl}/dashboard/services`);
     await shoot(owner, "services");
     await owner.getByLabel("Search services").fill("tes");
@@ -311,7 +330,13 @@ try {
     await shoot(owner, "services-filtered");
     await owner.goto(`${appUrl}/dashboard/services`);
     await owner.getByRole("cell", { name: "tes-north", exact: true }).click();
-    await shoot(owner.getByRole("dialog"), "service-details", 1300);
+    await shoot(owner.getByRole("dialog"), "service-details", 1600);
+    await shoot(
+        owner
+            .getByRole("dialog")
+            .locator("div.px-6", { hasText: "Sync with service info" }),
+        "service-sync",
+    );
     // an expired invitation for the second screenshot: the registry expires
     // them only with the time, so the list is changed for this page, and
     // the invitation is removed afterwards

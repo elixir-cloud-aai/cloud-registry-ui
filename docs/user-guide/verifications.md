@@ -9,6 +9,8 @@ the list shows only them.
 
 Clients can rely on verifications, e.g. a gateway that sends tasks only to
 verified TES services: they apply to the service as it was checked.
+**Verified doesn't mean trusted**, also together with **Synced** (see [Syncing
+services](syncing.md#what-the-labels-mean)): decide yourself whom you trust.
 
 ## When verifications are removed
 

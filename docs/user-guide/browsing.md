@@ -21,6 +21,8 @@ Above the list:
 - **All types**, **All organizations** and **All environments** show only
   services with the chosen value; **Not set** shows those without one.
 - **Verified only** shows only verified services.
+- **Synced only** shows only services in sync with their service info (see
+  [Syncing services](syncing.md)), if the deployment syncs.
 - **My services** (logged-in users) shows only the services you are
   responsible for: those on which you have a role, owner or maintainer,
   granted to you or to one of your groups (see [Access and

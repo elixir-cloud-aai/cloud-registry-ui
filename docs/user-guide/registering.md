@@ -117,7 +117,7 @@ service info regularly, and updates the entry with it.
 - Deployments that don't sync don't show it; you can still import.
 
 If the first fetch fails, the service stays registered, without sync, and a message
-says so.
+says so. You can turn sync on later (see [Syncing services](syncing.md)).
 
 ### Known limitations
 
@@ -145,6 +145,12 @@ admin mode first (see [Admin mode](admin-mode.md)). With older registries, the
 app doesn't know the limit; those before 1.0.0rc1 have none.
 
 ## Editing a service
+
+If a service is kept in sync with its service info, the form says so: the next sync
+overrides your changes, and its **Service URL** can't change. If you change the URL
+anyway, the form says so, and the registry refuses it. To move such a service, turn
+sync off on its page first, or import and register it anew (see [Syncing
+services](syncing.md)).
 
 Owners and maintainers of a service, and admins, can edit it:
 

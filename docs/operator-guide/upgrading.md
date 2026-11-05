@@ -84,7 +84,10 @@ access](../user-guide/access.md#managing-access)).
 public service info, and keep the new entry in sync with it (see [Importing from
 service info](../user-guide/registering.md#importing-from-service-info)). This takes
 no settings in the app; the registry's settings say whether it syncs and how often.
-With a registry older than 1.0.0rc2, the form has neither.
+With a registry older than 1.0.0rc2, the form has neither. Services then have the
+labels **Synced** and **Out of sync** and, for those with a role, controls on their
+page (see [Syncing services](../user-guide/syncing.md)). An out-of-sync label without
+a reason means that the registry's syncs aren't running: check the registry.
 
 **Listing the registry itself:** in admin mode, the service info page can list
 the registry among its own services (see [Listing the registry
