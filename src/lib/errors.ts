@@ -66,7 +66,9 @@ type ConflictCode =
     | "service-busy"
     | "services-limit"
     | "invitations-limit"
-    | "invitation-accepted";
+    | "invitation-accepted"
+    | "sync-unavailable"
+    | "sync-identity-mismatch";
 
 // for registries that send no code (cloud-registry#247): the detail of the
 // 409 for changes of pending services (see `@/lib/approvals`) to types that
@@ -213,6 +215,16 @@ function isServiceBusy(err: unknown) {
     return isConflictOf(err, "service-busy", () => false);
 }
 
+/** Check if turning on a sync failed as it isn't available for the service */
+function isSyncUnavailable(err: unknown) {
+    return isConflictOf(err, "sync-unavailable", () => false);
+}
+
+/** Check if turning on a sync failed as the service info is of another service */
+function isSyncIdentityMismatch(err: unknown) {
+    return isConflictOf(err, "sync-identity-mismatch", () => false);
+}
+
 /** Check if a registration failed as the user has as many as allowed */
 function isServicesLimit(err: unknown) {
     // registries with the limit (cloud-registry 1.0.0) send codes
@@ -326,6 +338,8 @@ export {
     isServiceBusy,
     isServiceIdTaken,
     isServicesLimit,
+    isSyncIdentityMismatch,
+    isSyncUnavailable,
     isVerificationMismatch,
     mutationError,
     renameError,

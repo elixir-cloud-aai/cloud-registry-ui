@@ -20,6 +20,12 @@ WORKDIR /app
 ENV NODE_ENV=production \
     PORT=3000
 
+# Security fixes that the base image doesn't have yet, which the scans
+# would otherwise report
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
 # Owned by root, so that the server can't change its own code; it writes
 # only to `.next/cache` (pages regenerated at runtime, e.g. with
 # `revalidate`, would also need `.next/server` to be writable)

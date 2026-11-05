@@ -61,6 +61,7 @@ offer them with older registries:
 | [Labels and expired invitations](../user-guide/access.md#inviting-by-link)                   | newer than 1.0.0rc1  |
 | [Changing roles of users](../user-guide/access.md#managing-access), required                 | newer than 1.0.0rc1  |
 | [Listing the registry itself](admins.md#listing-the-registry-itself)                         | 1.0.0rc2             |
+| [Import and sync of service info](../user-guide/registering.md#importing-from-service-info)  | 1.0.0rc2             |
 | [Registration rules](configuration.md#registry) (environments, URL schemes)                  | 0.6.0                |
 | Names of the registry's API in camelCase (see below), required                               | 1.0.0rc2             |
 

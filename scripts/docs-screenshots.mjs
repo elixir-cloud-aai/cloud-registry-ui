@@ -391,7 +391,7 @@ try {
         .getByRole("button", { name: "Select a service type" })
         .waitFor();
     // tall enough for the whole form, without scrolling in the modal
-    await shoot(register, "register-service", 1500);
+    await shoot(register, "register-service", 1900);
     await owner.keyboard.press("Escape");
     await register.waitFor({ state: "hidden" });
     await owner.goto(`${appUrl}/dashboard/services/update/tes-north`);

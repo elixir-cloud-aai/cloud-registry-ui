@@ -18,6 +18,13 @@ import type { AuthenticatedCloudRegistryProvider } from "./authenticated-cloud-r
 /** Who may add service types (`custom.access_control.service_types`) */
 type ServiceTypesMode = "open" | "controlled" | "moderated";
 
+/** Whether and how often the registry syncs services with their service info */
+type ServiceInfoSyncRule = {
+    enabled: boolean;
+    /** Time between the syncs of a service, in hours */
+    intervalHours: number;
+};
+
 /** The registry's rules for registrations */
 type RegistrationRules = {
     /** Allowed environments of services, in the registry's order; empty
@@ -33,6 +40,10 @@ type RegistrationRules = {
     /** How many services users other than admins may have registered;
      * undefined without a limit, or if unknown */
     maxServicesPerUser?: number;
+    /** Whether and how often the registry syncs services with their service
+     * info; undefined if unknown: such registries (older than
+     * cloud-registry 1.0.0rc2) have no import of service info either */
+    serviceInfoSync?: ServiceInfoSyncRule;
 };
 
 // the schemes the registry can allow for service URLs
@@ -82,6 +93,10 @@ const rulesSchema = z.object({
         .catch(undefined),
     maxUnusedServiceTypes: limit,
     maxServicesPerUser: limit,
+    serviceInfoSync: z
+        .object({ enabled: z.boolean(), intervalHours: z.number().positive() })
+        .optional()
+        .catch(undefined),
 });
 
 /**
@@ -175,6 +190,7 @@ export {
     type RegistrationRules,
     readRegistrationRules,
     registrationRules,
+    type ServiceInfoSyncRule,
     type ServiceTypesMode,
     unknownRegistrationRules,
 };

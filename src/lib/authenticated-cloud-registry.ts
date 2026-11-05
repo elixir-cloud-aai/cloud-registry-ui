@@ -23,6 +23,7 @@ import type {
   ServiceId,
   ServicePermissions,
   ServiceRole,
+  ServiceSync,
   ServiceVerification,
   UserId,
   Verification,
@@ -761,6 +762,49 @@ class AuthenticatedCloudRegistryProvider
    */
   async getVerifications(): Promise<VerifiedServices> {
     return this.request("/verifications");
+  }
+
+  // --------------------------------------------------
+  // Service info: import and sync
+  // --------------------------------------------------
+
+  /**
+   * POST /services/import
+   * Authenticated.
+   *
+   * Have the registry fetch a service info, without a token. Stores nothing.
+   *
+   * @param serviceInfoUrl Address of the service-info endpoint
+   * @returns The values for a registration
+   */
+  async importServiceInfo(
+    serviceInfoUrl: string,
+  ): Promise<ExternalServiceRegister> {
+    return this.request("/services/import", {
+      method: "POST",
+      body: { serviceInfoUrl },
+      authenticated: true,
+    });
+  }
+
+  /**
+   * PUT /services/{serviceId}/sync
+   * Authenticated (owners, maintainers, admins).
+   *
+   * Turn on the sync of a service with its service info, or sync it now.
+   * Nothing changes if the request fails.
+   *
+   * @returns The state of the sync; values that can't be applied are a
+   * `reason` in it, not an error
+   */
+  async syncService(serviceId: ServiceId): Promise<ServiceSync> {
+    return this.request(
+      `/services/${this.idPath(serviceId)}/sync`,
+      {
+        method: "PUT",
+        authenticated: true,
+      },
+    );
   }
 
   // --------------------------------------------------

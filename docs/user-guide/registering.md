@@ -9,7 +9,8 @@ permissions](access.md)).
 1. Log in, open **Services** and select **Register Service**. The form
    opens in a modal; links to `/dashboard/services/create` open it too
    (after the login, for users who aren't logged in).
-2. Fill in the form:
+2. Fill in the form, preferably by [importing the service's service
+   info](#importing-from-service-info):
     - **Service Name**: a descriptive name, e.g. "TES North".
     - **Service URL**: the base URL of the service's API, e.g.
       `https://tes.example.org/ga4gh/tes/v1`. Most deployments accept only
@@ -78,6 +79,45 @@ says so above its fields. If you may not add types, the form offers only the
 registered ones; so it does for users other than admins if the registry
 lets them have no unused types (limit 0, see [Service
 types](browsing.md#service-types)).
+
+### Importing from service info
+
+Importing is the recommended way to register a service: the entry then says what
+the service says about itself, and the registry can keep it that way.
+
+1. Under **Import from service info**, above the form, enter the address of the
+   service's service-info endpoint, e.g.
+   `https://tes.example.org/ga4gh/tes/v1/service-info`, and select **Import**.
+2. The form takes the values, replacing what you entered, also a value that the
+   service info doesn't have. The **Service URL** is the address without
+   `/service-info`.
+3. Check the values, change them if you need to, and select **Create Service**.
+
+Only **publicly available service info** can be imported: the registry fetches it,
+and sends no tokens. If it can't, the app says so and leaves the form as it was; for
+safety, it doesn't say why the fetch failed. Service info that doesn't pass the checks
+of a registration is refused, with the field that's wrong. The registry limits how
+often each user can have service info fetched (30 times per hour by default), and
+stores nothing until you create the service. New types are handled as if you had
+entered them; if the service's type isn't registered and you may not add types, the
+app says so, and you choose another one.
+
+Deployments with registries older than cloud-registry 1.0.0rc2 don't offer the import.
+
+### Keeping a new service in sync
+
+Below the form, **Keep this service in sync with its service info** says how often the
+registry would sync it, e.g. every day, as the registry's operators set it. If it is
+ticked, the app turns sync on after creating the service: the registry then fetches the
+service info regularly, and updates the entry with it.
+
+- It is on by default for imported values, and off for values you entered yourself.
+- **It is greyed out with a warning once you change imported values**, as syncing would
+  override your changes. Change them back, or import again, to use it.
+- Deployments that don't sync don't show it; you can still import.
+
+If the first fetch fails, the service stays registered, without sync, and a message
+says so.
 
 ### Known limitations
 

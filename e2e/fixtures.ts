@@ -317,6 +317,38 @@ async function registerService(browser: Browser, user: User, name: string) {
 }
 
 /**
+ * Get the address of a new service with service info in the stack
+ * (`e2e/stack/service-info.py`)
+ * @returns `key`: what makes it unique, `address`: where the registry finds
+ * its service info, `url`: the service's URL, as the registry cuts it from
+ * the address; `name`: the name that it serves
+ */
+function serviceWithInfo() {
+    const key = uniqueId();
+    const url = `http://service-info:8191/${key}`;
+    return {
+        key,
+        url,
+        address: `${url}/service-info`,
+        name: `Imported ${key}`,
+    };
+}
+
+/**
+ * Change what a service of the stack serves as its service info
+ * @param key Its key, from `serviceWithInfo()`
+ * @param change Fields that replace those of the document; `status`: answer
+ * with that status instead
+ */
+async function changeServiceInfo(key: string, change: object) {
+    const response = await fetch(`http://localhost:8191/${key}/service-info`, {
+        method: "PUT",
+        body: JSON.stringify(change),
+    });
+    expect(response.ok).toBe(true);
+}
+
+/**
  * Let the page see other registration rules than the registry's own
  * (`registrationRules` of `GET /service-info`)
  * @param page Page
@@ -371,6 +403,7 @@ async function failWithConflict(
 export {
     addTesType,
     api,
+    changeServiceInfo,
     expect,
     failWithConflict,
     fillCreateForm,
@@ -380,6 +413,7 @@ export {
     publishRules,
     registerService,
     registry,
+    serviceWithInfo,
     test,
     tokenOf,
     uniqueId,

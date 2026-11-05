@@ -40,6 +40,30 @@ describe("registrationRules", () => {
         });
     });
 
+    it("reads whether and how often the registry syncs", () => {
+        const serviceInfoSync = { enabled: true, intervalHours: 12 };
+        expect(
+            registrationRules({ registrationRules: { serviceInfoSync } })
+                ?.serviceInfoSync,
+        ).toEqual(serviceInfoSync);
+    });
+
+    it.each([
+        ["missing", undefined],
+        ["not an object", true],
+        ["without a flag", { intervalHours: 12 }],
+        ["without an interval", { enabled: true }],
+        [
+            "with an interval that isn't positive",
+            { enabled: true, intervalHours: 0 },
+        ],
+    ])("takes a sync rule as unknown if it is %s", (_, serviceInfoSync) => {
+        expect(
+            registrationRules({ registrationRules: { serviceInfoSync } })
+                ?.serviceInfoSync,
+        ).toBeUndefined();
+    });
+
     it("keeps an empty list of environments, for any value", () => {
         expect(
             registrationRules({ registrationRules: { environments: [] } })

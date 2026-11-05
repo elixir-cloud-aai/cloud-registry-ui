@@ -30,6 +30,21 @@ describe("registrationRuleRows", () => {
         ]);
     });
 
+    it("says whether and how often the registry syncs", () => {
+        expect(
+            rows({
+                ...defaultRegistrationRules,
+                serviceInfoSync: { enabled: true, intervalHours: 6 },
+            }),
+        ).toMatchObject({ "Sync with service info": "Every 6 hours" });
+        expect(
+            rows({
+                ...defaultRegistrationRules,
+                serviceInfoSync: { enabled: false, intervalHours: 24 },
+            }),
+        ).toMatchObject({ "Sync with service info": "Off" });
+    });
+
     it("explains missing limits, 0 and any environment", () => {
         expect(rows({ ...defaultRegistrationRules, environments: [] })).toEqual(
             {

@@ -59,7 +59,8 @@ the changes of each pull request).
 
 End-to-end tests (`e2e/`, Playwright, in Chromium and Firefox) need a
 registry and a login provider: `e2e/stack/compose.yaml` runs cloud-registry,
-MongoDB and a mock OpenID Connect provider on ports 8180 and 8190. The tests
+MongoDB, a mock OpenID Connect provider and a service with service info to
+import (`e2e/stack/service-info.py`) on ports 8180, 8190 and 8191. The tests
 build and start the app on port 3100, log in as test users through the mock
 provider (`e2e/fixtures.ts`), and fail on Content Security Policy
 violations, page errors, logged errors and failed requests of the app's
@@ -76,6 +77,14 @@ docker compose -f e2e/stack/compose.yaml down
 
 `npm run test:e2e` reuses an app already running on port 3100; stop it to
 test changes.
+
+## Cloud Components
+
+The create form of Cloud Components has no properties for its values, so the
+import of service info sets and reads its internal state (`formData`,
+`typeChoice`, `serviceTypes`). `src/lib/service-import.ts` is the one place that
+knows this state, and `e2e/service-import.spec.ts` fails if an update of Cloud
+Components changes it. Move to properties once the component has them.
 
 ## Dependency updates
 

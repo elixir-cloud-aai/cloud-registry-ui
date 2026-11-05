@@ -35,3 +35,12 @@ custom:
             url_schemes:
                 - http
                 - https
+            service_info:
+                # the service with service info of the stack (`service-info`)
+                private_networks:
+                    - 10.0.0.0/8
+                    - 172.16.0.0/12
+                    - 192.168.0.0/16
+                # the test users import in every run (the tests of the limit
+                # fake it)
+                fetches_per_hour: 100000
