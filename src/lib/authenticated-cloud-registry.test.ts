@@ -28,6 +28,39 @@ function lastRequest() {
     };
 }
 
+describe("importServiceInfo", () => {
+    it("sends the address with the user's token, and returns the values", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        const values = { name: "TES" };
+        fetchMock.mockResolvedValue(json(values));
+        const address = "https://tes.example.org/ga4gh/tes/v1/service-info";
+        await expect(provider.importServiceInfo(address)).resolves.toEqual(
+            values,
+        );
+        expect(lastRequest()).toEqual({
+            url: `${base}/services/import`,
+            method: "POST",
+            auth: "Bearer t",
+            body: { serviceInfoUrl: address },
+        });
+    });
+});
+
+describe("syncService", () => {
+    it("turns sync on with the user's token, and returns the state", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        const state = { status: "synced" };
+        fetchMock.mockResolvedValue(json(state));
+        await expect(provider.syncService("a/b")).resolves.toEqual(state);
+        expect(lastRequest()).toEqual({
+            url: `${base}/services/a%2Fb/sync`,
+            method: "PUT",
+            auth: "Bearer t",
+            body: undefined,
+        });
+    });
+});
+
 describe("revokeServicePermission", () => {
     it("takes the registry's answer for the requested user", async () => {
         const provider = new AuthenticatedCloudRegistryProvider(base, "t");

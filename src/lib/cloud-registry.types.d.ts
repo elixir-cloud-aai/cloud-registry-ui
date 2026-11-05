@@ -173,6 +173,36 @@ export interface VerificationRegister {
  */
 export type VerifiedServices = ServiceVerification[];
 
+/** Why a service is out of sync, if the last sync failed. */
+export type SyncReason =
+  | "unreachable"
+  | "address not allowed"
+  | "invalid service info"
+  | "identity mismatch"
+  | "version awaiting approval"
+  | "version not allowed"
+  | "unused types limit reached";
+
+/**
+ * PUT /services/{serviceId}/sync
+ *
+ * The state of a service's sync with its service info.
+ */
+export interface ServiceSync {
+  url: string;
+  type: ServiceType;
+  /** As the registry computes it; no sync at all is a 404. */
+  status: "synced" | "out-of-sync";
+  /** `id` of the service info when sync was turned on. */
+  serviceInfoId: string;
+  /** Why the last sync failed; out of sync without one: syncs aren't running. */
+  reason?: SyncReason;
+  /** RFC 3339 date-time. */
+  lastAttemptAt?: string;
+  /** RFC 3339 date-time. */
+  lastSuccessAt?: string;
+}
+
 /**
  * GET /approvals
  *

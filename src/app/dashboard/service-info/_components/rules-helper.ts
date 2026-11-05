@@ -1,4 +1,5 @@
 import type { RegistrationRules } from "@/lib/registration-rules";
+import { syncFrequency } from "@/lib/service-sync";
 import { noUnusedTypes } from "@/lib/service-types";
 
 /** A rule of the registry, as the service info page shows it */
@@ -34,6 +35,11 @@ function typesText(
     return "Not published";
 }
 
+/** Get a text with a capital first letter */
+function capitalized(text: string) {
+    return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 /**
  * Get the rows of the registry's rules for registrations
  * @param rules The rules, from the service info (`registrationRules()`)
@@ -64,6 +70,21 @@ function registrationRuleRows(rules: RegistrationRules): RuleRow[] {
                 "None: only admins register services",
             ),
         },
+        // registries older than cloud-registry 1.0.0rc2 don't sync
+        ...(rules.serviceInfoSync
+            ? [
+                  {
+                      label: "Sync with service info",
+                      value: rules.serviceInfoSync.enabled
+                          ? capitalized(
+                                syncFrequency(
+                                    rules.serviceInfoSync.intervalHours,
+                                ),
+                            )
+                          : "Off",
+                  },
+              ]
+            : []),
     ];
 }
 
