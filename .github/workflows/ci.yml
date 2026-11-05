@@ -1,6 +1,6 @@
 # Everything that must pass on pull requests and pushes: the pull request
-# title, unit tests with coverage (reported to Codecov), type checks and the
-# build, an audit of the production dependencies for known vulnerabilities,
+# title, lint and formatting (Biome), unit tests with coverage (reported to
+# Codecov), type checks and the build, an audit of the production dependencies for known vulnerabilities,
 # the Docker image and its scan for known vulnerabilities (Trivy), the
 # end-to-end tests against a registry and a mock login provider, and the
 # docs. The gate `passed` ("CI passed") is the only required check and needs
@@ -8,8 +8,8 @@
 # reports; to skip a job with `if:`, allow that skip in the gate. Runs also
 # when a pull request is edited, so that the title check follows the title;
 # all jobs run then, as a run that skipped the tests would report "CI
-# passed" for the commit. Lint isn't checked yet: the code has Biome errors
-# to fix first
+# passed" for the commit. Bun comes in the version of `packageManager` in
+# `package.json` (`bun-version-file`)
 
 name: CI
 on:
@@ -58,6 +58,46 @@ jobs:
             - name: Check PR title
               uses: elixir-cloud-aai/.github/actions/pr-title@743e82d290a53768454999e413756a924e383259 # v1.0.0
 
+    # Biome's lint, formatting and import order (`bun run lint`, see
+    # `biome.json`), and the Bun images of the `Dockerfile`, which must be
+    # of the version of `packageManager` in `package.json`, pinned by digest
+    lint:
+        name: Lint
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+            - name: Check the Bun version of the Dockerfile
+              run: |
+                  version="$(jq -r '.packageManager // ""' package.json)"
+                  if [[ "${version}" != bun@* ]]; then
+                    echo "::error file=package.json::packageManager must be bun@<version>"
+                    exit 1
+                  fi
+                  version="${version#bun@}"
+                  images="$(grep -E '^FROM oven/bun:' Dockerfile | awk '{print $2}')" || true
+                  if [[ -z "${images}" ]]; then
+                    echo "::error file=Dockerfile::The Dockerfile has no Bun images"
+                    exit 1
+                  fi
+                  while read -r image; do
+                    if [[ ! "${image}" =~ ^oven/bun:"${version}"@sha256:[0-9a-f]{64}$ ]]; then
+                      echo "::error file=Dockerfile::${image} isn't oven/bun:${version} (packageManager in package.json), pinned by digest"
+                      exit 1
+                    fi
+                  done <<< "${images}"
+            - name: Set up Bun
+              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+              with:
+                  bun-version-file: package.json
+            - name: Install dependencies
+              run: bun install --frozen-lockfile
+            - name: Lint
+              run: bun run lint
+
     # Vitest runs on Node.js, not on Bun's runtime
     test:
         name: Test
@@ -71,7 +111,7 @@ jobs:
             - name: Set up Bun
               uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
               with:
-                  bun-version: 1.4.4
+                  bun-version-file: package.json
             - name: Set up Node.js
               uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
               with:
@@ -105,7 +145,7 @@ jobs:
             - name: Set up Bun
               uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
               with:
-                  bun-version: 1.4.4
+                  bun-version-file: package.json
             - name: Install dependencies
               run: bun install --frozen-lockfile
             - name: Check types
@@ -130,7 +170,7 @@ jobs:
             - name: Set up Bun
               uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
               with:
-                  bun-version: 1.4.4
+                  bun-version-file: package.json
             - name: Audit production dependencies
               run: bun audit --prod --audit-level=high
 
@@ -264,7 +304,7 @@ jobs:
             - name: Set up Bun
               uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
               with:
-                  bun-version: 1.4.4
+                  bun-version-file: package.json
             - name: Install dependencies
               run: bun install --frozen-lockfile
             - name: Start the registry and the login provider
@@ -322,7 +362,7 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 5
         if: always()
-        needs: [title, test, build, audit, image, scan, e2e, docs]
+        needs: [title, lint, test, build, audit, image, scan, e2e, docs]
         permissions: {}
         steps:
             - name: Check results of all jobs
