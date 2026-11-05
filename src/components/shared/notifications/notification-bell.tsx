@@ -1,4 +1,5 @@
 "use client";
+import { getCookie } from "cookies-next/client";
 import { BellIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -86,12 +87,17 @@ function NotificationBell() {
     // being dismissed, so that a read from before can't bring them back
     const dismissing = useRef(new Set<string>());
 
+    // for another login: another user may use this browser
+    const clear = useCallback(() => {
+        setNotifications(undefined);
+        setOpen(false);
+    }, []);
+
     const read = useCallback(() => {
         if (!cloudRegistryProvider) return;
-        // e.g. logged out in another tab: another user may use this browser
-        if (!isLoggedIn) {
-            setNotifications(undefined);
-            setOpen(false);
+        // e.g. logged out in another tab, which nothing here gets to know of
+        if (!isLoggedIn || !getCookie("access_token")) {
+            clear();
             return;
         }
         if (stopped.current) return;
@@ -109,14 +115,13 @@ function NotificationBell() {
                 if (request !== latest.current) return;
                 if (isUnauthorized(err)) {
                     stopped.current = true;
-                    setNotifications(undefined);
-                    setOpen(false);
+                    clear();
                 } else if (hasStatus(err, 404) && !loaded.current) {
                     // a registry without notifications
                     stopped.current = true;
                 } else console.error("Failed to load notifications:", err);
             });
-    }, [cloudRegistryProvider, isLoggedIn]);
+    }, [clear, cloudRegistryProvider, isLoggedIn]);
 
     useEffect(() => {
         stopped.current = false;
@@ -169,6 +174,11 @@ function NotificationBell() {
         } catch (err) {
             // gone already, which is what users asked for
             if (hasStatus(err, 404)) return;
+            if (isUnauthorized(err)) {
+                stopped.current = true;
+                clear();
+                return;
+            }
             setNotifications(
                 (val) => val && restoreNotification(val, notification, index),
             );
@@ -177,7 +187,8 @@ function NotificationBell() {
             );
         } finally {
             dismissing.current.delete(id);
-            // what a read from before the end of this request says is outdated
+            // what a read from before the end of this request says is outdated;
+            // the next one comes with the interval
             latest.current++;
         }
     };

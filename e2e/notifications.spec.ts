@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import {
     addTesType,
     api,
@@ -29,6 +30,25 @@ async function outOfSyncService(token: string) {
     const sync = await api(token, "PUT", `/services/${id}/sync`);
     expect(sync.body.status).toBe("out-of-sync");
     return { ...service, id };
+}
+
+/**
+ * Get a notification of a service that is out of sync
+ * @param id Its identifier, and that of the service
+ * @returns The notification
+ */
+function item(id: string) {
+    return { id, type: "out-of-sync", serviceId: id, reason: "unreachable" };
+}
+
+/**
+ * Let the bell read again now, instead of within a minute
+ * @param page Page with the bell
+ */
+async function readAgain(page: Page) {
+    await page.evaluate(() =>
+        document.dispatchEvent(new Event("visibilitychange")),
+    );
 }
 
 test.describe("notifications", () => {
@@ -172,6 +192,132 @@ test.describe("notifications", () => {
             page.getByRole("button", { name: /^Notifications/ }),
         ).toHaveCount(0);
         problems.splice(0);
+    });
+
+    test("a registry without notifications isn't asked again", async ({
+        page,
+        problems,
+    }) => {
+        let reads = 0;
+        await page.route(`${registry}/notifications`, (route) => {
+            reads++;
+            return route.fulfill({ status: 404, json: { status: 404 } });
+        });
+        await login(page, "other");
+        await expect.poll(() => reads).toBeGreaterThan(0);
+        await page.waitForLoadState("networkidle");
+        const before = reads;
+        await readAgain(page);
+        await page.waitForTimeout(500);
+        expect(reads).toBe(before);
+        problems.splice(0);
+    });
+
+    test("a refused login removes the list, and stops reading", async ({
+        page,
+        problems,
+    }) => {
+        let reads = 0;
+        let refuse = false;
+        await page.route(`${registry}/notifications`, (route) => {
+            reads++;
+            return refuse
+                ? route.fulfill({ status: 401, json: { status: 401 } })
+                : route.fulfill({ json: [item("x")] });
+        });
+        await login(page, "other");
+        const bell = page.getByRole("button", { name: /^Notifications/ });
+        await bell.click();
+        await expect(page.getByText("x is out of sync")).toBeVisible();
+
+        refuse = true;
+        await readAgain(page);
+        await expect(page.getByText("x is out of sync")).toHaveCount(0);
+        await expect(bell).toHaveCount(0);
+        const before = reads;
+        await readAgain(page);
+        await page.waitForTimeout(500);
+        expect(reads).toBe(before);
+        problems.splice(0);
+    });
+
+    test("a login refused on dismissal removes the list", async ({
+        page,
+        problems,
+    }) => {
+        await page.route(`${registry}/notifications`, (route) =>
+            route.fulfill({ json: [item("x")] }),
+        );
+        await page.route(`${registry}/notifications/x`, (route) =>
+            route.fulfill({ status: 401, json: { status: 401 } }),
+        );
+        await login(page, "other");
+        await page.getByRole("button", { name: /^Notifications/ }).click();
+        await page
+            .getByRole("button", { name: "Dismiss: x is out of sync" })
+            .click();
+        await expect(
+            page.getByRole("button", { name: /^Notifications/ }),
+        ).toHaveCount(0);
+        await expect(
+            page.getByText("Could not dismiss this notification."),
+        ).toHaveCount(0);
+        problems.splice(0);
+    });
+
+    test("a logout elsewhere removes the list", async ({ page, context }) => {
+        await page.route(`${registry}/notifications`, (route) =>
+            route.fulfill({ json: [item("x")] }),
+        );
+        await login(page, "other");
+        const bell = page.getByRole("button", { name: /^Notifications/ });
+        await bell.click();
+        await expect(page.getByText("x is out of sync")).toBeVisible();
+
+        await context.clearCookies({ name: "access_token" });
+        await readAgain(page);
+        await expect(page.getByText("x is out of sync")).toHaveCount(0);
+        await expect(bell).toHaveCount(0);
+    });
+
+    test("an older read doesn't bring back a dismissed one", async ({
+        page,
+    }) => {
+        let hold = false;
+        let answer = () => {};
+        const answered = new Promise<void>((resolve) => {
+            answer = resolve;
+        });
+        let held = 0;
+        await page.route(`${registry}/notifications`, async (route) => {
+            if (hold) {
+                held++;
+                await answered;
+            }
+            await route.fulfill({ json: [item("x")] });
+        });
+        await page.route(`${registry}/notifications/x`, (route) =>
+            route.fulfill({ json: "x" }),
+        );
+        await login(page, "other");
+        await page.getByRole("button", { name: /^Notifications/ }).click();
+        await expect(page.getByText("x is out of sync")).toBeVisible();
+
+        hold = true;
+        await readAgain(page);
+        await expect.poll(() => held).toBe(1);
+        const gone = page.waitForResponse(`${registry}/notifications/x`);
+        await page
+            .getByRole("button", { name: "Dismiss: x is out of sync" })
+            .click();
+        await gone;
+        hold = false;
+        answer();
+        await page.waitForTimeout(500);
+        await expect(page.getByText("x is out of sync")).toHaveCount(0);
+        await expect(
+            page.getByText("Nothing needs your attention."),
+        ).toBeVisible();
     });
 
     test("one already gone counts as dismissed", async ({ page, problems }) => {
