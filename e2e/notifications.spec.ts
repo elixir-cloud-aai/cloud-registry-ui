@@ -74,7 +74,7 @@ test.describe("notifications", () => {
         await page.getByRole("button", { name: `Dismiss: ${title}` }).click();
         await expect(page.getByText(title)).toHaveCount(0);
 
-        // gone for good, also for the other owners
+        // gone also in the registry
         const left = await api(token, "GET", "/notifications");
         expect(
             left.body.some(
@@ -157,6 +157,92 @@ test.describe("notifications", () => {
         await page.getByRole("button", { name: /^Notifications/ }).click();
         await expect(page.getByText("x is out of sync")).toBeVisible();
         await expect(page.getByText(raw)).toHaveCount(0);
+    });
+
+    test("a registry without notifications shows no bell", async ({
+        page,
+        problems,
+    }) => {
+        await page.route(`${registry}/notifications`, (route) =>
+            route.fulfill({ status: 404, json: { status: 404 } }),
+        );
+        await login(page, "other");
+        await page.waitForLoadState("networkidle");
+        await expect(
+            page.getByRole("button", { name: /^Notifications/ }),
+        ).toHaveCount(0);
+        problems.splice(0);
+    });
+
+    test("one already gone counts as dismissed", async ({ page, problems }) => {
+        await page.route(`${registry}/notifications`, (route) =>
+            route.fulfill({
+                json: [
+                    {
+                        id: "1",
+                        type: "out-of-sync",
+                        serviceId: "x",
+                        reason: "unreachable",
+                    },
+                ],
+            }),
+        );
+        await page.route(`${registry}/notifications/1`, (route) =>
+            route.fulfill({ status: 404, json: { status: 404 } }),
+        );
+        await login(page, "other");
+        await page.getByRole("button", { name: /^Notifications/ }).click();
+        await page
+            .getByRole("button", { name: "Dismiss: x is out of sync" })
+            .click();
+        await expect(
+            page.getByText("Nothing needs your attention."),
+        ).toBeVisible();
+        await expect(
+            page.getByText("Could not dismiss this notification."),
+        ).toHaveCount(0);
+        problems.splice(0);
+    });
+
+    test("a failed dismissal brings back only that one", async ({
+        page,
+        problems,
+    }) => {
+        await page.route(`${registry}/notifications`, (route) =>
+            route.fulfill({
+                json: ["x", "y"].map((val) => ({
+                    id: val,
+                    type: "out-of-sync",
+                    serviceId: val,
+                    reason: "unreachable",
+                })),
+            }),
+        );
+        let answerFailure = () => {};
+        const failing = new Promise<void>((resolve) => {
+            answerFailure = resolve;
+        });
+        await page.route(`${registry}/notifications/x`, async (route) => {
+            await failing;
+            await route.fulfill({ status: 500, json: { status: 500 } });
+        });
+        await page.route(`${registry}/notifications/y`, (route) =>
+            route.fulfill({ json: "y" }),
+        );
+        await login(page, "other");
+        await page.getByRole("button", { name: /^Notifications/ }).click();
+        await page
+            .getByRole("button", { name: "Dismiss: x is out of sync" })
+            .click();
+        const gone = page.waitForResponse(`${registry}/notifications/y`);
+        await page
+            .getByRole("button", { name: "Dismiss: y is out of sync" })
+            .click();
+        await gone;
+        answerFailure();
+        await expect(page.getByText("x is out of sync")).toBeVisible();
+        await expect(page.getByText("y is out of sync")).toHaveCount(0);
+        problems.splice(0);
     });
 
     test("a failed dismissal brings it back", async ({ page, problems }) => {

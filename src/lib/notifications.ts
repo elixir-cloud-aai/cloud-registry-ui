@@ -8,6 +8,9 @@ import type { AppNotification } from "./cloud-registry.types";
 import { syncReasonText } from "./service-sync";
 import { typeLabel } from "./service-types";
 
+/** The registry's reason if no sync succeeded in time: nothing failed */
+const noRecentSync = "no recent sync";
+
 /** What a notification says, and where to go about it */
 type NotificationView = {
     title: string;
@@ -40,7 +43,7 @@ function notificationView(
     switch (type) {
         case "out-of-sync": {
             const text =
-                reason === "no recent sync"
+                reason === noRecentSync
                     ? syncReasonText(undefined)
                     : syncReasonText(reason);
             return {
@@ -93,6 +96,28 @@ function notificationView(
 }
 
 /**
+ * Put a notification back after a failed dismissal, leaving the others as they
+ * are by now
+ * @param notifications The list by now
+ * @param notification The notification
+ * @param index Where it was
+ * @returns The list with it, unless a newer read brought it back already
+ */
+function restoreNotification(
+    notifications: AppNotification[],
+    notification: AppNotification,
+    index: number,
+) {
+    if (notifications.some((val) => val.id === notification.id))
+        return notifications;
+    return [
+        ...notifications.slice(0, index),
+        notification,
+        ...notifications.slice(index),
+    ];
+}
+
+/**
  * Get the text of the number on the bell
  * @param count Number of notifications
  * @returns The number, at most "99+"
@@ -125,4 +150,11 @@ function timeAgo(since: string | undefined, now = Date.now()) {
     return "just now";
 }
 
-export { notificationCount, notificationView, type NotificationView, timeAgo };
+export {
+    noRecentSync,
+    notificationCount,
+    notificationView,
+    type NotificationView,
+    restoreNotification,
+    timeAgo,
+};

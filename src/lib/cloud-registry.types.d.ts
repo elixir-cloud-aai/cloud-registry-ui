@@ -214,7 +214,8 @@ export interface ServiceSyncState extends ServiceSync {
 
 /**
  * Something that needs the attention of a user (`GET /notifications`).
- * `id` is opaque: an item may come back under the same one.
+ * `id` is opaque: an item may come back under the same one. The registry may
+ * add types, which `notificationView()` also handles.
  */
 export interface AppNotification {
   id: string;

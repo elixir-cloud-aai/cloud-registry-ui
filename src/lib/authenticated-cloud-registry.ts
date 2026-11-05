@@ -889,8 +889,9 @@ class AuthenticatedCloudRegistryProvider
    * DELETE /notifications/{notificationId}
    * Authenticated.
    *
-   * Dismiss a notification for all who see it, until the problem ends and
-   * comes back, or its reason changes.
+   * Dismiss a notification until the problem ends and comes back, or its
+   * reason changes: for all with a role on the service, or for all admins in
+   * admin mode, but not for each other.
    */
   async dismissNotification(notificationId: string): Promise<string> {
     return this.request(`/notifications/${this.idPath(notificationId)}`, {

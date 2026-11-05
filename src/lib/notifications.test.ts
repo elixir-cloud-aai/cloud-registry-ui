@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { AppNotification } from "./cloud-registry.types";
-import { notificationCount, notificationView, timeAgo } from "./notifications";
+import {
+    noRecentSync,
+    notificationCount,
+    notificationView,
+    restoreNotification,
+    timeAgo,
+} from "./notifications";
+import { syncReasonText } from "./service-sync";
 
 const notification = (fields: Partial<AppNotification>): AppNotification => ({
     id: "1",
@@ -8,6 +15,45 @@ const notification = (fields: Partial<AppNotification>): AppNotification => ({
     reason: "unreachable",
     serviceId: "a/b",
     ...fields,
+});
+
+describe("restoreNotification", () => {
+    const item = (id: string) => notification({ id });
+
+    it("puts it back where it was", () => {
+        expect(
+            restoreNotification([item("a"), item("c")], item("b"), 1).map(
+                (val) => val.id,
+            ),
+        ).toEqual(["a", "b", "c"]);
+    });
+
+    it("leaves others dismissed meanwhile out", () => {
+        expect(
+            restoreNotification([item("c")], item("a"), 0).map((val) => val.id),
+        ).toEqual(["a", "c"]);
+    });
+
+    it("adds it at the end of a list that got shorter", () => {
+        expect(
+            restoreNotification([item("a")], item("b"), 3).map((val) => val.id),
+        ).toEqual(["a", "b"]);
+    });
+
+    it("doesn't repeat one that a newer read brought back", () => {
+        const list = [item("a")];
+        expect(restoreNotification(list, item("a"), 0)).toBe(list);
+    });
+});
+
+describe("noRecentSync", () => {
+    it("says the same as a sync without a reason", () => {
+        const { text } = notificationView(
+            notification({ reason: noRecentSync }),
+        );
+        const expected = syncReasonText(undefined);
+        expect(text.slice(1)).toBe(expected.slice(1));
+    });
 });
 
 describe("notificationView", () => {

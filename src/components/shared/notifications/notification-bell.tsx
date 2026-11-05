@@ -14,6 +14,7 @@ import type { AppNotification } from "@/lib/cloud-registry.types";
 import {
     notificationCount,
     notificationView,
+    restoreNotification,
     timeAgo,
 } from "@/lib/notifications";
 import { hasStatus, isUnauthorized } from "@/lib/permissions";
@@ -79,26 +80,46 @@ function NotificationBell() {
     const [names, setNames] = useState<Map<string, string>>(new Map());
     const [open, setOpen] = useState(false);
     const latest = useRef(0);
+    // whether reading has ever worked, and whether to give up on it
+    const loaded = useRef(false);
+    const stopped = useRef(false);
+    // being dismissed, so that a read from before can't bring them back
+    const dismissing = useRef(new Set<string>());
 
     const read = useCallback(() => {
-        if (!cloudRegistryProvider || !isLoggedIn) return;
+        if (!cloudRegistryProvider) return;
+        // e.g. logged out in another tab: another user may use this browser
+        if (!isLoggedIn) {
+            setNotifications(undefined);
+            setOpen(false);
+            return;
+        }
+        if (stopped.current) return;
         const request = ++latest.current;
         cloudRegistryProvider
             .getNotifications()
             .then((val) => {
-                if (request === latest.current) setNotifications(val);
+                if (request !== latest.current) return;
+                loaded.current = true;
+                setNotifications(
+                    val?.filter((item) => !dismissing.current.has(item.id)),
+                );
             })
             .catch((err) => {
                 if (request !== latest.current) return;
-                // keep what is shown, unless the session ended; older
-                // registries can't answer at all
-                if (isUnauthorized(err) || hasStatus(err, 404))
+                if (isUnauthorized(err)) {
+                    stopped.current = true;
                     setNotifications(undefined);
-                else console.error("Failed to load notifications:", err);
+                    setOpen(false);
+                } else if (hasStatus(err, 404) && !loaded.current) {
+                    // a registry without notifications
+                    stopped.current = true;
+                } else console.error("Failed to load notifications:", err);
             });
     }, [cloudRegistryProvider, isLoggedIn]);
 
     useEffect(() => {
+        stopped.current = false;
         read();
         const refresh = () => {
             if (document.visibilityState === "visible") read();
@@ -115,8 +136,11 @@ function NotificationBell() {
     // the names of the services, once the list is opened; pending ones aren't
     // listed publicly, and show their identifier
     const count = notifications?.length ?? 0;
+    const namesMissing = !!notifications?.some(
+        (val) => val.serviceId && !names.has(val.serviceId),
+    );
     useEffect(() => {
-        if (!open || !count || !cloudRegistryProvider) return;
+        if (!open || !namesMissing || !cloudRegistryProvider) return;
         let current = true;
         cloudRegistryProvider
             .getServices()
@@ -132,22 +156,29 @@ function NotificationBell() {
         return () => {
             current = false;
         };
-    }, [open, count, cloudRegistryProvider]);
+    }, [open, namesMissing, cloudRegistryProvider]);
 
     const dismiss = async (id: string) => {
-        if (!cloudRegistryProvider) return;
-        latest.current++;
-        const before = notifications;
+        const index = notifications?.findIndex((item) => item.id === id) ?? -1;
+        const notification = notifications?.[index];
+        if (!cloudRegistryProvider || !notification) return;
+        dismissing.current.add(id);
         setNotifications((val) => val?.filter((item) => item.id !== id));
         try {
             await cloudRegistryProvider.dismissNotification(id);
         } catch (err) {
             // gone already, which is what users asked for
             if (hasStatus(err, 404)) return;
-            setNotifications(before);
+            setNotifications(
+                (val) => val && restoreNotification(val, notification, index),
+            );
             toast.error(
                 "Could not dismiss this notification. Please try again.",
             );
+        } finally {
+            dismissing.current.delete(id);
+            // what a read from before the end of this request says is outdated
+            latest.current++;
         }
     };
 
