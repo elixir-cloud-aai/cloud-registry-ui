@@ -833,6 +833,7 @@ class AuthenticatedCloudRegistryProvider
    */
   async syncService(
     serviceId: ServiceId,
+    // `onlyIfEnabled`: never turn sync on; fails with a 404 if it is off
     { onlyIfEnabled = false }: { onlyIfEnabled?: boolean } = {},
   ): Promise<ServiceSync> {
     const query = onlyIfEnabled ? "?onlyIfEnabled=true" : "";

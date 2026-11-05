@@ -99,6 +99,7 @@ function NotificationBell() {
         session.current++;
         reading.current = false;
         setNotifications(undefined);
+        setNames(new Map());
         setOpen(false);
     }, []);
 

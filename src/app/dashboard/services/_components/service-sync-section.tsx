@@ -68,17 +68,23 @@ function ServiceSyncSection({
     if (loading || (!rule?.enabled && !sync)) return null;
     const frequency = rule ? syncFrequency(rule.intervalHours) : "regularly";
 
-    const handleSync = async () => {
+    const runSync = async (onlyIfEnabled: boolean) => {
         if (!provider) return;
         setBusy(true);
         try {
-            const state = await provider.syncService(serviceId);
+            const state = await provider.syncService(serviceId, {
+                onlyIfEnabled,
+            });
             onSyncChange(state);
             const { kind, message } = syncStartedMessage(state);
             toast[kind](message);
         } catch (err) {
-            toast.error(syncFailedReason(err));
-            // the service is gone, or sync was turned off during the fetch
+            if (onlyIfEnabled && hasStatus(err, 404))
+                toast.info(
+                    "Sync was turned off in the meantime, so nothing was synced.",
+                );
+            else toast.error(syncFailedReason(err));
+            // the service is gone, or sync was turned off
             if (hasStatus(err, 404)) onSyncChange(undefined);
             else onRefresh();
         } finally {
@@ -86,32 +92,11 @@ function ServiceSyncSection({
         }
     };
 
+    const handleSync = () => runSync(false);
+
     // only if sync is on: turning it on needs a confirmation, and someone may
     // have turned it off since this page loaded
-    const handleSyncNow = async () => {
-        if (!provider) return;
-        setBusy(true);
-        try {
-            const state = await provider.syncService(serviceId, {
-                onlyIfEnabled: true,
-            });
-            onSyncChange(state);
-            const { kind, message } = syncStartedMessage(state);
-            toast[kind](message);
-        } catch (err) {
-            if (hasStatus(err, 404)) {
-                onSyncChange(undefined);
-                toast.info(
-                    "Sync was turned off in the meantime, so nothing was synced.",
-                );
-            } else {
-                toast.error(syncFailedReason(err));
-                onRefresh();
-            }
-        } finally {
-            setBusy(false);
-        }
-    };
+    const handleSyncNow = () => runSync(true);
 
     const handleTurnOff = async () => {
         if (!provider) return;
