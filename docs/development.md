@@ -42,8 +42,8 @@ run `bun run build` and `bun run start`.
 ## Lint
 
 [Biome](https://biomejs.dev/) (`biome.json`) checks the lint rules, the
-formatting and the order of imports of the code; Markdown and YAML files
-are left out. CI's `lint` job runs it:
+formatting and the order of imports of the code; Markdown, YAML and CFF
+files are left out. CI's `lint` job runs it:
 
 ```
 bun run lint
@@ -120,7 +120,9 @@ the workflows read it (`bun-version-file`), and the Bun images of the
 `Dockerfile`, pinned by digest, must have the same version, which the
 `lint` job checks. Pull requests that bump the Bun image must also bump
 `packageManager`, and the other way round (with the image's digest, e.g.
-from `docker buildx imagetools inspect oven/bun:<version>`).
+from `docker buildx imagetools inspect oven/bun:<version>`): Dependabot's
+pull requests for the Bun image fail the `lint` job until someone adds a
+commit that bumps `packageManager`.
 
 ## Dependency audit
 

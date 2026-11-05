@@ -1,9 +1,9 @@
 # Everything that must pass on pull requests and pushes: the pull request
 # title, lint and formatting (Biome), unit tests with coverage (reported to
-# Codecov), type checks and the build, an audit of the production dependencies for known vulnerabilities,
-# the Docker image and its scan for known vulnerabilities (Trivy), the
-# end-to-end tests against a registry and a mock login provider, and the
-# docs. The gate `passed` ("CI passed") is the only required check and needs
+# Codecov), type checks and the build, an audit of the production
+# dependencies for known vulnerabilities, the Docker image and its scan for
+# known vulnerabilities (Trivy), the end-to-end tests against a registry
+# and a mock login provider, and the docs. The gate `passed` ("CI passed") is the only required check and needs
 # every other job to succeed. No `paths:` filters, so that the gate always
 # reports; to skip a job with `if:`, allow that skip in the gate. Runs also
 # when a pull request is edited, so that the title check follows the title;
@@ -78,7 +78,9 @@ jobs:
                     exit 1
                   fi
                   version="${version#bun@}"
-                  images="$(grep -E '^FROM oven/bun:' Dockerfile | awk '{print $2}')" || true
+                  # the Bun image of each stage, also after flags such as
+                  # `--platform` or with the registry's name
+                  images="$(grep -iE '^[[:space:]]*FROM[[:space:]]' Dockerfile | grep -oE '(docker\.io/)?oven/bun:[^[:space:]]+' | sed 's|^docker\.io/||')" || true
                   if [[ -z "${images}" ]]; then
                     echo "::error file=Dockerfile::The Dockerfile has no Bun images"
                     exit 1
