@@ -11,7 +11,8 @@ don't sync show none of this.
 Next to the **Verified** mark, in the list and in the details of a service, the
 registry's label says how the sync stands:
 
-- **no label**: no sync, e.g. a manual entry, which may have drifted;
+- **no label**: no sync, e.g. a manual entry, which may have drifted. If the state
+  couldn't be read, the app says so instead;
 - **Synced**: the last sync succeeded, and it was recent;
 - **Out of sync**: the last sync failed, or none succeeded in time. The entry keeps
   its last values.
@@ -21,8 +22,8 @@ entry once, and synced that the service recently described itself in a way the r
 could read. Both are facts about the entry, not about the service: service info is
 self-declared, and a service can change at any time. Decide yourself whom you trust.
 
-**Synced only**, above the list, shows only services in sync. To be on the safe side,
-use it together with **Verified only**.
+**Synced only**, above the list, shows only services in sync, and repeats that this
+doesn't mean trusted. To be on the safe side, use it together with **Verified only**.
 
 ## The details of a service
 
@@ -55,7 +56,8 @@ these buttons in its details:
   service's URL followed by `/service-info`, and replaces the entry's values with it,
   overriding manual changes. If the fetch fails, or the service info doesn't fit the
   service, nothing changes and the app says so.
-- **Sync now**: syncs at once. A service info that can't be applied shows as **Out of
+- **Sync now**: syncs at once, unless someone turned sync off since the page loaded: then
+  it does nothing, and says so. A service info that can't be applied shows as **Out of
   sync**, with the reason. If the fetch fails, or the service info describes another
   service, nothing changes and the app says so; the regular syncs record these as
   reasons.

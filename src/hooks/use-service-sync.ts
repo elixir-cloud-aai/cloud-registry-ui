@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { ServiceSync } from "@/lib/cloud-registry.types";
 import { errorMessage } from "@/lib/errors";
-import { hasStatus } from "@/lib/permissions";
+import { hasStatus, isUnauthorized } from "@/lib/permissions";
 import { useCloudRegistry } from "./use-cloud-registry";
 
 /**
@@ -35,7 +35,8 @@ function useServiceSync(serviceId?: string) {
                 if (request !== latest.current) return;
                 const failed = !hasStatus(err, 404);
                 setState({ id: serviceId, failed });
-                if (!failed) return;
+                // an expired login has its own message on the page
+                if (!failed || isUnauthorized(err)) return;
                 toast.error(
                     errorMessage(
                         err,

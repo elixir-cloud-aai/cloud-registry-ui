@@ -83,7 +83,7 @@ function ServiceSyncSection({
 
     // The registry turns sync on if it is off, which needs a confirmation: if
     // someone turned it off since this page loaded, don't override their
-    // values
+    // values. This narrows the window, as only the registry could close it
     const handleSyncNow = async () => {
         if (!provider) return;
         setBusy(true);

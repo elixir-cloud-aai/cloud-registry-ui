@@ -142,15 +142,11 @@ class AuthenticatedCloudRegistryProvider
   }
 
   /**
-   * Shared HTTP request handler.
-   *
-   * Public endpoints do not receive Authorization.
-   * Authenticated endpoints require a bearer token.
-   */
-  /**
    * Read something public with the user's token, which also shows what only
    * the user may see. The registry refuses invalid tokens, so an expired one
-   * reads like a guest, as the other public reads do.
+   * reads like a guest, as the other public reads do. If that fails as well,
+   * the expired login is the error: a 404 may only mean that guests can't see
+   * it, e.g. for a pending service.
    */
   private async readAsUser<T>(path: string): Promise<T> {
     try {
@@ -158,13 +154,21 @@ class AuthenticatedCloudRegistryProvider
         authenticated: this.isAuthenticated,
       });
     } catch (err) {
-      if (this.isAuthenticated && hasStatus(err, 401)) {
-        return this.request<T>(path);
+      if (!this.isAuthenticated || !hasStatus(err, 401)) throw err;
+      try {
+        return await this.request<T>(path);
+      } catch {
+        throw err;
       }
-      throw err;
     }
   }
 
+  /**
+   * Shared HTTP request handler.
+   *
+   * Public endpoints do not receive Authorization.
+   * Authenticated endpoints require a bearer token.
+   */
   private async request<T>(
     path: string,
     options: RequestOptions = {},

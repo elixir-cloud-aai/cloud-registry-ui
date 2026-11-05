@@ -107,10 +107,20 @@ describe("getSyncs", () => {
         const provider = new AuthenticatedCloudRegistryProvider(base, "t");
         fetchMock
             .mockResolvedValueOnce(json({ status: 401 }, 401))
-            .mockResolvedValueOnce(json([]))
-            .mockResolvedValueOnce(json({ status: 401 }, 401));
+            .mockResolvedValueOnce(json([]));
         await expect(provider.getSyncs()).resolves.toEqual([]);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
         expect(lastRequest().auth).toBeNull();
+    });
+
+    it("reports the expired token if guests can't read it either", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock
+            .mockResolvedValueOnce(json({ status: 401 }, 401))
+            .mockResolvedValueOnce(json({ status: 404 }, 404));
+        await expect(provider.getServiceSync("a")).rejects.toMatchObject({
+            status: 401,
+        });
     });
 
     it("passes on other failures", async () => {
