@@ -92,7 +92,27 @@ docker compose -f e2e/stack/compose.yaml down
 ```
 
 `npm run test:e2e` reuses an app already running on port 3100; stop it to
-test changes.
+test changes. CI fails a test that passes only on its retry, as such flaky
+tests hide bugs.
+
+`E2E_BASE_URL` points the tests to an app that runs already, e.g.
+`http://localhost:3100`, instead of building and starting one; it must
+have the settings of the tests (`playwright.config.ts`). The image runs
+the app as it ships: the standalone server on Bun, where `npm run test:e2e`
+runs `next start` on Node.js. The service `app` of the stack (profile
+`image`) runs the image `cloud-registry-ui:ci`, or the one of
+`E2E_APP_IMAGE`, with these settings on port 3100. CI's `e2e-image` job
+runs the login and services tests against the image that it builds:
+
+```
+docker build -t cloud-registry-ui:ci .
+docker compose -f e2e/stack/compose.yaml --profile image up -d --wait
+E2E_BASE_URL=http://localhost:3100 npx playwright test e2e/auth.spec.ts e2e/services.spec.ts
+docker compose -f e2e/stack/compose.yaml --profile image down
+```
+
+The app's container uses the host's network, as Docker Engine on Linux
+has it; Docker Desktop needs its host networking turned on.
 
 ## Cloud Components
 
@@ -112,7 +132,8 @@ to exact versions, come in pull requests of their own, as their updates
 may break the create form (see [Cloud Components](#cloud-components)).
 `@types/node` stays on the major version of the oldest Node.js the tests
 support (22). `@playwright/test` is left out: bump it by hand, together
-with the Playwright image of the `e2e` job (`.github/workflows/ci.yml`).
+with the Playwright image of the `e2e` and `e2e-image` jobs
+(`.github/workflows/ci.yml`).
 Codecov uploads use the organisation secret `CODECOV_TOKEN`.
 
 `packageManager` in `package.json` is the one source of the Bun version:
