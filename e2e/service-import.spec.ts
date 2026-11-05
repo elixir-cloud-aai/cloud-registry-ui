@@ -287,11 +287,9 @@ test.describe("importing service info", () => {
         await name.fill("Kept");
 
         await importInto(page, service.address);
-        await expect(
-            form.getByText(
-                "only publicly available service info can be imported",
-            ),
-        ).toBeVisible();
+        await expect(form.getByRole("alert")).toContainText(
+            "only publicly available service info can be imported",
+        );
         await expect(name).toHaveValue("Kept");
         const expected = problems.splice(0);
         expect(expected.every((val) => val.includes("/services/import"))).toBe(
