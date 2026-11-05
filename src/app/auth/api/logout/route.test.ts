@@ -115,6 +115,7 @@ describe("POST /auth/api/logout", () => {
             expect(await logout({ origin: appOrigin })).toBe(
                 `${appOrigin}/auth/login`,
             );
+            expect(jar.size).toBe(0);
         },
     );
 

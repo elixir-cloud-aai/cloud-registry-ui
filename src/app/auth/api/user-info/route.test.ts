@@ -29,6 +29,7 @@ describe("GET /auth/api/user-info", () => {
         expect(get).toHaveBeenCalledWith(discovery.userinfo_endpoint, {
             headers: { Authorization: "Bearer a", Accept: "application/json" },
             timeout: 10000,
+            maxRedirects: 0,
         });
     });
 
@@ -92,23 +93,27 @@ describe("GET /auth/api/user-info", () => {
         ["of an unknown provider", { login_provider: "other" }, false],
         // e.g. of an earlier version, after a second provider was added
         ["without a provider, of several", {}, true],
-    ])("ends sessions %s, without logging", async (_, cookies, several) => {
-        setUp({ access_token: "a", id_token: "i", ...cookies });
-        if (several)
-            vi.stubEnv(
-                "LOGIN_PROVIDERS",
-                JSON.stringify([provider, { ...provider, id: "other" }]),
-            );
-        const log = vi.spyOn(console, "error").mockImplementation(() => {});
-        const get = answer({ sub: "alice" });
-        expect(await userInfo()).toEqual({
-            status: 401,
-            body: { error: true, user: null },
-        });
-        expect(log).not.toHaveBeenCalled();
-        expect(get).not.toHaveBeenCalled();
-        expect(jar.size).toBe(0);
-    });
+    ])(
+        "takes sessions %s as logged out, without logging",
+        async (_, cookies, several) => {
+            setUp({ access_token: "a", id_token: "i", ...cookies });
+            if (several)
+                vi.stubEnv(
+                    "LOGIN_PROVIDERS",
+                    JSON.stringify([provider, { ...provider, id: "other" }]),
+                );
+            const log = vi.spyOn(console, "error").mockImplementation(() => {});
+            const get = answer({ sub: "alice" });
+            expect(await userInfo()).toEqual({
+                status: 401,
+                body: { error: true, user: null },
+            });
+            expect(log).not.toHaveBeenCalled();
+            expect(get).not.toHaveBeenCalled();
+            // a late answer mustn't delete the cookies of a new login
+            expect(jar.size).toBe(Object.keys(cookies).length + 2);
+        },
+    );
 
     it.each([
         ["a failed request", {}, new Error("down"), "down"],

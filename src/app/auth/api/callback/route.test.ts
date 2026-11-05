@@ -73,6 +73,7 @@ describe("GET /auth/api/callback", () => {
             code_verifier: "verifier-1",
         });
         expect(options?.timeout).toBe(10000);
+        expect(options?.maxRedirects).toBe(0);
         expect(options?.headers).toEqual({
             "Content-Type": "application/x-www-form-urlencoded",
         });

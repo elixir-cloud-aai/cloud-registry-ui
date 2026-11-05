@@ -3,11 +3,10 @@ import { NextResponse } from "next/server";
 import {
     loginErrorSummary,
     loginProvider,
-    loginRequestTimeout,
+    loginRequestOptions,
     oidcEndpoints,
 } from "@/lib/login-providers";
-import { deleteLoginCookies, readSessionCookie } from "@/lib/session";
-import { sessionCookies } from "@/lib/session-cookies";
+import { readSessionCookie } from "@/lib/session";
 
 /**
  * Answer that there is no logged-in user
@@ -25,19 +24,18 @@ export async function GET() {
     try {
         // sessions without the cookie, e.g. older ones, use the only
         // provider; with several providers, and for providers that were
-        // removed, they end, which is expected after such changes: no error
+        // removed, they are logged out, which is expected after such
+        // changes: no error. Their cookies stay, as a late answer could
+        // otherwise delete those of a new login
         const provider = loginProvider(providerId);
-        if (!provider) {
-            await deleteLoginCookies(sessionCookies);
-            return loggedOut();
-        }
+        if (!provider) return loggedOut();
         const { userinfo_endpoint } = await oidcEndpoints(provider);
         const res = await axios.get(userinfo_endpoint, {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
                 Accept: "application/json",
             },
-            timeout: loginRequestTimeout,
+            ...loginRequestOptions,
         });
 
         if (!res.data || typeof res.data !== "object") {

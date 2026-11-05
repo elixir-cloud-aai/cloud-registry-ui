@@ -124,12 +124,16 @@ points before the upgrade:
   Until then, sites on other subdomains of the app's domain can still set
   these names for the whole domain, which logging out can't delete. A
   login in progress during the upgrade fails, and the user logs in again.
+  During a rolling update, instances of the earlier version don't read the
+  new names: users who log in on a new instance seem logged out on an old
+  one until the update is complete.
   Serve the app on a domain of its own (see [Sessions and
   logout](login.md#sessions-and-logout)).
 - **Sessions without a provider:** sessions from versions before login
   providers (without the provider's cookie) belong to the only provider.
   Once there are several providers, the app can't tell their provider and
-  ends them without logging an error: those users log in again.
+  takes them as logged out, without logging an error: those users log in
+  again.
 
 **Listing the registry itself:** in admin mode, the service info page can list
 the registry among its own services (see [Listing the registry

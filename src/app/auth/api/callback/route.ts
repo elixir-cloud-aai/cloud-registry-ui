@@ -14,7 +14,7 @@ import {
     type LoginProvider,
     loginErrorSummary,
     loginProvider,
-    loginRequestTimeout,
+    loginRequestOptions,
     loginSettings,
     oidcEndpoints,
     type TokenAuthMethod,
@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
                     ...auth.headers,
                 },
                 validateStatus: (status) => status === 200,
-                timeout: loginRequestTimeout,
+                ...loginRequestOptions,
             },
         );
         const result = tokenResponseSchema.safeParse(response.data);

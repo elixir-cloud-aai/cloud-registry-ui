@@ -74,6 +74,17 @@ type OidcEndpoints = {
 /** @description timeout of requests to login providers, in milliseconds */
 const loginRequestTimeout = 10000;
 
+/**
+ * @description options of all requests to login providers: with a
+ * timeout, and without following redirects, which could lead to another
+ * host or to `http`, unchecked, with the request's secrets or for the
+ * discovery's endpoints
+ */
+const loginRequestOptions = {
+    timeout: loginRequestTimeout,
+    maxRedirects: 0,
+};
+
 // settings of earlier versions, which the app no longer reads (see
 // `docs/operator-guide/upgrading.md`)
 const legacySettings = [
@@ -216,7 +227,7 @@ function oidcEndpoints(provider: LoginProvider): Promise<OidcEndpoints> {
 
     const url = `${provider.issuer}/.well-known/openid-configuration`;
     const promise = axios
-        .get<OidcDiscovery>(url, { timeout: loginRequestTimeout })
+        .get<OidcDiscovery>(url, loginRequestOptions)
         .then((res) => {
             const {
                 issuer,
@@ -361,7 +372,7 @@ export {
     loginErrorSummary,
     loginProvider,
     loginProviderInfos,
-    loginRequestTimeout,
+    loginRequestOptions,
     loginSettings,
     loginSettingsAtBuild,
     oidcEndpoints,

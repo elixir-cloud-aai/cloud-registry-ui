@@ -259,7 +259,7 @@ describe("oidcEndpoints", () => {
         );
         expect(get).toHaveBeenCalledWith(
             "https://login.example.org/oidc/.well-known/openid-configuration",
-            { timeout: 10000 },
+            { timeout: 10000, maxRedirects: 0 },
         );
     });
 
