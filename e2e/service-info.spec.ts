@@ -13,6 +13,7 @@ test.describe("service info", () => {
             "Who may add service types",
             "Unused service types per user",
             "Services per user",
+            "Sync with service info",
         ]);
         await expect(rules.getByRole("definition")).toHaveText([
             "prod, test, dev, staging",
@@ -20,6 +21,7 @@ test.describe("service info", () => {
             "Logged-in users; types of users other than admins are pending until an admin approves them",
             "10",
             "No limit",
+            "Every day",
         ]);
     });
 
@@ -38,6 +40,7 @@ test.describe("service info", () => {
             "Admins only",
             "None: only admins add service types",
             "None: only admins register services",
+            "Every day",
         ]);
     });
 

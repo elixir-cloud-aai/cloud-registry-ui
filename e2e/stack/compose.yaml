@@ -1,10 +1,13 @@
-# Services for the end-to-end tests: cloud-registry with MongoDB and a mock
-# OpenID Connect provider. The app runs outside, started by Playwright
-# (`playwright.config.ts`). Ports differ from the defaults so that the stack
-# can run next to a local development setup.
+# Services for the end-to-end tests: cloud-registry with MongoDB, a mock
+# OpenID Connect provider and a service with service info to import. The app
+# runs outside, started by Playwright (`playwright.config.ts`). Ports differ
+# from the defaults so that the stack can run next to a local development
+# setup.
 #
-# - Registry: http://localhost:8180/ga4gh/registry/v1
-# - Login:    http://oidc.localhost:8190/oidc
+# - Registry:     http://localhost:8180/ga4gh/registry/v1
+# - Login:        http://oidc.localhost:8190/oidc
+# - Service info: http://service-info:8191/<key>/service-info for the
+#   registry, http://localhost:8191/<key>/service-info for the tests
 name: cloud-registry-ui-e2e
 
 services:
@@ -39,22 +42,44 @@ services:
                 aliases:
                     - oidc.localhost
 
+    # a service as the registry fetches it (`service-info.py`)
+    service-info:
+        image: python:3.13-alpine
+        command: ["python", "/service-info.py"]
+        ports:
+            - "127.0.0.1:8191:8191"
+        volumes:
+            - ./service-info.py:/service-info.py:ro
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://localhost:8191/health/service-info', timeout=4)",
+                ]
+            interval: 2s
+            timeout: 5s
+            retries: 30
+
     registry:
-        # cloud-registry from `dev` at d3e4fd7, as the paths of users' roles,
+        # cloud-registry from `dev` at 31cae10, as the paths of users' roles,
         # labels, the listing of expired invitations, the listing of the
-        # registry itself, the camelCase names of its API and the removal of
-        # the invitations of users whose roles are revoked aren't released yet
-        # (cloud-registry#337, #334, #335, #349, #353, #355); back to the
-        # release once there is
+        # registry itself, the camelCase names of its API, the removal of the
+        # invitations of users whose roles are revoked, and the import and sync
+        # of service info aren't released yet (cloud-registry#337, #334, #335,
+        # #349, #353, #355, #358-#361); back to the release once there is
         # one that has them (the app also uses GET /approvals and conflict
         # codes of 0.5.0, renames and admin mode of 0.6.0, invitations and the
         # services limit of 1.0.0rc1);
         # pinned by digest for repeatable runs
-        image: ${E2E_REGISTRY_IMAGE:-docker.io/elixircloud/cloud-registry:sha-d3e4fd7dc27fefc08c39f4d56d90ae3d86b21ac6@sha256:a261efa8324fa03c1caf2e8faa58a962d25f4bf02753a6a3c0a6f8d1ab0916ad}
+        image: ${E2E_REGISTRY_IMAGE:-docker.io/elixircloud/cloud-registry:sha-31cae10bf89d24cbdb44904ca0ff8311f1b685d6@sha256:a65813932b675e4f3b9e6d6033bedc2676022f7ba07eed757179927cff09b28f}
         depends_on:
             mongodb:
                 condition: service_healthy
             oidc:
+                condition: service_healthy
+            service-info:
                 condition: service_healthy
         ports:
             - "127.0.0.1:8180:8080"
