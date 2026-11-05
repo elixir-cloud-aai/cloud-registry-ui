@@ -17,7 +17,7 @@ import type {
 } from "@/lib/cloud-registry.types";
 import { errorMessage } from "@/lib/errors";
 import { loginHref } from "@/lib/links";
-import { isUnauthorized } from "@/lib/permissions";
+import { hasStatus, isUnauthorized } from "@/lib/permissions";
 import { syncedServices } from "@/lib/service-sync";
 import { verifiedServices } from "@/lib/verifications";
 import {
@@ -94,11 +94,12 @@ function Page() {
             }),
             // pending services, for admins and users with a role on them
             getApprovalsOrNull(cloudRegistryProvider),
-            // none from registries that don't sync; only the labels depend
-            // on them
+            // none from registries that don't know syncs yet; on other
+            // failures, the labels and the filter keep what they had
             cloudRegistryProvider.getSyncs().catch((err) => {
-                console.warn("Failed to load the syncs:", err);
-                return [];
+                if (hasStatus(err, 404)) return [];
+                console.error("Failed to load the syncs:", err);
+                return null;
             }),
         ])
             .then(([_val, verified, approvals, synced]) => {
@@ -107,7 +108,11 @@ function Page() {
                 setPending(
                     new Set(approvals?.services.map((val) => val.id) ?? []),
                 );
-                setSyncStates(Array.isArray(synced) ? synced : []);
+                if (synced) setSyncStates(synced);
+                else
+                    toast.error(
+                        "Could not load the syncs, so their labels may be out of date. Please try again later.",
+                    );
                 if (verified) setVerifications(verified);
                 else
                     toast.error(

@@ -3,13 +3,14 @@ import { Badge } from "@/components/ui/badge";
 import type { ServiceSync } from "@/lib/cloud-registry.types";
 
 type Props = {
-    /** As the registry computes it */
-    status: ServiceSync["status"];
+    /** As the registry computes it; undefined without sync */
+    status?: ServiceSync["status"];
 };
 
 /** The label of a service with sync, next to the verified mark; services
  * without sync have none */
 function SyncBadge({ status }: Props) {
+    if (!status) return null;
     return status === "synced" ? (
         <Badge
             variant={"secondary"}

@@ -240,6 +240,12 @@ function ServicesTableFilters({
                     Clear
                 </Button>
             )}
+            {filters.synced && (
+                <p className="w-full text-sm text-muted-foreground">
+                    Verified and synced doesn't mean trusted: a service can
+                    change at any time, so decide yourself whom you trust.
+                </p>
+            )}
         </div>
     );
 }

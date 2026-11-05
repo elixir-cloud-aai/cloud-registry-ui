@@ -102,6 +102,32 @@ describe("getSyncs", () => {
         await expect(provider.getSyncs()).resolves.toEqual(states);
         expect(lastRequest().url).toBe(`${base}/syncs`);
     });
+
+    it("reads like a guest with an expired token", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock
+            .mockResolvedValueOnce(json({ status: 401 }, 401))
+            .mockResolvedValueOnce(json([]))
+            .mockResolvedValueOnce(json({ status: 401 }, 401));
+        await expect(provider.getSyncs()).resolves.toEqual([]);
+        expect(lastRequest().auth).toBeNull();
+    });
+
+    it("passes on other failures", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValue(json({ status: 500 }, 500));
+        await expect(provider.getSyncs()).rejects.toMatchObject({
+            status: 500,
+        });
+    });
+
+    it("passes on the 401 of a deployment that requires login", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base);
+        fetchMock.mockResolvedValue(json({ status: 401 }, 401));
+        await expect(provider.getSyncs()).rejects.toMatchObject({
+            status: 401,
+        });
+    });
 });
 
 describe("revokeServicePermission", () => {

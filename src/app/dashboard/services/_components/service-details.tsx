@@ -16,8 +16,8 @@ import { PendingBadge, PendingBanner } from "@/components/shared/pending";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
-import { copyText } from "@/lib/clipboard";
 import { useServiceSync } from "@/hooks";
+import { copyText } from "@/lib/clipboard";
 import type { Me, Verification } from "@/lib/cloud-registry.types";
 import { isVerificationMismatch, mutationError } from "@/lib/errors";
 import {
@@ -74,7 +74,12 @@ function ServiceDetails({
     onAccessChange,
     onDeleted,
 }: Props) {
-    const { sync, loaded: syncLoaded, setSync } = useServiceSync(service.id);
+    const {
+        sync,
+        loaded: syncLoaded,
+        failed: syncFailed,
+        setSync,
+    } = useServiceSync(service.id);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
     const [manageOpen, setManageOpen] = useState(false);
@@ -220,6 +225,7 @@ function ServiceDetails({
                 serviceId={service.id}
                 sync={sync}
                 loaded={syncLoaded}
+                failed={syncFailed}
                 canManage={canEdit}
                 provider={cloudRegistryProvider}
                 onSyncChange={(state) => {

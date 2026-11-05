@@ -33,6 +33,8 @@ type Props = {
     sync?: ServiceSync;
     /** False while the state loads */
     loaded: boolean;
+    /** The state couldn't be read, so it is unknown */
+    failed: boolean;
     /** Whether the user may turn sync on or off, and sync now */
     canManage: boolean;
     provider: AuthenticatedCloudRegistryProvider | null;
@@ -48,6 +50,7 @@ function ServiceSyncSection({
     serviceId,
     sync,
     loaded,
+    failed,
     canManage,
     provider,
     onSyncChange,
@@ -57,7 +60,9 @@ function ServiceSyncSection({
     const [confirmOn, setConfirmOn] = useState(false);
     const rule = rules.serviceInfoSync;
 
-    if (loading || !rule?.enabled) return null;
+    // a sync shows also if the rules can't be read
+    if (loading || (!rule?.enabled && !sync)) return null;
+    const frequency = rule ? syncFrequency(rule.intervalHours) : "regularly";
 
     const handleSync = async () => {
         if (!provider) return;
@@ -69,11 +74,35 @@ function ServiceSyncSection({
             toast[kind](message);
         } catch (err) {
             toast.error(syncFailedReason(err));
-            // e.g. turned off by someone else
+            // the service is gone, or sync was turned off during the fetch
             if (hasStatus(err, 404)) onSyncChange(undefined);
         } finally {
             setBusy(false);
         }
+    };
+
+    // The registry turns sync on if it is off, which needs a confirmation: if
+    // someone turned it off since this page loaded, don't override their
+    // values
+    const handleSyncNow = async () => {
+        if (!provider) return;
+        setBusy(true);
+        try {
+            await provider.getServiceSync(serviceId);
+        } catch (err) {
+            setBusy(false);
+            if (hasStatus(err, 404)) {
+                onSyncChange(undefined);
+                toast.info(
+                    "Sync was turned off in the meantime, so nothing was synced.",
+                );
+            } else
+                toast.error(
+                    mutationError(err, "Cannot sync this service currently."),
+                );
+            return;
+        }
+        await handleSync();
     };
 
     const handleTurnOff = async () => {
@@ -103,7 +132,13 @@ function ServiceSyncSection({
                 title="Sync with service info"
             >
                 <div className="flex flex-col gap-3">
-                    {!sync && loaded && (
+                    {failed && (
+                        <p className="text-sm text-muted-foreground">
+                            Could not load the sync of this service, so this
+                            page can't say whether it is synced.
+                        </p>
+                    )}
+                    {!sync && loaded && !failed && (
                         <p className="text-sm text-muted-foreground">
                             This service isn't synced, so its entry may have
                             drifted from what the service says about itself.
@@ -113,9 +148,8 @@ function ServiceSyncSection({
                         <>
                             <p className="text-sm text-muted-foreground">
                                 The registry updates this entry from the
-                                service's public service info{" "}
-                                {syncFrequency(rule.intervalHours)}. Manual
-                                changes last until the next sync, and the
+                                service's public service info {frequency}.
+                                Manual changes last until the next sync, and the
                                 service URL can't change while sync is on.
                             </p>
                             <div className="grid grid-cols-2 gap-4">
@@ -147,7 +181,7 @@ function ServiceSyncSection({
                         service can change at any time, so decide yourself whom
                         you trust.
                     </p>
-                    {canManage && loaded && (
+                    {canManage && loaded && !failed && (
                         <div className="flex flex-wrap gap-2">
                             {sync ? (
                                 <>
@@ -155,7 +189,7 @@ function ServiceSyncSection({
                                         size="sm"
                                         variant={"outline"}
                                         disabled={busy}
-                                        onClick={handleSync}
+                                        onClick={handleSyncNow}
                                     >
                                         Sync now
                                     </Button>
@@ -188,11 +222,10 @@ function ServiceSyncSection({
                         <AlertDialogTitle>Turn sync on?</AlertDialogTitle>
                         <AlertDialogDescription>
                             The registry replaces the values of this service
-                            with those of its service info now and{" "}
-                            {syncFrequency(rule.intervalHours)}, which overrides
-                            manual changes. Its service info must be publicly
-                            available at the service's URL followed by
-                            /service-info, as no tokens are sent.
+                            with those of its service info now and {frequency},
+                            which overrides manual changes. Its service info
+                            must be publicly available at the service's URL
+                            followed by /service-info, as no tokens are sent.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

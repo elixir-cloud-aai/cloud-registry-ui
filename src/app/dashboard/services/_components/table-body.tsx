@@ -73,17 +73,7 @@ function ServicesTableBody({
                             <div className="flex items-center gap-2">
                                 {val.name}
                                 {verifications.has(val.id) && <VerifiedBadge />}
-                                {syncs.has(val.id) && (
-                                    <SyncBadge
-                                        status={
-                                            (
-                                                syncs.get(
-                                                    val.id,
-                                                ) as ServiceSyncState
-                                            ).status
-                                        }
-                                    />
-                                )}
+                                <SyncBadge status={syncs.get(val.id)?.status} />
                                 {pending.has(val.id) && <PendingBadge />}
                             </div>
                         </TableCell>
@@ -97,12 +87,12 @@ function ServicesTableBody({
             <ServiceDetailsDialog
                 service={shownService}
                 verification={
-                    selectedService
-                        ? verifications.get(selectedService.id)
+                    shownService
+                        ? verifications.get(shownService.id)
                         : undefined
                 }
-                pending={!!selectedService && pending.has(selectedService.id)}
-                open={!!selectedService}
+                pending={!!shownService && pending.has(shownService.id)}
+                open={!!shownService}
                 fetchServices={fetchServices}
                 refetchMe={refetchMe}
                 cloudRegistryProvider={cloudRegistryProvider}

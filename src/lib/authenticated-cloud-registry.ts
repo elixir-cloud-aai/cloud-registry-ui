@@ -31,6 +31,7 @@ import type {
   VerificationRegister,
   VerifiedServices,
 } from "./cloud-registry.types";
+import { hasStatus } from "./permissions";
 import { registrationRules } from "./registration-rules";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
@@ -146,6 +147,24 @@ class AuthenticatedCloudRegistryProvider
    * Public endpoints do not receive Authorization.
    * Authenticated endpoints require a bearer token.
    */
+  /**
+   * Read something public with the user's token, which also shows what only
+   * the user may see. The registry refuses invalid tokens, so an expired one
+   * reads like a guest, as the other public reads do.
+   */
+  private async readAsUser<T>(path: string): Promise<T> {
+    try {
+      return await this.request<T>(path, {
+        authenticated: this.isAuthenticated,
+      });
+    } catch (err) {
+      if (this.isAuthenticated && hasStatus(err, 401)) {
+        return this.request<T>(path);
+      }
+      throw err;
+    }
+  }
+
   private async request<T>(
     path: string,
     options: RequestOptions = {},
@@ -832,10 +851,7 @@ class AuthenticatedCloudRegistryProvider
    * @returns The state of the sync; fails with a 404 without one
    */
   async getServiceSync(serviceId: ServiceId): Promise<ServiceSync> {
-    return this.request(
-      `/services/${this.idPath(serviceId)}/sync`,
-      { authenticated: this.isAuthenticated },
-    );
+    return this.readAsUser(`/services/${this.idPath(serviceId)}/sync`);
   }
 
   /**
@@ -846,7 +862,7 @@ class AuthenticatedCloudRegistryProvider
    * none if the deployment doesn't sync.
    */
   async getSyncs(): Promise<ServiceSyncState[]> {
-    return this.request("/syncs", { authenticated: this.isAuthenticated });
+    return this.readAsUser("/syncs");
   }
 
   // --------------------------------------------------

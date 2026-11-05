@@ -9,12 +9,17 @@ import { useCloudRegistry } from "./use-cloud-registry";
  * The state of a service's sync with its service info
  * @param serviceId Service identifier, once known
  * @returns `sync`: the state; undefined without sync (the registry answers
- * `404`, also if the deployment doesn't sync) and until `loaded`;
- * `setSync`: take a state that the registry returned; `reload`: read it again
+ * `404`, also if the deployment doesn't sync) and until `loaded`; `failed`:
+ * the state is unknown, which isn't the same as no sync; `setSync`: take a
+ * state that the registry returned; `reload`: read it again
  */
 function useServiceSync(serviceId?: string) {
     const { cloudRegistryProvider } = useCloudRegistry();
-    const [state, setState] = useState<{ id: string; sync?: ServiceSync }>();
+    const [state, setState] = useState<{
+        id: string;
+        sync?: ServiceSync;
+        failed?: boolean;
+    }>();
     const latest = useRef(0);
 
     const reload = useCallback(() => {
@@ -28,8 +33,9 @@ function useServiceSync(serviceId?: string) {
             })
             .catch((err) => {
                 if (request !== latest.current) return;
-                setState({ id: serviceId });
-                if (hasStatus(err, 404)) return;
+                const failed = !hasStatus(err, 404);
+                setState({ id: serviceId, failed });
+                if (!failed) return;
                 toast.error(
                     errorMessage(
                         err,
@@ -58,6 +64,7 @@ function useServiceSync(serviceId?: string) {
     return {
         sync: loaded ? state?.sync : undefined,
         loaded,
+        failed: loaded && !!state?.failed,
         setSync,
         reload,
     };
