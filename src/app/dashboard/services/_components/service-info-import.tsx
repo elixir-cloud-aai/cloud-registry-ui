@@ -55,6 +55,7 @@ function ServiceInfoImport({ disabled, onImport }: Props) {
                     type="url"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
+                    disabled={importing}
                     placeholder="https://tes.example.org/ga4gh/tes/v1/service-info"
                     aria-invalid={!!error}
                 />

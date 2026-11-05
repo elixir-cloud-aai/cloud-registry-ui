@@ -105,4 +105,22 @@ function syncFailedReason(err: unknown) {
     return mutationError(err, "Cannot sync this service currently.");
 }
 
-export { syncFailedReason, syncFrequency, syncReasonText, syncStartedMessage };
+/**
+ * Say how a sync of a new service failed
+ * @param err Error of the request
+ * @returns That sync is off if the registry answered; without an answer, it
+ * may have turned it on
+ */
+function syncFailedTitle(err: unknown) {
+    return typeof (err as { status?: unknown } | undefined)?.status === "number"
+        ? "The service is registered, but sync is off."
+        : "The service is registered, but the app can't tell if sync is on.";
+}
+
+export {
+    syncFailedReason,
+    syncFailedTitle,
+    syncFrequency,
+    syncReasonText,
+    syncStartedMessage,
+};

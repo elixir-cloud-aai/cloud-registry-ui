@@ -3,6 +3,7 @@ import { failure } from "@/test/errors";
 import {
     createFormValues,
     fillCreateForm,
+    formSnapshot,
     type ImportValues,
     importError,
     sameValues,
@@ -193,6 +194,20 @@ describe("fillCreateForm", () => {
     ])("reports a form that can't be filled in: %s", (_, form) => {
         expect(fillCreateForm(form, imported, true).filled).toBe(false);
         expect(createFormValues(form)).toBeUndefined();
+    });
+});
+
+describe("formSnapshot", () => {
+    it("differs once the values of the form change", () => {
+        const form = emptyForm();
+        const before = formSnapshot(form);
+        expect(formSnapshot(form)).toBe(before);
+        form.formData.name = "Changed";
+        expect(formSnapshot(form)).not.toBe(before);
+    });
+
+    it("has nothing to take from another element", () => {
+        expect(formSnapshot(null)).toBeUndefined();
     });
 });
 

@@ -3,6 +3,7 @@ import { failure } from "@/test/errors";
 import type { ServiceSync } from "./cloud-registry.types";
 import {
     syncFailedReason,
+    syncFailedTitle,
     syncFrequency,
     syncReasonText,
     syncStartedMessage,
@@ -65,6 +66,19 @@ describe("syncStartedMessage", () => {
         expect(kind).toBe("warning");
         expect(message).toContain("Sync is on");
         expect(message).toContain("only admins may add it");
+    });
+});
+
+describe("syncFailedTitle", () => {
+    it("says that sync is off if the registry answered", () => {
+        expect(syncFailedTitle(failure(502, {}))).toContain("sync is off");
+    });
+
+    it("doesn't claim that without an answer", () => {
+        expect(syncFailedTitle(new TypeError("Failed to fetch"))).toContain(
+            "can't tell",
+        );
+        expect(syncFailedTitle(undefined)).toContain("can't tell");
     });
 });
 

@@ -149,6 +149,15 @@ function fillCreateForm(
 }
 
 /**
+ * Take what users entered in the form, to tell later if they changed it
+ * @param form The form element
+ * @returns Its values, to compare
+ */
+function formSnapshot(form: unknown) {
+    return JSON.stringify(formState(form)?.formData);
+}
+
+/**
  * Get the message for a failed import
  * @param err Error of the request
  * @returns The message: the same for all problems of fetching, as the registry
@@ -174,6 +183,7 @@ function importError(err: unknown) {
 export {
     createFormValues,
     fillCreateForm,
+    formSnapshot,
     type ImportValues,
     importError,
     sameValues,

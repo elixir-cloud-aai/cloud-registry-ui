@@ -47,12 +47,17 @@ import {
 import {
     createFormValues,
     fillCreateForm,
+    formSnapshot,
     type ImportValues,
     sameValues,
     syncWanted,
 } from "@/lib/service-import";
 import { servicesLimit } from "@/lib/service-limits";
-import { syncFailedReason, syncStartedMessage } from "@/lib/service-sync";
+import {
+    syncFailedReason,
+    syncFailedTitle,
+    syncStartedMessage,
+} from "@/lib/service-sync";
 import { offersNewTypes, typeLabel } from "@/lib/service-types";
 import ServiceInfoImport from "./service-info-import";
 import ServiceSyncChoice from "./service-sync-choice";
@@ -206,7 +211,7 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
                 toast[kind](message, { duration: 10000 });
             })
             .catch((err) => {
-                toast.error("The service is registered, but sync is off.", {
+                toast.error(syncFailedTitle(err), {
                     description: syncFailedReason(err),
                     duration: 15000,
                 });
@@ -216,11 +221,18 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
 
     const handleImport = async (serviceInfoUrl: string) => {
         if (!cloudRegistryProvider) return;
+        const form = formElement.current;
+        const before = formSnapshot(form);
         const values =
             await cloudRegistryProvider.importServiceInfo(serviceInfoUrl);
-        const form = formElement.current;
         // what the form has pending, e.g. types loaded just now
         await form?.updateComplete;
+        if (formSnapshot(form) !== before) {
+            toast.info(
+                "The form changed during the import, so it keeps your entries. Import again to replace them.",
+            );
+            return;
+        }
         // the form reports the new values before the state below applies
         syncChoice.current = { ...syncChoice.current, values };
         const { filled, typeOffered } = fillCreateForm(
@@ -304,7 +316,7 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
             {/* registries older than cloud-registry 1.0.0rc2 can't import */}
             {canImport && (
                 <ServiceInfoImport
-                    disabled={loading || !typesLoaded}
+                    disabled={loading || rulesLoading || !typesLoaded}
                     onImport={handleImport}
                 />
             )}
