@@ -120,9 +120,10 @@ test.describe("login", () => {
             ).toString(),
         );
         expect(claims.nonce).toBe(nonce);
-        // the mock lists no token auth methods, so the app sent the client
-        // ID only in the HTTP Basic header (client_secret_basic), from which
-        // the mock took the audience
+        // the mock lists no token auth methods, so the app authenticated
+        // with HTTP Basic (client_secret_basic), and the mock took the
+        // audience from it; the mock would accept client_secret_post too:
+        // the unit tests check the method and its header
         expect(claims.aud).toEqual(["cloud-registry-ui-e2e"]);
         // the secrets of the login are used up
         for (const name of ["authState", "authVerifier", "authNonce"])
@@ -138,7 +139,7 @@ test.describe("login", () => {
 
     test("logs out only from the app's pages", async ({ page, baseURL }) => {
         await login(page, "owner");
-        const sessionCookies = async () =>
+        const sessionCookiesSet = async () =>
             (await page.context().cookies())
                 .map((val) => val.name)
                 .filter((name) =>
@@ -154,15 +155,15 @@ test.describe("login", () => {
         });
         expect(forged.status()).toBe(303);
         expect(forged.headers().location).toContain("type=logout-origin");
-        expect(await sessionCookies()).toHaveLength(2);
+        expect(await sessionCookiesSet()).toHaveLength(2);
 
         const own = await page.request.post("/auth/api/logout", {
             headers: { Origin: new URL(baseURL as string).origin },
             maxRedirects: 0,
         });
-        expect(own.status()).toBe(303);
-        // on to the provider, to end its session too
-        expect(own.headers().location).toContain("/oidc/endsession?");
-        expect(await sessionCookies()).toEqual([]);
+        // a page that goes on to the provider, to end its session too
+        expect(own.status()).toBe(200);
+        expect(await own.text()).toContain("/oidc/endsession?");
+        expect(await sessionCookiesSet()).toEqual([]);
     });
 });

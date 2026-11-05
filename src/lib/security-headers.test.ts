@@ -45,32 +45,6 @@ describe("contentSecurityPolicy", () => {
         expect(policy["base-uri"]).toEqual(["'self'"]);
     });
 
-    it("lets forms go on to the login providers' origins", async () => {
-        vi.resetModules();
-        vi.stubEnv(
-            "LOGIN_PROVIDERS",
-            JSON.stringify([
-                {
-                    id: "a",
-                    name: "A",
-                    logo: "/a.svg",
-                    issuer: "https://login.example.org/oidc/",
-                    clientId: "c",
-                    clientSecret: "s",
-                },
-            ]),
-        );
-        vi.stubEnv(
-            "LOGIN_REDIRECT_URI",
-            "https://app.example.org/auth/api/callback",
-        );
-        const { contentSecurityPolicy } = await import("./security-headers");
-        expect(directives(contentSecurityPolicy("n"))["form-action"]).toEqual([
-            "'self'",
-            "https://login.example.org",
-        ]);
-    });
-
     it("allows eval in development only", () => {
         vi.stubEnv("NODE_ENV", "development");
         expect(directives(contentSecurityPolicy("n"))["script-src"]).toContain(

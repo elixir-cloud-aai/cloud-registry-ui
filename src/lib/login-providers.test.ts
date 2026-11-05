@@ -435,27 +435,6 @@ describe("oidcEndpoints", () => {
     );
 });
 
-describe("loginProviderOrigins", () => {
-    it("lists the origins of the issuers once each", async () => {
-        const { loginProviderOrigins } = await load({
-            LOGIN_PROVIDERS: JSON.stringify([
-                provider,
-                { ...provider, id: "b", issuer: "https://login.example.org/b" },
-                { ...provider, id: "c", issuer: "http://localhost:8190/oidc" },
-            ]),
-        });
-        expect(loginProviderOrigins()).toEqual([
-            "https://login.example.org",
-            "http://localhost:8190",
-        ]);
-    });
-
-    it("lists none with invalid settings", async () => {
-        const { loginProviderOrigins } = await load({ LOGIN_PROVIDERS: "[" });
-        expect(loginProviderOrigins()).toEqual([]);
-    });
-});
-
 describe("loginErrorSummary", () => {
     const config = {
         method: "post",

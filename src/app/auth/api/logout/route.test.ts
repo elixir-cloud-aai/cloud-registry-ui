@@ -32,6 +32,12 @@ const providerLogout = `${provider.issuer}/logout?${new URLSearchParams({
     post_logout_redirect_uri: `${appOrigin}/auth/login`,
 })}`;
 
+/**
+ * Log out
+ * @param headers Headers of the request
+ * @returns Where the browser goes next: the redirect's location, or the
+ * URL that the page refreshes to
+ */
 async function logout(headers: Record<string, string>) {
     const { POST } = await import("./route");
     const response = await POST(
@@ -40,8 +46,13 @@ async function logout(headers: Record<string, string>) {
             headers,
         }),
     );
-    expect(response.status).toBe(303);
-    return response.headers.get("location");
+    if (response.status === 303) return response.headers.get("location");
+    expect(response.status).toBe(200);
+    const page = await response.text();
+    const url = /<meta http-equiv="refresh" content="0;url=([^"]*)">/.exec(
+        page,
+    )?.[1];
+    return url?.replaceAll("&amp;", "&");
 }
 
 describe("POST /auth/api/logout", () => {
@@ -107,21 +118,38 @@ describe("POST /auth/api/logout", () => {
         },
     );
 
-    it("logs out at the app only, with a warning, for an end session endpoint on another origin", async () => {
+    it("goes on to the provider with a page, not a redirect", async () => {
         setUp(session);
-        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        // e.g. on another host than the issuer
         vi.spyOn(axios, "get").mockResolvedValue({
             data: {
                 ...discovery,
-                end_session_endpoint: "https://sso.example.org/logout",
+                end_session_endpoint:
+                    'https://sso.example.org/logout?a="<b>"&c=d',
             },
         });
-        expect(await logout({ origin: appOrigin })).toBe(
-            `${appOrigin}/auth/login`,
+        const { POST } = await import("./route");
+        const response = await POST(
+            new NextRequest(`${appOrigin}/auth/api/logout`, {
+                method: "POST",
+                headers: { origin: appOrigin },
+            }),
         );
-        expect(warn).toHaveBeenCalledWith(
-            "Logout at mock skipped: its end_session_endpoint isn't on the origin of its issuer",
+        expect(response.status).toBe(200);
+        expect(response.headers.get("content-type")).toBe(
+            "text/html; charset=utf-8",
         );
+        // the URL holds the ID token
+        expect(response.headers.get("cache-control")).toBe("no-store");
+        expect(response.headers.get("referrer-policy")).toBe("no-referrer");
+        const page = await response.text();
+        const href =
+            "https://sso.example.org/logout?a=%22%3Cb%3E%22&amp;c=d&amp;id_token_hint=i&amp;client_id=client&amp;post_logout_redirect_uri=https%3A%2F%2Fapp.example.org%2Fauth%2Flogin";
+        expect(page).toContain(
+            `<meta http-equiv="refresh" content="0;url=${href}">`,
+        );
+        expect(page).toContain(`<a href="${href}">`);
+        expect(jar.size).toBe(0);
     });
 
     it("logs out at the app only, logging why, if the discovery fails", async () => {
@@ -131,7 +159,10 @@ describe("POST /auth/api/logout", () => {
         expect(await logout({ origin: appOrigin })).toBe(
             `${appOrigin}/auth/login`,
         );
-        expect(log).toHaveBeenCalledWith("Logout at mock failed:", "down");
+        expect(log).toHaveBeenCalledWith(
+            "Logout at mock skipped (logged out of the app only):",
+            "down",
+        );
         expect(jar.size).toBe(0);
     });
 

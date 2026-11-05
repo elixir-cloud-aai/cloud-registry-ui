@@ -20,16 +20,17 @@ function loggedOut() {
 export async function GET() {
     const accessToken = await readSessionCookie("access_token");
     if (!accessToken) return loggedOut();
-    // sessions without the cookie, e.g. older ones, use the only provider;
-    // with several providers, and for providers that were removed, they
-    // end, which is expected after such changes: no error
-    const provider = loginProvider(await readSessionCookie("login_provider"));
-    if (!provider) {
-        await deleteLoginCookies(sessionCookies);
-        return loggedOut();
-    }
+    const providerId = await readSessionCookie("login_provider");
 
     try {
+        // sessions without the cookie, e.g. older ones, use the only
+        // provider; with several providers, and for providers that were
+        // removed, they end, which is expected after such changes: no error
+        const provider = loginProvider(providerId);
+        if (!provider) {
+            await deleteLoginCookies(sessionCookies);
+            return loggedOut();
+        }
         const { userinfo_endpoint } = await oidcEndpoints(provider);
         const res = await axios.get(userinfo_endpoint, {
             headers: {

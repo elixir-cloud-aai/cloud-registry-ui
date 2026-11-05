@@ -52,20 +52,12 @@ async function providerLogoutUrl(
         endpoint = (await oidcEndpoints(provider)).end_session_endpoint;
     } catch (err) {
         console.error(
-            `Logout at ${provider.id} failed:`,
+            `Logout at ${provider.id} skipped (logged out of the app only):`,
             loginErrorSummary(err),
         );
         return undefined;
     }
     if (!endpoint) return undefined;
-    // the Content Security Policy lets the logout form go on to the
-    // issuer's origin only (`form-action`)
-    if (new URL(endpoint).origin !== new URL(provider.issuer).origin) {
-        console.warn(
-            `Logout at ${provider.id} skipped: its end_session_endpoint isn't on the origin of its issuer`,
-        );
-        return undefined;
-    }
     const url = new URL(endpoint);
     // keeps query parameters of the endpoint
     for (const [key, val] of Object.entries({
@@ -78,13 +70,50 @@ async function providerLogoutUrl(
 }
 
 /**
+ * Escape text for an HTML attribute value in double quotes
+ * @param text Text, e.g. a URL
+ * @returns The text with `&`, `"`, `<` and `>` as character references
+ */
+function htmlAttribute(text: string) {
+    return text
+        .replaceAll("&", "&amp;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+}
+
+/**
+ * Send the browser on to the provider's end session endpoint with a page
+ * that refreshes to it, not a redirect: browsers apply the Content Security
+ * Policy's `form-action` to every redirect after the logout form, also to
+ * those of the provider (e.g. through other hosts of a single logout), and
+ * a refresh is a new navigation, not a form submission
+ * @param url URL of the end session endpoint, with the ID token
+ * @returns Page that the browser leaves at once, with a link as a fallback;
+ * not stored, as the URL holds the ID token
+ */
+function continueAt(url: URL) {
+    const href = htmlAttribute(url.href);
+    return new NextResponse(
+        `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=${href}"><title>Logging out</title></head><body><p><a href="${href}">Continue logging out at your login provider</a></p></body></html>`,
+        {
+            headers: {
+                "Content-Type": "text/html; charset=utf-8",
+                "Cache-Control": "no-store",
+                "Referrer-Policy": "no-referrer",
+            },
+        },
+    );
+}
+
+/**
  * Log out: a POST from the app's own pages only, so that other sites and
  * prefetching can't log users out
  * @param request Request, a form submission
- * @returns Redirect (303, so that the browser follows with a GET) to the
- * provider's end session endpoint, if it has one, which sends the user
- * on to the login page; else to the login page, or to the error page for
- * requests from other origins
+ * @returns Page that goes on to the provider's end session endpoint, if
+ * it has one, which sends the user on to the login page; else a redirect
+ * (303, so that the browser follows with a GET) to the login page, or to
+ * the error page for requests from other origins
  */
 export async function POST(request: NextRequest) {
     // the app's public origin, also behind a reverse proxy; absolute URLs, as
@@ -117,8 +146,6 @@ export async function POST(request: NextRequest) {
         idToken,
         appOrigin,
     );
-    return NextResponse.redirect(
-        providerLogout ?? new URL("/auth/login", appOrigin),
-        303,
-    );
+    if (providerLogout) return continueAt(providerLogout);
+    return NextResponse.redirect(new URL("/auth/login", appOrigin), 303);
 }

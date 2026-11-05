@@ -3,7 +3,6 @@
  * Policy (set per request by `src/proxy.ts`, as it needs a nonce) and the
  * headers of all responses (set in `next.config.ts`)
  */
-import { loginProviderOrigins } from "./login-providers";
 import { publicSetting } from "./public-settings";
 
 /** @description headers of all responses */
@@ -56,9 +55,7 @@ function contentSecurityPolicy(nonce: string) {
         "connect-src": ["'self'", registry],
         "object-src": ["'none'"],
         "base-uri": ["'self'"],
-        // the logout form, which goes on to the provider's end session
-        // endpoint (`src/app/auth/api/logout/route.ts`)
-        "form-action": ["'self'", ...loginProviderOrigins()],
+        "form-action": ["'self'"],
         // the app can't be framed, e.g. for clickjacking admin actions
         "frame-ancestors": ["'none'"],
     };

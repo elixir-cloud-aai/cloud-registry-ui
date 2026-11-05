@@ -120,7 +120,9 @@ points before the upgrade:
   Users who are logged in stay logged in: the app still reads the session
   from the old names (`access_token`, `id_token`, `login_provider`), and
   logging out or a new login deletes them. The next release stops reading
-  them, so users of sessions from before this upgrade log in again then. A
+  them, so users of sessions from before this upgrade log in again then.
+  Until then, sites on other subdomains of the app's domain can still set
+  these names for the whole domain, which logging out can't delete. A
   login in progress during the upgrade fails, and the user logs in again.
   Serve the app on a domain of its own (see [Sessions and
   logout](login.md#sessions-and-logout)).

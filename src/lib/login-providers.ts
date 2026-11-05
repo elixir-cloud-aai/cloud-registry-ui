@@ -290,26 +290,6 @@ function tokenAuthMethod(supported: unknown): TokenAuthMethod {
 }
 
 /**
- * Get the origins of the providers' issuers, to which the app may send
- * forms (the logout, redirected to the provider's end session endpoint)
- * @returns The origins, without duplicates; none if the login settings
- * are invalid (the server doesn't start with them)
- */
-function loginProviderOrigins() {
-    try {
-        return [
-            ...new Set(
-                loginSettings().providers.map(
-                    (val) => new URL(val.issuer).origin,
-                ),
-            ),
-        ];
-    } catch {
-        return [];
-    }
-}
-
-/**
  * Make text safe for a log line: no control characters (they could forge
  * log entries), at most 300 characters
  * @param text Text, e.g. from a login provider
@@ -381,7 +361,6 @@ export {
     loginErrorSummary,
     loginProvider,
     loginProviderInfos,
-    loginProviderOrigins,
     loginRequestTimeout,
     loginSettings,
     loginSettingsAtBuild,
