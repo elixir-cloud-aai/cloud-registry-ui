@@ -45,7 +45,7 @@ describe("request deadline", () => {
         await withToken.getServices();
         expect(timeout.mock.calls).toEqual([[30_000]]);
         const [first, second] = fetchMock.mock.calls;
-        expect(first?.[1]?.signal).toBeInstanceOf(AbortSignal);
+        expect(first?.[1]?.signal).toBe(timeout.mock.results[0]?.value);
         expect(second?.[1]?.signal).toBe(first?.[1]?.signal);
         timeout.mockRestore();
     });
@@ -59,7 +59,7 @@ describe("request deadline", () => {
             detail: expect.stringContaining("can't tell"),
         });
         await expect(provider.getServices()).rejects.toMatchObject({
-            detail: expect.stringContaining("Please try again."),
+            detail: expect.not.stringContaining("can't tell"),
         });
     });
 
@@ -105,6 +105,7 @@ describe("Retry-After", () => {
         ["120", 120],
         ["0", undefined],
         ["soon", undefined],
+        ["9".repeat(400), undefined],
         [undefined, undefined],
     ])("reads %s as %s seconds", async (value, retryAfter) => {
         const provider = new AuthenticatedCloudRegistryProvider(base, "t");

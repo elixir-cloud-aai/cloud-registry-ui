@@ -180,10 +180,10 @@ function removeInvitationError(err: unknown) {
 
 /** Check if a request got no answer, so that it may have taken effect */
 function noAnswer(err: unknown) {
-    return !(
-        err instanceof Error &&
-        "status" in err &&
-        typeof err.status === "number"
+    // `TypeError`: what `fetch` rejects with if the connection fails
+    return (
+        err instanceof TypeError ||
+        (err instanceof Error && "timedOut" in err && err.timedOut === true)
     );
 }
 

@@ -91,9 +91,8 @@ function requestTimedOut(method: HttpMethod) {
  * @returns The seconds to wait, if the value is a positive number of seconds
  */
 function retryAfterSeconds(value: string | null) {
-  return value && /^\d+$/.test(value.trim()) && Number(value) > 0
-    ? Number(value)
-    : undefined;
+  const seconds = value && /^\d+$/.test(value.trim()) ? Number(value) : 0;
+  return seconds > 0 && Number.isFinite(seconds) ? seconds : undefined;
 }
 
 class AuthenticatedCloudRegistryProvider
