@@ -329,6 +329,7 @@ test.describe("notifications", () => {
         await expect(page.getByText("x is out of sync")).toBeVisible();
 
         await page.evaluate(() => {
+            // biome-ignore lint/suspicious/noDocumentCookie: the test switches the user as a login does, with a cookie the app reads
             document.cookie = "access_token=other; path=/";
         });
         await readAgain(page);

@@ -1,10 +1,10 @@
+import { LogIn } from "lucide-react";
+import Link from "next/link";
 import {
     DropdownMenuContent,
     DropdownMenuGroup,
     DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { LogIn } from "lucide-react";
-import Link from "next/link";
 
 function AppSidebarFooterMenuNoUser() {
     return (

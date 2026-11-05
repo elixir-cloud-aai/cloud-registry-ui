@@ -11,7 +11,7 @@ function useCloudRegistry() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     useEffect(() => {
-        let provider;
+        let provider: AuthenticatedCloudRegistryProvider;
         if (!token)
             provider = new AuthenticatedCloudRegistryProvider(
                 publicSetting("NEXT_PUBLIC_CLOUD_REGISTRY_URL") || "",

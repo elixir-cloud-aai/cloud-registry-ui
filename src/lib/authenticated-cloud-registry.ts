@@ -27,7 +27,6 @@ import type {
     ServiceSyncState,
     ServiceVerification,
     UserId,
-    Verification,
     VerificationRegister,
     VerifiedServices,
 } from "./cloud-registry.types";

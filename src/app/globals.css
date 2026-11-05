@@ -3,7 +3,6 @@
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
-@tailwind utilities;
 
 @theme inline {
     --font-heading: var(--font-sans);
