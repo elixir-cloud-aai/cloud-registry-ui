@@ -1,6 +1,7 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { isAborted } from "@/lib/abort";
 import type { Verification } from "@/lib/cloud-registry.types";
 import { errorMessage } from "@/lib/errors";
 import { hasStatus } from "@/lib/permissions";
@@ -20,11 +21,13 @@ export function useServiceVerification(service?: ExternalService) {
 
     useEffect(() => {
         if (!service) return;
-        let current = true;
+        // aborted on unmount and when the service changes
+        const controller = new AbortController();
+        const { signal } = controller;
         cloudRegistryProvider
-            ?.getServiceVerification(service.id)
+            ?.getServiceVerification(service.id, { signal })
             .then((val) => {
-                if (!current) return;
+                if (signal.aborted) return;
                 setState({
                     service,
                     verification: matchesVerification(service, val)
@@ -33,7 +36,7 @@ export function useServiceVerification(service?: ExternalService) {
                 });
             })
             .catch((err) => {
-                if (!current) return;
+                if (signal.aborted || isAborted(err)) return;
                 setState({ service });
                 if (hasStatus(err, 404)) return;
                 toast.error(
@@ -43,9 +46,7 @@ export function useServiceVerification(service?: ExternalService) {
                     ),
                 );
             });
-        return () => {
-            current = false;
-        };
+        return () => controller.abort();
     }, [cloudRegistryProvider, service]);
 
     const loaded = !!service && state?.service === service;

@@ -14,7 +14,8 @@ import { useCloudRegistry } from "./use-cloud-registry";
  * registry publishes no rules), rules that leave the checks to the
  * registry (`unknownRegistrationRules`). They are read once per mount, as
  * soon as the registry's client is set up (right after mounting), so
- * changes of the registry apply on the next page load
+ * changes of the registry apply on the next page load; the read is aborted
+ * on unmount
  */
 function useRegistrationRules() {
     const { cloudRegistryProvider } = useCloudRegistry();
@@ -23,15 +24,14 @@ function useRegistrationRules() {
 
     useEffect(() => {
         if (!cloudRegistryProvider) return;
-        let current = true;
-        readRegistrationRules(cloudRegistryProvider).then((val) => {
-            if (!current) return;
+        const controller = new AbortController();
+        const { signal } = controller;
+        readRegistrationRules(cloudRegistryProvider, { signal }).then((val) => {
+            if (signal.aborted) return;
             setRules(val ?? unknownRegistrationRules);
             setError(val === undefined);
         });
-        return () => {
-            current = false;
-        };
+        return () => controller.abort();
     }, [cloudRegistryProvider]);
 
     return {

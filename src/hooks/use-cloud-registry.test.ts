@@ -1,63 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { react } from "@/test/react";
 
-// A minimal stand-in for React's hooks: state persists across renders, and
-// an effect runs on the first render and whenever its dependencies change,
-// as React does it. The unit tests run in Node, without a DOM.
-const react = vi.hoisted(() => {
-    let states: unknown[] = [];
-    let deps: (unknown[] | undefined)[] = [];
-    let stateIndex = 0;
-    let effectIndex = 0;
-    const effects: (() => void)[] = [];
-    return {
-        reset() {
-            states = [];
-            deps = [];
-        },
-        render<T>(hook: () => T): T {
-            stateIndex = 0;
-            effectIndex = 0;
-            const result = hook();
-            // run effects after the render, then render again with the new
-            // state, as React would
-            const pending = effects.splice(0);
-            for (const effect of pending) effect();
-            if (pending.length === 0) return result;
-            stateIndex = 0;
-            effectIndex = 0;
-            const rerendered = hook();
-            effects.splice(0);
-            return rerendered;
-        },
-        useState<T>(initial: T) {
-            const index = stateIndex++;
-            if (!(index in states)) states[index] = initial;
-            const set = (value: T) => {
-                states[index] = value;
-            };
-            return [states[index] as T, set] as const;
-        },
-        useEffect(effect: () => void, next?: unknown[]) {
-            const index = effectIndex++;
-            const previous = deps[index];
-            const changed =
-                previous === undefined ||
-                next === undefined ||
-                next.length !== previous.length ||
-                next.some((value, i) => !Object.is(value, previous[i]));
-            if (changed) {
-                deps[index] = next;
-                effects.push(effect);
-            }
-        },
-    };
-});
 const cookies = vi.hoisted(() => new Map<string, string>());
 
-vi.mock("react", () => ({
-    useState: react.useState,
-    useEffect: react.useEffect,
-}));
+// React's hooks, as the tests run in Node without a DOM
+vi.mock("react", async () => (await import("@/test/react")).reactMock);
 vi.mock("cookies-next/client", () => ({
     getCookie: (name: string) => cookies.get(name),
 }));

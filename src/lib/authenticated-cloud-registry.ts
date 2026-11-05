@@ -5,7 +5,7 @@ import type {
     Service,
     ServiceType,
 } from "@elixir-cloud/cloud-registry/providers";
-
+import { anySignal, isAborted } from "./abort";
 import type {
     ApiError,
     AppNotification,
@@ -42,7 +42,14 @@ const approvalsSupport = new Map<string, Promise<boolean>>();
 /** How long to wait for an answer of the registry, including its body */
 const requestTimeoutMs = 30_000;
 
-interface RequestOptions {
+/** Options of reads */
+interface ReadOptions {
+    /** Aborts the read, e.g. when the page that waits for it unmounts: it
+     * then fails with an `AbortError` (see `isAborted`) */
+    signal?: AbortSignal;
+}
+
+interface RequestOptions extends ReadOptions {
     method?: HttpMethod;
     body?: unknown;
     authenticated?: boolean;
@@ -174,17 +181,22 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
      * the expired login is the error: a 404 may only mean that guests can't see
      * it, e.g. for a pending service.
      */
-    private async readAsUser<T>(path: string): Promise<T> {
+    private async readAsUser<T>(
+        path: string,
+        { signal }: ReadOptions = {},
+    ): Promise<T> {
         try {
             return await this.request<T>(path, {
                 authenticated: this.isAuthenticated,
+                signal,
             });
         } catch (err) {
             if (!this.isAuthenticated || !hasStatus(err, 401)) throw err;
             try {
-                return await this.request<T>(path);
-            } catch {
-                throw err;
+                return await this.request<T>(path, { signal });
+            } catch (retryErr) {
+                // aborted, not expired
+                throw isAborted(retryErr) ? retryErr : err;
             }
         }
     }
@@ -199,12 +211,16 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
         path: string,
         options: RequestOptions = {},
     ): Promise<T> {
+        // one deadline, also for the retry with the token in `send`, next to
+        // the caller's signal
+        const deadline = AbortSignal.timeout(requestTimeoutMs);
         try {
-            // one deadline, also for the retry with the token in `send`
             return await this.send<T>(
                 path,
                 options,
-                AbortSignal.timeout(requestTimeoutMs),
+                options.signal
+                    ? anySignal([deadline, options.signal])
+                    : deadline,
             );
         } catch (err) {
             if (err instanceof Error && err.name === "TimeoutError") {
@@ -267,7 +283,9 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
                 } else if (typeof body.message === "string") {
                     message = body.message;
                 }
-            } catch {
+            } catch (err) {
+                // An aborted read is aborted, not failed.
+                if (isAborted(err)) throw err;
                 // The error response may not contain JSON.
             }
 
@@ -308,9 +326,10 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
      *
      * Returns the current user and their service roles.
      */
-    async getCurrentUser(): Promise<Me> {
+    async getCurrentUser({ signal }: ReadOptions = {}): Promise<Me> {
         return this.request("/me", {
             authenticated: true,
+            signal,
         });
     }
 
@@ -322,8 +341,10 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
      * GET /services
      * Public.
      */
-    async getServices(): Promise<ExternalService[]> {
-        return this.request("/services");
+    async getServices({
+        signal,
+    }: ReadOptions = {}): Promise<ExternalService[]> {
+        return this.request("/services", { signal });
     }
 
     /**
@@ -331,24 +352,31 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
      * With the user's token, so also what only the user may see, e.g. pending
      * services.
      */
-    async getServicesAsUser(): Promise<ExternalService[]> {
-        return this.readAsUser("/services");
+    async getServicesAsUser(
+        options: ReadOptions = {},
+    ): Promise<ExternalService[]> {
+        return this.readAsUser("/services", options);
     }
 
     /**
      * GET /services/{serviceId}
      * Public.
      */
-    async getServiceById(serviceId: ServiceId): Promise<ExternalService> {
-        return this.request(`/services/${this.idPath(serviceId)}`);
+    async getServiceById(
+        serviceId: ServiceId,
+        { signal }: ReadOptions = {},
+    ): Promise<ExternalService> {
+        return this.request(`/services/${this.idPath(serviceId)}`, { signal });
     }
 
     /**
      * GET /services/types
      * Public.
      */
-    async getServiceTypes(): Promise<ServiceType[]> {
-        return this.request("/services/types");
+    async getServiceTypes({
+        signal,
+    }: ReadOptions = {}): Promise<ServiceType[]> {
+        return this.request("/services/types", { signal });
     }
 
     /**
@@ -401,9 +429,10 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
      *
      * List the pending service types and services that the user may see.
      */
-    async getApprovals(): Promise<Approvals> {
+    async getApprovals({ signal }: ReadOptions = {}): Promise<Approvals> {
         return this.request("/approvals", {
             authenticated: true,
+            signal,
         });
     }
 
@@ -575,9 +604,11 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
      */
     async getServicePermissions(
         serviceId: ServiceId,
+        { signal }: ReadOptions = {},
     ): Promise<ServicePermissions> {
         return this.request(`/services/${this.idPath(serviceId)}/permissions`, {
             authenticated: true,
+            signal,
         });
     }
 
@@ -706,9 +737,13 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
      * up to cloud-registry 1.0.0rc1 list the open and accepted ones that haven't
      * expired, without their status.
      */
-    async getServiceInvitations(serviceId: ServiceId): Promise<Invitation[]> {
+    async getServiceInvitations(
+        serviceId: ServiceId,
+        { signal }: ReadOptions = {},
+    ): Promise<Invitation[]> {
         return this.request(`/services/${this.idPath(serviceId)}/invitations`, {
             authenticated: true,
+            signal,
         });
     }
 
@@ -758,8 +793,14 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
      */
     async getServiceVerification(
         serviceId: ServiceId,
+        { signal }: ReadOptions = {},
     ): Promise<ServiceVerification> {
-        return this.request(`/services/${this.idPath(serviceId)}/verification`);
+        return this.request(
+            `/services/${this.idPath(serviceId)}/verification`,
+            {
+                signal,
+            },
+        );
     }
 
     /**
@@ -804,8 +845,10 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
      *
      * List verified services.
      */
-    async getVerifications(): Promise<VerifiedServices> {
-        return this.request("/verifications");
+    async getVerifications({
+        signal,
+    }: ReadOptions = {}): Promise<VerifiedServices> {
+        return this.request("/verifications", { signal });
     }
 
     // --------------------------------------------------
@@ -876,8 +919,14 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
      *
      * @returns The state of the sync; fails with a 404 without one
      */
-    async getServiceSync(serviceId: ServiceId): Promise<ServiceSync> {
-        return this.readAsUser(`/services/${this.idPath(serviceId)}/sync`);
+    async getServiceSync(
+        serviceId: ServiceId,
+        options: ReadOptions = {},
+    ): Promise<ServiceSync> {
+        return this.readAsUser(
+            `/services/${this.idPath(serviceId)}/sync`,
+            options,
+        );
     }
 
     /**
@@ -887,8 +936,8 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
      * List the states of all services with sync, e.g. for the labels of a list;
      * none if the deployment doesn't sync.
      */
-    async getSyncs(): Promise<ServiceSyncState[]> {
-        return this.readAsUser("/syncs");
+    async getSyncs(options: ReadOptions = {}): Promise<ServiceSyncState[]> {
+        return this.readAsUser("/syncs", options);
     }
 
     // --------------------------------------------------
@@ -902,8 +951,10 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
      * What needs the user's attention, most recent first; in admin mode, what
      * needs the attention of admins.
      */
-    async getNotifications(): Promise<AppNotification[]> {
-        return this.request("/notifications", { authenticated: true });
+    async getNotifications({
+        signal,
+    }: ReadOptions = {}): Promise<AppNotification[]> {
+        return this.request("/notifications", { authenticated: true, signal });
     }
 
     /**
@@ -929,8 +980,8 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
      * GET /service-info
      * Public.
      */
-    async getServiceInfo(): Promise<Service> {
-        return this.request("/service-info");
+    async getServiceInfo({ signal }: ReadOptions = {}): Promise<Service> {
+        return this.request("/service-info", { signal });
     }
 
     /**
@@ -939,10 +990,13 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
      *
      * The only place that knows the API's field for the identifier.
      */
-    private async selfListing(method: HttpMethod): Promise<SelfListing> {
+    private async selfListing(
+        method: HttpMethod,
+        { signal }: ReadOptions = {},
+    ): Promise<SelfListing> {
         const state = await this.request<
             { listed?: unknown; serviceId?: unknown } | undefined
-        >("/service-info/listing", { method, authenticated: true });
+        >("/service-info/listing", { method, authenticated: true, signal });
         if (typeof state?.listed !== "boolean") {
             throw new Error(
                 "The registry's answer doesn't say whether it is listed.",
@@ -957,8 +1011,8 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
     }
 
     /** Tell whether the registry is listed among its services. */
-    async getSelfListing(): Promise<SelfListing> {
-        return this.selfListing("GET");
+    async getSelfListing(options: ReadOptions = {}): Promise<SelfListing> {
+        return this.selfListing("GET", options);
     }
 
     /** Add the registry to its services, or bring its entry up to date. */
@@ -972,4 +1026,4 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
     }
 }
 
-export { AuthenticatedCloudRegistryProvider, dotSegment };
+export { AuthenticatedCloudRegistryProvider, dotSegment, type ReadOptions };

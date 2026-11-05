@@ -170,11 +170,34 @@ describe("readRegistrationRules", () => {
         expect(
             await readRegistrationRules(
                 { getServiceInfo: () => new Promise<never>(() => {}) },
-                1,
+                { timeout: 1 },
             ),
         ).toBeUndefined();
         expect(String(error.mock.calls[1][1])).toMatch(/timed out/);
         expect(await readRegistrationRules(null)).toBeUndefined();
+    });
+
+    it("stops without a log when the caller aborts", async () => {
+        const error = vi.spyOn(console, "error").mockImplementation(() => {});
+        const controller = new AbortController();
+        const getServiceInfo = vi.fn(
+            ({ signal }: { signal?: AbortSignal } = {}) =>
+                new Promise<never>((_, reject) =>
+                    signal?.addEventListener("abort", () =>
+                        reject(signal.reason),
+                    ),
+                ),
+        );
+        const rules = readRegistrationRules(
+            { getServiceInfo },
+            { signal: controller.signal },
+        );
+        controller.abort();
+        expect(await rules).toBeUndefined();
+        expect(getServiceInfo).toHaveBeenCalledWith({
+            signal: controller.signal,
+        });
+        expect(error).not.toHaveBeenCalled();
     });
 });
 

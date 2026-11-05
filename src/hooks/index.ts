@@ -1,6 +1,7 @@
 import { useAdminMode } from "./use-admin-mode";
 import { useCloudRegistry } from "./use-cloud-registry";
 import { useFitText } from "./use-fit-text";
+import { useLatestRequest } from "./use-latest-request";
 import { useMe } from "./use-me";
 import { useIsMobile } from "./use-mobile";
 import { usePagination } from "./use-pagination";
@@ -14,6 +15,7 @@ export {
     useCloudRegistry,
     useFitText,
     useIsMobile,
+    useLatestRequest,
     useMe,
     usePagination,
     useRegistrationRules,

@@ -13,7 +13,11 @@
  */
 
 import { z } from "@/lib/zod";
-import type { AuthenticatedCloudRegistryProvider } from "./authenticated-cloud-registry";
+import { isAborted } from "./abort";
+import type {
+    AuthenticatedCloudRegistryProvider,
+    ReadOptions,
+} from "./authenticated-cloud-registry";
 
 /** Who may add service types (`custom.access_control.service_types`) */
 type ServiceTypesMode = "open" | "controlled" | "moderated";
@@ -122,19 +126,24 @@ function registrationRules(info: unknown): RegistrationRules | undefined {
 /**
  * Read the registration rules from the registry
  * @param provider The registry's client, if any
- * @param timeout How long to wait for the service info, in milliseconds
+ * @param options `timeout`: how long to wait for the service info, in
+ * milliseconds; `signal`: aborts the read
  * @returns The rules; undefined without a client, if the service info
- * can't be read in time (logged), or if it has no rules
+ * can't be read in time (logged), if the read is aborted (not logged), or
+ * if it has no rules
  */
 async function readRegistrationRules(
     provider: Pick<AuthenticatedCloudRegistryProvider, "getServiceInfo"> | null,
-    timeout = serviceInfoTimeout,
+    {
+        timeout = serviceInfoTimeout,
+        signal,
+    }: { timeout?: number } & ReadOptions = {},
 ) {
     if (!provider) return undefined;
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
         const info = await Promise.race([
-            provider.getServiceInfo(),
+            provider.getServiceInfo({ signal }),
             new Promise<never>((_, reject) => {
                 timer = setTimeout(
                     () => reject(new Error("timed out")),
@@ -144,7 +153,8 @@ async function readRegistrationRules(
         ]);
         return registrationRules(info);
     } catch (err) {
-        console.error("Failed to load the registration rules:", err);
+        if (!isAborted(err))
+            console.error("Failed to load the registration rules:", err);
         return undefined;
     } finally {
         clearTimeout(timer);

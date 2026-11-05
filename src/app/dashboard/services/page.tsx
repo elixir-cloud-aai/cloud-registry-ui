@@ -3,13 +3,19 @@ import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { LogIn, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { PageSubtitle } from "@/components/shared/page-subtitle";
 import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/table";
-import { useCloudRegistry, useMe, usePagination } from "@/hooks";
+import {
+    useCloudRegistry,
+    useLatestRequest,
+    useMe,
+    usePagination,
+} from "@/hooks";
+import { isAborted } from "@/lib/abort";
 import { getApprovalsOrNull, withPendingServices } from "@/lib/approvals";
 import type {
     ServiceSyncState,
@@ -49,7 +55,8 @@ function Page() {
     const [pending, setPending] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
     const [loginRequired, setLoginRequired] = useState(false);
-    const latestRequest = useRef(0);
+    // also aborted on unmount
+    const latestRequest = useLatestRequest();
     const [search, setSearch] = useState("");
     const [filters, setFilters] = useState<ServiceFilters>(defaultFilters);
     const [registering, setRegistering] = useState(false);
@@ -87,25 +94,27 @@ function Page() {
     // services again only when the provider changes
     const fetchServices = useCallback(() => {
         if (!cloudRegistryProvider) return;
-        const request = ++latestRequest.current;
+        const signal = latestRequest.next();
         Promise.all([
-            cloudRegistryProvider.getServices(),
-            cloudRegistryProvider.getVerifications().catch((err) => {
-                console.error("Failed to load verifications:", err);
+            cloudRegistryProvider.getServices({ signal }),
+            cloudRegistryProvider.getVerifications({ signal }).catch((err) => {
+                if (!isAborted(err))
+                    console.error("Failed to load verifications:", err);
                 return null;
             }),
             // pending services, for admins and users with a role on them
-            getApprovalsOrNull(cloudRegistryProvider),
+            getApprovalsOrNull(cloudRegistryProvider, { signal }),
             // none from registries that don't know syncs yet; on other
             // failures, the labels and the filter keep what they had
-            cloudRegistryProvider.getSyncs().catch((err) => {
+            cloudRegistryProvider.getSyncs({ signal }).catch((err) => {
                 if (hasStatus(err, 404)) return [];
-                console.error("Failed to load the syncs:", err);
+                if (!isAborted(err))
+                    console.error("Failed to load the syncs:", err);
                 return null;
             }),
         ])
             .then(([_val, verified, approvals, synced]) => {
-                if (request !== latestRequest.current) return;
+                if (signal.aborted) return;
                 setServices(withPendingServices(_val, approvals));
                 setPending(
                     new Set(approvals?.services.map((val) => val.id) ?? []),
@@ -126,7 +135,7 @@ function Page() {
                     );
             })
             .catch((err) => {
-                if (request !== latestRequest.current) return;
+                if (signal.aborted || isAborted(err)) return;
                 if (isUnauthorized(err)) {
                     setLoginRequired(true);
                     return;
@@ -143,9 +152,9 @@ function Page() {
                 );
             })
             .finally(() => {
-                if (request === latestRequest.current) setLoading(false);
+                if (!signal.aborted) setLoading(false);
             });
-    }, [cloudRegistryProvider]);
+    }, [cloudRegistryProvider, latestRequest]);
 
     useEffect(() => {
         fetchServices();

@@ -9,7 +9,11 @@
  * cloud-registry#238
  */
 
-import type { AuthenticatedCloudRegistryProvider } from "./authenticated-cloud-registry";
+import { isAborted } from "./abort";
+import type {
+    AuthenticatedCloudRegistryProvider,
+    ReadOptions,
+} from "./authenticated-cloud-registry";
 import type {
     Approvals,
     ExternalService,
@@ -23,6 +27,7 @@ const noApprovals: Approvals = { serviceTypes: [], services: [] };
 /**
  * Get the pending service types and services that the user may see
  * @param provider Registry provider
+ * @param options `signal`: aborts the read
  * @returns Pending types and services; none for guests, for registries
  * without approvals (before cloud-registry 0.5.0, see `hasApprovals`; or
  * 404 to the request with the token, e.g. during a rollout) and for users
@@ -31,14 +36,21 @@ const noApprovals: Approvals = { serviceTypes: [], services: [] };
  * @throws Error of other failed requests, e.g. 401 for an expired login,
  * or TypeError if the registry can't be reached
  */
-async function getApprovals(provider: AuthenticatedCloudRegistryProvider) {
+async function getApprovals(
+    provider: AuthenticatedCloudRegistryProvider,
+    options: ReadOptions = {},
+) {
     if (!provider.isAuthenticated) return noApprovals;
-    // in browsers, the request with the token can't tell a missing route
-    // (404) from an outage: both fail without a status
-    if (!(await provider.hasApprovals())) return noApprovals;
     try {
-        return await provider.getApprovals();
+        // in browsers, the request with the token can't tell a missing route
+        // (404) from an outage: both fail without a status. The probe is
+        // shared by the pages (see `hasApprovals`), so it isn't aborted with
+        // this read
+        if (!(await provider.hasApprovals())) return noApprovals;
+        return await provider.getApprovals(options);
     } catch (err) {
+        // aborted, also if the probe failed after the abort
+        if (options.signal?.aborted) throw options.signal.reason;
         if (hasStatus(err, 403) || hasStatus(err, 404)) return noApprovals;
         throw err;
     }
@@ -47,12 +59,18 @@ async function getApprovals(provider: AuthenticatedCloudRegistryProvider) {
 /**
  * Get the pending service types and services for a list
  * @param provider Registry provider
+ * @param options `signal`: aborts the read
  * @returns Pending types and services; none for an expired login, which
- * the pages show; null if they couldn't be loaded
+ * the pages show; null if they couldn't be loaded or the read was aborted
+ * (not logged)
  */
-function getApprovalsOrNull(provider: AuthenticatedCloudRegistryProvider) {
-    return getApprovals(provider).catch((err) => {
+function getApprovalsOrNull(
+    provider: AuthenticatedCloudRegistryProvider,
+    options: ReadOptions = {},
+) {
+    return getApprovals(provider, options).catch((err) => {
         if (isUnauthorized(err)) return noApprovals;
+        if (isAborted(err)) return null;
         console.error("Failed to load the pending entries:", err);
         return null;
     });
@@ -100,19 +118,22 @@ function withPendingTypes(
  * Get a service, also if it is pending
  * @param provider Registry provider
  * @param serviceId Service identifier
+ * @param options `signal`: aborts the reads
  * @returns The service, and whether it is pending: undefined if that is
  * unknown, as the pending entries couldn't be loaded
  * @throws Error of the failed request for the service, e.g. 404 for
  * services that don't exist or that the user may not see, or 401 for an
  * expired login; or an Error if the service wasn't found and the pending
- * services couldn't be loaded, as it may be one of them
+ * services couldn't be loaded, as it may be one of them; the `AbortError` of
+ * an aborted read
  */
 async function getServiceWithApproval(
     provider: AuthenticatedCloudRegistryProvider,
     serviceId: string,
+    options: ReadOptions = {},
 ) {
     const [found, approvals] = await Promise.all([
-        provider.getServiceById(serviceId).then(
+        provider.getServiceById(serviceId, options).then(
             (val) => ({ service: val, error: undefined }),
             (err: unknown) => {
                 // pending services are only listed in GET /approvals
@@ -120,8 +141,8 @@ async function getServiceWithApproval(
                 return { service: undefined, error: err };
             },
         ),
-        getApprovals(provider).catch((err) => {
-            if (isUnauthorized(err)) throw err;
+        getApprovals(provider, options).catch((err) => {
+            if (isUnauthorized(err) || isAborted(err)) throw err;
             console.error("Failed to load the pending services:", err);
             return null;
         }),

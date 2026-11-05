@@ -1,13 +1,14 @@
 # Services for the end-to-end tests: cloud-registry with MongoDB, a mock
 # OpenID Connect provider and a service with service info to import. The app
-# runs outside, started by Playwright (`playwright.config.ts`). Ports differ
-# from the defaults so that the stack can run next to a local development
-# setup.
+# runs outside, started by Playwright (`playwright.config.ts`), or, with the
+# profile `image`, from its image (service `app`). Ports differ from the
+# defaults so that the stack can run next to a local development setup.
 #
 # - Registry:     http://localhost:8180/ga4gh/registry/v1
 # - Login:        http://oidc.localhost:8190/oidc
 # - Service info: http://service-info:8191/<key>/service-info for the
 #   registry, http://localhost:8191/<key>/service-info for the tests
+# - App (profile `image`): http://localhost:3100
 name: cloud-registry-ui-e2e
 
 services:
@@ -112,6 +113,47 @@ services:
                     "--quiet",
                     "--eval",
                     "db.adminCommand('ping').ok",
+                ]
+            interval: 2s
+            timeout: 5s
+            retries: 30
+
+    # the app from its image (`E2E_APP_IMAGE`, by default the one that CI
+    # builds), as it ships: the standalone server on Bun. On the host's
+    # network, as Playwright's app would be: the browsers reach it at the
+    # same address, and it reaches the login provider at the browsers'
+    # `oidc.localhost:8190`. The settings of the tests
+    # (`playwright.config.ts`): keep them in step
+    app:
+        profiles: [image]
+        image: ${E2E_APP_IMAGE:-cloud-registry-ui:ci}
+        network_mode: host
+        extra_hosts:
+            - "oidc.localhost:127.0.0.1"
+        environment:
+            PORT: "3100"
+            LISTEN_HOSTNAME: 127.0.0.1
+            NEXT_PUBLIC_CLOUD_REGISTRY_URL: http://localhost:8180/ga4gh/registry/v1
+            LOGIN_PROVIDERS: >-
+                [{"id": "mock", "name": "Mock Login",
+                "logo": "/elixir-on-cloud-mark.svg",
+                "issuer": "http://oidc.localhost:8190/oidc",
+                "clientId": "cloud-registry-ui-e2e",
+                "clientSecret": "e2e-secret"}]
+            LOGIN_REDIRECT_URI: http://localhost:3100/auth/api/callback
+        depends_on:
+            oidc:
+                condition: service_healthy
+            registry:
+                condition: service_healthy
+        # the image's check, more often, so that `--wait` returns early
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "bun",
+                    "-e",
+                    "fetch('http://127.0.0.1:3100/', { redirect: 'manual' }).then((res) => process.exit(res.status < 400 ? 0 : 1), () => process.exit(1))",
                 ]
             interval: 2s
             timeout: 5s
