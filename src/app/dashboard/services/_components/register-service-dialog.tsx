@@ -7,9 +7,16 @@ import type {
 } from "@elixir-cloud/cloud-registry/events";
 import type { ExternalServiceRegister } from "@elixir-cloud/cloud-registry/providers";
 import { ECCClientElixirCloudRegistryServiceCreate } from "@elixir-cloud/cloud-registry/react";
-import { ClockIcon } from "lucide-react";
+import { ClockIcon, TriangleAlertIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+    type ComponentRef,
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { UnsavedChangesGuard } from "@/components/shared/unsaved-changes-guard";
@@ -37,8 +44,17 @@ import {
     createFailedToast,
     withFormRules,
 } from "@/lib/service-create";
+import {
+    createFormValues,
+    fillCreateForm,
+    type ImportValues,
+    sameValues,
+} from "@/lib/service-import";
 import { servicesLimit } from "@/lib/service-limits";
-import { offersNewTypes } from "@/lib/service-types";
+import { syncFailedReason, syncStartedMessage } from "@/lib/service-sync";
+import { offersNewTypes, typeLabel } from "@/lib/service-types";
+import ServiceInfoImport from "./service-info-import";
+import ServiceSyncChoice from "./service-sync-choice";
 
 /** The link that opens the create form (`/dashboard/services/create`
  * redirects to it); the login returns to that path */
@@ -80,23 +96,62 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
     // for another one
     // which also tells while it sends, so that the modal stays open until
     // the registry has answered (requests can't be cancelled)
+    const formElement =
+        useRef<ComponentRef<typeof ECCClientElixirCloudRegistryServiceCreate>>(
+            null,
+        );
+    const syncRule = rulesLoading ? undefined : rules.serviceInfoSync;
+    // the imported values, while the form has them, and whether users have
+    // changed them
+    const [imported, setImported] = useState<ImportValues>();
+    const [modified, setModified] = useState(false);
+    // users' choice for imported values, if sync is available
+    const [syncChecked, setSyncChecked] = useState(true);
+    // a service type that the form can't take, for the note
+    const [refusedType, setRefusedType] = useState<ImportValues["type"]>();
+    // the form needs its types for an import
+    const [typesLoaded, setTypesLoaded] = useState(false);
+    // what the client needs when it sends, and what it decided: whether to
+    // sync the new service, as the form is empty again once it has created it
+    const syncChoice = useRef<{ values?: ImportValues; wanted: boolean }>({
+        wanted: false,
+    });
+    const syncNew = useRef(false);
+    useEffect(() => {
+        syncChoice.current = {
+            values: imported,
+            wanted: !!syncRule?.enabled && syncChecked,
+        };
+    }, [imported, syncRule, syncChecked]);
+
+    // and tells whether to sync the service that it sends
     const provider = useMemo(() => {
         if (!cloudRegistryProvider) return cloudRegistryProvider;
         const checked = checkedProvider(
             withFormRules(cloudRegistryProvider),
             () => checkRules.current,
         );
-        const sending = (send: () => Promise<string>) => {
+        const sending = (
+            service: ExternalServiceRegister,
+            send: () => Promise<string>,
+        ) => {
+            const { values, wanted } = syncChoice.current;
+            syncNew.current = wanted && !!values && sameValues(service, values);
             onSending(true);
             return send().finally(() => onSending(false));
         };
         return Object.assign(Object.create(checked), {
             createService: (service: ExternalServiceRegister) =>
-                sending(() => checked.createService(service)),
+                sending(service, () => checked.createService(service)),
             createServiceWithId: (
                 id: string,
                 service: ExternalServiceRegister,
-            ) => sending(() => checked.createServiceWithId(id, service)),
+            ) =>
+                sending(service, () =>
+                    checked.createServiceWithId(id, service),
+                ),
+            getServiceTypes: () =>
+                checked.getServiceTypes().finally(() => setTypesLoaded(true)),
         }) as typeof checked;
     }, [cloudRegistryProvider, onSending]);
 
@@ -106,6 +161,12 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
                 "Could not check your permissions. Please try again later.",
             );
     }, [error, expired]);
+
+    // the form shows before `GET /me` has loaded, and follows later changes
+    // of `admin`, `allowNewType` and the provider.
+    // The registry decides who may add types (`offersNewTypes()`): while
+    // `GET /me` and the rules load, only listed types are offered
+    const allowNewType = !loading && !rulesLoading && offersNewTypes(me, rules);
 
     const onServiceCreated = (e: EccServiceCreatedEvent) => {
         const { serviceId, serviceData } = e.detail;
@@ -120,6 +181,55 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
             duration: 10000,
         });
         onRegistered();
+        if (syncNew.current) startSync(serviceId);
+    };
+
+    // after the form has closed: the service is registered, whatever happens
+    // here. Reloads the services, as the sync may have changed the values
+    const startSync = (serviceId: string) => {
+        cloudRegistryProvider
+            ?.syncService(serviceId)
+            .then((sync) => {
+                const { kind, message } = syncStartedMessage(sync);
+                toast[kind](message, { duration: 10000 });
+            })
+            .catch((err) => {
+                toast.error(
+                    "The service is registered, but sync is off. You can turn it on later on the service's page.",
+                    {
+                        description: syncFailedReason(err),
+                        duration: 15000,
+                    },
+                );
+            })
+            .finally(onRegistered);
+    };
+
+    const handleImport = async (serviceInfoUrl: string) => {
+        if (!cloudRegistryProvider) return;
+        const values =
+            await cloudRegistryProvider.importServiceInfo(serviceInfoUrl);
+        const form = formElement.current;
+        // what the form has pending, e.g. types loaded just now
+        await form?.updateComplete;
+        // the form reports the new values before the state below applies
+        syncChoice.current = { ...syncChoice.current, values };
+        const { filled, typeOffered } = fillCreateForm(
+            form,
+            values,
+            allowNewType,
+        );
+        if (!filled) {
+            syncChoice.current = { ...syncChoice.current, values: undefined };
+            throw new Error("The form can't take the imported values.");
+        }
+        setImported(values);
+        setModified(!typeOffered);
+        setSyncChecked(true);
+        setRefusedType(typeOffered ? undefined : values.type);
+        toast.success(
+            "Imported the service info. Check the values, then create the service.",
+        );
     };
 
     const onServiceCreationFailed = async (e: EccServiceCreateFailedEvent) => {
@@ -137,6 +247,20 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
 
     const onFormChanged = (e: EccServiceFormChangedEvent) => {
         onChange(e.detail.dirty);
+        const { values } = syncChoice.current;
+        if (!values) return;
+        // an empty form (**Reset**, or after creating a service) has no
+        // imported values anymore
+        if (!e.detail.dirty) {
+            syncChoice.current = { ...syncChoice.current, values: undefined };
+            setImported(undefined);
+            setModified(false);
+            setRefusedType(undefined);
+            return;
+        }
+        const current = createFormValues(formElement.current);
+        setModified(!current || !sameValues(current, values));
+        if (current?.type.artifact) setRefusedType(undefined);
     };
 
     if (provider === null) return null;
@@ -159,12 +283,6 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
             />
         );
 
-    // the form shows before `GET /me` has loaded, and follows later changes
-    // of `admin`, `allowNewType` and the provider.
-    // The registry decides who may add types (`offersNewTypes()`): while
-    // `GET /me` and the rules load, only listed types are offered
-    const allowNewType = !loading && !rulesLoading && offersNewTypes(me, rules);
-
     return (
         <div className="min-w-0">
             {allowNewType && me?.serviceTypesPending && (
@@ -174,7 +292,25 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
                     and so are the services that have them.
                 </p>
             )}
+            {/* registries older than cloud-registry 1.0.0rc2 can't import */}
+            {syncRule && (
+                <ServiceInfoImport
+                    disabled={loading || !typesLoaded}
+                    onImport={handleImport}
+                />
+            )}
+            {refusedType && (
+                <p className="flex items-start gap-2 mb-4 text-sm text-destructive">
+                    <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
+                    <span className="min-w-0 wrap-anywhere">
+                        The service type {typeLabel(refusedType)} isn't
+                        registered, and you may not add it. Choose a registered
+                        type, or ask an admin to add it and import again.
+                    </span>
+                </p>
+            )}
             <ECCClientElixirCloudRegistryServiceCreate
+                ref={formElement}
                 admin={!!me?.admin}
                 allowNewType={allowNewType}
                 onEccServiceCreated={onServiceCreated}
@@ -183,6 +319,15 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
                 onEccServiceFormChanged={onFormChanged}
                 provider={provider}
             />
+            {syncRule?.enabled && (
+                <ServiceSyncChoice
+                    intervalHours={syncRule.intervalHours}
+                    imported={!!imported}
+                    modified={modified}
+                    checked={syncChecked}
+                    onCheckedChange={setSyncChecked}
+                />
+            )}
         </div>
     );
 }
