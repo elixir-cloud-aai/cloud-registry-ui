@@ -49,6 +49,7 @@ import {
     fillCreateForm,
     type ImportValues,
     sameValues,
+    syncWanted,
 } from "@/lib/service-import";
 import { servicesLimit } from "@/lib/service-limits";
 import { syncFailedReason, syncStartedMessage } from "@/lib/service-sync";
@@ -90,17 +91,13 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
     useEffect(() => {
         checkRules.current = rulesLoading ? unknownRegistrationRules : rules;
     }, [rules, rulesLoading]);
-    // the form only checks that the required fields are filled in, so the
-    // client checks the rest before sending (cloud-components has no hook
-    // for it); the same client for new rules, as the form reloads its types
-    // for another one
-    // which also tells while it sends, so that the modal stays open until
-    // the registry has answered (requests can't be cancelled)
     const formElement =
         useRef<ComponentRef<typeof ECCClientElixirCloudRegistryServiceCreate>>(
             null,
         );
     const syncRule = rulesLoading ? undefined : rules.serviceInfoSync;
+    // registries that publish the rule can import, whether they sync or not
+    const canImport = !!syncRule;
     // the imported values, while the form has them, and whether users have
     // changed them
     const [imported, setImported] = useState<ImportValues>();
@@ -124,7 +121,13 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
         };
     }, [imported, syncRule, syncChecked]);
 
-    // and tells whether to sync the service that it sends
+    // the form only checks that the required fields are filled in, so the
+    // client checks the rest before sending (cloud-components has no hook
+    // for it); the same client for new rules, as the form reloads its types
+    // for another one
+    // which also tells while it sends, so that the modal stays open until
+    // the registry has answered (requests can't be cancelled), and decides
+    // whether to sync the service that it sends
     const provider = useMemo(() => {
         if (!cloudRegistryProvider) return cloudRegistryProvider;
         const checked = checkedProvider(
@@ -135,8 +138,7 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
             service: ExternalServiceRegister,
             send: () => Promise<string>,
         ) => {
-            const { values, wanted } = syncChoice.current;
-            syncNew.current = wanted && !!values && sameValues(service, values);
+            syncNew.current = syncWanted(service, syncChoice.current);
             onSending(true);
             return send().finally(() => onSending(false));
         };
@@ -150,8 +152,12 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
                 sending(service, () =>
                     checked.createServiceWithId(id, service),
                 ),
+            // not if they fail: every type would then look unregistered
             getServiceTypes: () =>
-                checked.getServiceTypes().finally(() => setTypesLoaded(true)),
+                checked.getServiceTypes().then((types) => {
+                    setTypesLoaded(true);
+                    return types;
+                }),
         }) as typeof checked;
     }, [cloudRegistryProvider, onSending]);
 
@@ -194,13 +200,10 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
                 toast[kind](message, { duration: 10000 });
             })
             .catch((err) => {
-                toast.error(
-                    "The service is registered, but sync is off. You can turn it on later on the service's page.",
-                    {
-                        description: syncFailedReason(err),
-                        duration: 15000,
-                    },
-                );
+                toast.error("The service is registered, but sync is off.", {
+                    description: syncFailedReason(err),
+                    duration: 15000,
+                });
             })
             .finally(onRegistered);
     };
@@ -293,7 +296,7 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
                 </p>
             )}
             {/* registries older than cloud-registry 1.0.0rc2 can't import */}
-            {syncRule && (
+            {canImport && (
                 <ServiceInfoImport
                     disabled={loading || !typesLoaded}
                     onImport={handleImport}
@@ -324,6 +327,7 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
                     intervalHours={syncRule.intervalHours}
                     imported={!!imported}
                     modified={modified}
+                    typeRefused={!!refusedType}
                     checked={syncChecked}
                     onCheckedChange={setSyncChecked}
                 />

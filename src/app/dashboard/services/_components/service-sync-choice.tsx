@@ -12,17 +12,19 @@ type Props = {
     imported: boolean;
     /** Whether users changed imported values */
     modified: boolean;
+    /** Whether the form couldn't take the imported service type */
+    typeRefused: boolean;
     checked: boolean;
     onCheckedChange: (checked: boolean) => void;
 };
 
 /** Whether to keep a new service in sync, below the create form: only for
- * imported values that users didn't change, as sync would override changes.
- * Otherwise, owners can turn sync on later, on the service's page */
+ * imported values that users didn't change, as sync would override changes */
 function ServiceSyncChoice({
     intervalHours,
     imported,
     modified,
+    typeRefused,
     checked,
     onCheckedChange,
 }: Props) {
@@ -58,7 +60,12 @@ function ServiceSyncChoice({
                     of its service info, so manual changes won't last.
                 </p>
             )}
-            {modified && (
+            {typeRefused && (
+                <p className="text-sm text-muted-foreground">
+                    Not available, as the form can't take the service's type.
+                </p>
+            )}
+            {modified && !typeRefused && (
                 <p className="flex items-start gap-2 text-sm text-destructive">
                     <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
                     You changed imported values, and syncing would override

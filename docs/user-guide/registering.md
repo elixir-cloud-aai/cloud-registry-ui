@@ -117,7 +117,7 @@ service info regularly, and updates the entry with it.
 - Deployments that don't sync don't show it; you can still import.
 
 If the first fetch fails, the service stays registered, without sync, and a message
-says so. You can turn sync on later on the service's page.
+says so.
 
 ### Known limitations
 

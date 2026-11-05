@@ -6,6 +6,7 @@ import {
     type ImportValues,
     importError,
     sameValues,
+    syncWanted,
 } from "./service-import";
 
 const tes = { group: "org.ga4gh", artifact: "tes", version: "1.1.0" };
@@ -81,6 +82,27 @@ describe("sameValues", () => {
     it("ignores values that sync doesn't write", () => {
         const form = { ...imported, customServiceId: "my-id" };
         expect(sameValues(form, imported)).toBe(true);
+    });
+});
+
+describe("syncWanted", () => {
+    it("syncs imported values that nobody changed, if wanted", () => {
+        expect(syncWanted(imported, { values: imported, wanted: true })).toBe(
+            true,
+        );
+    });
+
+    it("doesn't sync otherwise", () => {
+        expect(syncWanted(imported, { values: imported, wanted: false })).toBe(
+            false,
+        );
+        expect(syncWanted(imported, { wanted: true })).toBe(false);
+        expect(
+            syncWanted(
+                { ...imported, name: "Changed" },
+                { values: imported, wanted: true },
+            ),
+        ).toBe(false);
     });
 });
 

@@ -68,8 +68,7 @@ type ConflictCode =
     | "invitations-limit"
     | "invitation-accepted"
     | "sync-unavailable"
-    | "sync-identity-mismatch"
-    | "sync-url-locked";
+    | "sync-identity-mismatch";
 
 // for registries that send no code (cloud-registry#247): the detail of the
 // 409 for changes of pending services (see `@/lib/approvals`) to types that

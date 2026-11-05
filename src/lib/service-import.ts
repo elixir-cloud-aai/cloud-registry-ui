@@ -68,6 +68,21 @@ function sameValues(values: ImportValues, imported: ImportValues) {
 }
 
 /**
+ * Check whether to sync a service that the form sends
+ * @param service Values that it sends
+ * @param choice `values`: those of the import, if any; `wanted`: whether the
+ * registry syncs, and users left the box ticked
+ * @returns Whether to sync: only values that sync would write itself, so that
+ * it overrides no manual changes
+ */
+function syncWanted(
+    service: ImportValues,
+    { values, wanted }: { values?: ImportValues; wanted: boolean },
+) {
+    return wanted && !!values && sameValues(service, values);
+}
+
+/**
  * Get the state of the create form
  * @param form The form's element, if mounted
  * @returns Its state, if it has the expected one
@@ -162,4 +177,5 @@ export {
     type ImportValues,
     importError,
     sameValues,
+    syncWanted,
 };
