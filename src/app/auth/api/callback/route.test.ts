@@ -73,6 +73,9 @@ describe("GET /auth/api/callback", () => {
             code_verifier: "verifier-1",
         });
         expect(options?.timeout).toBe(10000);
+        expect(options?.headers).toEqual({
+            "Content-Type": "application/x-www-form-urlencoded",
+        });
         // other statuses are failures, e.g. errors with a JSON body
         expect(options?.validateStatus?.(200)).toBe(true);
         expect(options?.validateStatus?.(400)).toBe(false);
@@ -94,6 +97,84 @@ describe("GET /auth/api/callback", () => {
         // the state is used up
         for (const name of Object.keys(pending))
             expect(jar.has(name)).toBe(false);
+    });
+
+    it.each([
+        ["lists only it", ["client_secret_basic"]],
+        ["lists no client_secret_post", ["private_key_jwt"]],
+        ["lists no methods", undefined],
+    ])(
+        "authenticates with HTTP Basic if the provider %s",
+        async (_, methods) => {
+            setUp(pending);
+            // form-urlencoded, then base64-encoded (RFC 6749, section 2.3.1)
+            vi.stubEnv(
+                "LOGIN_PROVIDERS",
+                JSON.stringify([
+                    { ...provider, clientId: "a b", clientSecret: "s:é+/" },
+                ]),
+            );
+            vi.spyOn(axios, "get").mockResolvedValue({
+                data: {
+                    ...discovery,
+                    token_endpoint_auth_methods_supported: methods,
+                },
+            });
+            const { url, post } = await callback("?code=c1&state=state-1", {
+                ...tokens,
+                id_token: jwt({ ...claims, aud: "a b" }),
+            });
+            expect(url).toBe("/dashboard");
+            const [, body, options] = post.mock.calls[0];
+            // the secret only in the header
+            expect(Object.fromEntries(body as URLSearchParams)).toEqual({
+                grant_type: "authorization_code",
+                code: "c1",
+                redirect_uri: "https://app.example.org/auth/api/callback",
+                code_verifier: "verifier-1",
+            });
+            expect(options?.headers).toEqual({
+                "Content-Type": "application/x-www-form-urlencoded",
+                Authorization: `Basic ${Buffer.from("a+b:s%3A%C3%A9%2B%2F").toString("base64")}`,
+            });
+        },
+    );
+
+    it("sets __Host- cookies in production, ending sessions of the old names", async () => {
+        vi.stubEnv("NODE_ENV", "production");
+        setUp({
+            ...Object.fromEntries(
+                Object.entries(pending).map(([name, value]) => [
+                    `__Host-${name}`,
+                    value,
+                ]),
+            ),
+            access_token: "old",
+            id_token: "old",
+            login_provider: "mock",
+        });
+        expect((await callback("?code=c1&state=state-1")).url).toBe(
+            "/dashboard",
+        );
+        for (const name of ["access_token", "id_token", "login_provider"]) {
+            expect(jar.get(`__Host-${name}`)).toMatchObject({
+                secure: true,
+                path: "/",
+            });
+            expect(jar.get(`__Host-${name}`)?.domain).toBeUndefined();
+            expect(jar.has(name)).toBe(false);
+        }
+        for (const name of Object.keys(pending))
+            expect(jar.has(`__Host-${name}`)).toBe(false);
+    });
+
+    it("ignores a pending login of the old names in production", async () => {
+        vi.stubEnv("NODE_ENV", "production");
+        // e.g. planted by a sibling subdomain
+        setUp(pending);
+        const { url, post } = await callback("?code=c1&state=state-1");
+        expect(url).toBe("/auth/error?type=state");
+        expect(post).not.toHaveBeenCalled();
     });
 
     it("returns to the app's path kept at the start of the login", async () => {

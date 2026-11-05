@@ -4,21 +4,7 @@
  * registrations come from its service info (`registration-rules.ts`)
  */
 import { publicSetting } from "./public-settings";
-
-/**
- * Check whether a host name is the local machine
- * @param hostname Host name of a URL, IPv6 addresses in brackets
- * @returns Whether it is `localhost`, a `.localhost` name or a loopback
- * address
- */
-function isLocalHost(hostname: string) {
-    return (
-        hostname === "localhost" ||
-        hostname.endsWith(".localhost") ||
-        /^127(\.\d{1,3}){3}$/.test(hostname) ||
-        hostname === "[::1]"
-    );
-}
+import { isLocalHost } from "./secure-urls";
 
 /**
  * Check the registry settings; invalid values stop the server

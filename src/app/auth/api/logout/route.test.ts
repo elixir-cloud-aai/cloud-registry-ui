@@ -1,6 +1,14 @@
+import axios from "axios";
 import { NextRequest } from "next/server";
 import { describe, expect, it, vi } from "vitest";
-import { appOrigin, cookieStore, jar, setUp } from "@/test/routes";
+import {
+    appOrigin,
+    cookieStore,
+    discovery,
+    jar,
+    provider,
+    setUp,
+} from "@/test/routes";
 
 vi.mock("next/headers", () => ({ cookies: async () => cookieStore }));
 
@@ -15,6 +23,14 @@ const session = {
     authNonce: "n",
     authReturnTo: "/invitations",
 };
+
+// the provider's end session endpoint, keeping its query parameters
+const providerLogout = `${provider.issuer}/logout?${new URLSearchParams({
+    ui: "1",
+    id_token_hint: "i",
+    client_id: "client",
+    post_logout_redirect_uri: `${appOrigin}/auth/login`,
+})}`;
 
 async function logout(headers: Record<string, string>) {
     const { POST } = await import("./route");
@@ -38,7 +54,84 @@ describe("POST /auth/api/logout", () => {
         ],
     ])("logs out %s", async (_, headers) => {
         setUp(session);
-        expect(await logout(headers)).toBe(`${appOrigin}/auth/login`);
+        expect(await logout(headers)).toBe(providerLogout);
+        expect(jar.size).toBe(0);
+    });
+
+    it("logs out sessions of the __Host- and the old names in production", async () => {
+        vi.stubEnv("NODE_ENV", "production");
+        setUp({
+            ...Object.fromEntries(
+                Object.entries(session)
+                    .filter(([name]) => name !== "admin_mode")
+                    .map(([name, value]) => [`__Host-${name}`, value]),
+            ),
+            ...session,
+        });
+        expect(await logout({ origin: appOrigin })).toBe(providerLogout);
+        expect(jar.size).toBe(0);
+    });
+
+    it("ends sessions of earlier versions at the only provider", async () => {
+        setUp({ ...session, login_provider: undefined });
+        expect(await logout({ origin: appOrigin })).toBe(providerLogout);
+    });
+
+    it.each([
+        ["without a session", {}],
+        ["without an ID token", { ...session, id_token: undefined }],
+        ["of an unknown provider", { ...session, login_provider: "other" }],
+    ])("logs out at the app only %s", async (_, cookies) => {
+        setUp(cookies);
+        const get = vi.spyOn(axios, "get");
+        expect(await logout({ origin: appOrigin })).toBe(
+            `${appOrigin}/auth/login`,
+        );
+        expect(get).not.toHaveBeenCalled();
+        expect(jar.size).toBe(0);
+    });
+
+    it.each([
+        ["no end session endpoint", undefined],
+        ["an empty end session endpoint", ""],
+    ])(
+        "logs out at the app only for providers with %s",
+        async (_, endpoint) => {
+            setUp(session);
+            vi.spyOn(axios, "get").mockResolvedValue({
+                data: { ...discovery, end_session_endpoint: endpoint },
+            });
+            expect(await logout({ origin: appOrigin })).toBe(
+                `${appOrigin}/auth/login`,
+            );
+        },
+    );
+
+    it("logs out at the app only, with a warning, for an end session endpoint on another origin", async () => {
+        setUp(session);
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        vi.spyOn(axios, "get").mockResolvedValue({
+            data: {
+                ...discovery,
+                end_session_endpoint: "https://sso.example.org/logout",
+            },
+        });
+        expect(await logout({ origin: appOrigin })).toBe(
+            `${appOrigin}/auth/login`,
+        );
+        expect(warn).toHaveBeenCalledWith(
+            "Logout at mock skipped: its end_session_endpoint isn't on the origin of its issuer",
+        );
+    });
+
+    it("logs out at the app only, logging why, if the discovery fails", async () => {
+        setUp(session);
+        const log = vi.spyOn(console, "error").mockImplementation(() => {});
+        vi.spyOn(axios, "get").mockRejectedValue(new Error("down"));
+        expect(await logout({ origin: appOrigin })).toBe(
+            `${appOrigin}/auth/login`,
+        );
+        expect(log).toHaveBeenCalledWith("Logout at mock failed:", "down");
         expect(jar.size).toBe(0);
     });
 

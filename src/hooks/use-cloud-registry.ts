@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 import { adminModeCookie, isAdminMode, requestRoles } from "@/lib/admin-mode";
 import { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import { publicSetting } from "@/lib/public-settings";
+import { sessionCookie } from "@/lib/session-cookies";
 
 function useCloudRegistry() {
-    const token = getCookie("access_token");
+    const token = sessionCookie("access_token", getCookie);
     const [cloudRegistryProvider, setCloudRegistryProvider] =
         useState<AuthenticatedCloudRegistryProvider | null>(null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);

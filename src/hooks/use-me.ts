@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { isAborted } from "@/lib/abort";
 import type { Me } from "@/lib/cloud-registry.types";
 import { isUnauthorized } from "@/lib/permissions";
+import { sessionCookie } from "@/lib/session-cookies";
 import { useCloudRegistry } from "./use-cloud-registry";
 import { useLatestRequest } from "./use-latest-request";
 
@@ -17,7 +18,7 @@ function useMe() {
 
     const fetchMe = useCallback(() => {
         if (!cloudRegistryProvider) return;
-        if (!getCookie("access_token")) {
+        if (!sessionCookie("access_token", getCookie)) {
             // logged out: there is nobody to fetch, and pending requests
             // must not restore the previous user
             latestRequest.abort();

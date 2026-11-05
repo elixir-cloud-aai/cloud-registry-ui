@@ -20,6 +20,7 @@ import {
     timeAgo,
 } from "@/lib/notifications";
 import { hasStatus, isUnauthorized } from "@/lib/permissions";
+import { sessionCookie } from "@/lib/session-cookies";
 
 // how often to read the notifications while the page is visible
 const refreshInterval = 60_000;
@@ -109,7 +110,7 @@ function NotificationBell() {
         if (!cloudRegistryProvider) return;
         // e.g. logged out or in as another user in another tab, which nothing
         // here gets to know of
-        const current = getCookie("access_token");
+        const current = sessionCookie("access_token", getCookie);
         if (!isLoggedIn || !current || current !== token.current) {
             clear();
             return;
@@ -144,7 +145,7 @@ function NotificationBell() {
     useEffect(() => {
         stopped.current = false;
         reading.current = false;
-        const now = getCookie("access_token");
+        const now = sessionCookie("access_token", getCookie);
         // names depend on who reads them
         if (now !== token.current) setNames(new Map());
         token.current = now;

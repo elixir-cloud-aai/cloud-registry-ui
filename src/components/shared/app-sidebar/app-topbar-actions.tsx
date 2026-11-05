@@ -1,6 +1,4 @@
-import { getCookie } from "cookies-next/server";
 import { Info, LogIn } from "lucide-react";
-import { cookies } from "next/headers";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,12 +6,13 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { readSessionCookie } from "@/lib/session";
 import { AdminModeToggle } from "../admin-mode";
 import { NotificationBell } from "../notifications";
 import { ThemeToggle } from "../theme";
 
 async function AppTopbarActions() {
-    const idToken = await getCookie("id_token", { cookies });
+    const idToken = await readSessionCookie("id_token");
 
     return (
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">

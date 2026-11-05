@@ -1,5 +1,3 @@
-import { deleteCookie, setCookie } from "cookies-next/server";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { type NextRequest, NextResponse } from "next/server";
 import {
@@ -14,6 +12,7 @@ import {
     loginSettings,
     oidcEndpoints,
 } from "@/lib/login-providers";
+import { deleteLoginCookies, setLoginCookie } from "@/lib/session";
 
 export async function GET(request: NextRequest) {
     const provider = loginProvider(
@@ -39,23 +38,16 @@ export async function GET(request: NextRequest) {
     const authState = randomSecret();
     const verifier = randomSecret();
     const nonce = randomSecret();
-    const cookieOptions = {
-        cookies: cookies,
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax" as const,
-        maxAge: 60 * 30,
-        path: "/",
-    };
-    await setCookie("authState", authState, cookieOptions);
-    await setCookie("authProvider", provider.id, cookieOptions);
-    await setCookie("authVerifier", verifier, cookieOptions);
-    await setCookie("authNonce", nonce, cookieOptions);
+    const cookieOptions = { httpOnly: true, maxAge: 60 * 30 };
+    await setLoginCookie("authState", authState, cookieOptions);
+    await setLoginCookie("authProvider", provider.id, cookieOptions);
+    await setLoginCookie("authVerifier", verifier, cookieOptions);
+    await setLoginCookie("authNonce", nonce, cookieOptions);
     // the app's page to return to, e.g. of an invitation; an earlier
     // login's must not apply to this one
     const next = returnPath(request.nextUrl.searchParams.get("next"));
-    if (next) await setCookie(returnCookie, next, cookieOptions);
-    else await deleteCookie(returnCookie, { cookies, path: "/" });
+    if (next) await setLoginCookie(returnCookie, next, cookieOptions);
+    else await deleteLoginCookies([returnCookie]);
 
     const redirectUrl = new URL(authorizationEndpoint);
     // keeps query parameters of the endpoint

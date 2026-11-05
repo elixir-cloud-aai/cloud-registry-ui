@@ -1,6 +1,4 @@
 import axios from "axios";
-import { getCookie } from "cookies-next/server";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
     loginErrorSummary,
@@ -8,17 +6,30 @@ import {
     loginRequestTimeout,
     oidcEndpoints,
 } from "@/lib/login-providers";
+import { deleteLoginCookies, readSessionCookie } from "@/lib/session";
+import { sessionCookies } from "@/lib/session-cookies";
+
+/**
+ * Answer that there is no logged-in user
+ * @returns Response with status 401
+ */
+function loggedOut() {
+    return NextResponse.json({ error: true, user: null }, { status: 401 });
+}
 
 export async function GET() {
-    const accessToken = await getCookie("access_token", { cookies });
-    if (!accessToken)
-        return NextResponse.json({ error: true, user: null }, { status: 401 });
-    const providerId = await getCookie("login_provider", { cookies });
+    const accessToken = await readSessionCookie("access_token");
+    if (!accessToken) return loggedOut();
+    // sessions without the cookie, e.g. older ones, use the only provider;
+    // with several providers, and for providers that were removed, they
+    // end, which is expected after such changes: no error
+    const provider = loginProvider(await readSessionCookie("login_provider"));
+    if (!provider) {
+        await deleteLoginCookies(sessionCookies);
+        return loggedOut();
+    }
 
     try {
-        // sessions without the cookie, e.g. older ones, use the only provider
-        const provider = loginProvider(providerId);
-        if (!provider) throw new Error("Unknown login provider");
         const { userinfo_endpoint } = await oidcEndpoints(provider);
         const res = await axios.get(userinfo_endpoint, {
             headers: {
@@ -37,6 +48,6 @@ export async function GET() {
         // expired or revoked tokens (401) are expected, other failures not
         if (!axios.isAxiosError(err) || err.response?.status !== 401)
             console.error("User info failed:", loginErrorSummary(err));
-        return NextResponse.json({ error: true, user: null }, { status: 401 });
+        return loggedOut();
     }
 }

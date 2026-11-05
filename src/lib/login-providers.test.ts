@@ -43,6 +43,17 @@ describe("loginSettings", () => {
         expect(loginProvider("other")).toBeUndefined();
     });
 
+    it.each([
+        "http://localhost:8190/oidc",
+        "http://oidc.localhost:8190/oidc",
+        "http://127.0.0.1/oidc",
+    ])("accepts an http issuer on the local machine (%s)", async (issuer) => {
+        const { loginSettings } = await load({
+            LOGIN_PROVIDERS: JSON.stringify([{ ...provider, issuer }]),
+        });
+        expect(loginSettings().providers[0].issuer).toBe(issuer);
+    });
+
     it("needs an ID to choose among several providers", async () => {
         const { loginProvider } = await load({
             LOGIN_PROVIDERS: JSON.stringify([
@@ -75,6 +86,24 @@ describe("loginSettings", () => {
                 ]),
             },
             /openid scope/,
+        ],
+        [
+            "an http issuer",
+            {
+                LOGIN_PROVIDERS: JSON.stringify([
+                    { ...provider, issuer: "http://login.example.org/oidc" },
+                ]),
+            },
+            /Use an https URL \(http only for localhost\)\n.*providers\[0\]\.issuer/,
+        ],
+        [
+            "an issuer of another scheme",
+            {
+                LOGIN_PROVIDERS: JSON.stringify([
+                    { ...provider, issuer: "ftp://login.example.org/oidc" },
+                ]),
+            },
+            /https URL/,
         ],
         ["no redirect URI", { LOGIN_REDIRECT_URI: undefined }, /callback/],
         [
@@ -215,7 +244,9 @@ describe("oidcEndpoints", () => {
         // the issuer as discovered, for the check of responses (RFC 9207)
         expect(await oidcEndpoints(ls)).toEqual({
             ...discovery,
+            end_session_endpoint: undefined,
             issParameterSupported: false,
+            tokenAuthMethod: "client_secret_basic",
         });
         await oidcEndpoints(ls);
         expect(get).toHaveBeenCalledOnce();
@@ -229,6 +260,64 @@ describe("oidcEndpoints", () => {
         expect(get).toHaveBeenCalledWith(
             "https://login.example.org/oidc/.well-known/openid-configuration",
             { timeout: 10000 },
+        );
+    });
+
+    it("discovers the end session endpoint", async () => {
+        const { oidcEndpoints, loginSettings } = await load();
+        const endpoint = "https://login.example.org/oidc/logout";
+        vi.spyOn(axios, "get").mockResolvedValue({
+            data: { ...discovery, end_session_endpoint: endpoint },
+        });
+        const ls = loginSettings().providers[0];
+        expect((await oidcEndpoints(ls)).end_session_endpoint).toBe(endpoint);
+    });
+
+    it("takes an empty end session endpoint as none", async () => {
+        const { oidcEndpoints, loginSettings } = await load();
+        vi.spyOn(axios, "get").mockResolvedValue({
+            data: { ...discovery, end_session_endpoint: "" },
+        });
+        const ls = loginSettings().providers[0];
+        expect((await oidcEndpoints(ls)).end_session_endpoint).toBeUndefined();
+    });
+
+    it.each([
+        [undefined, "client_secret_basic"],
+        [["client_secret_basic"], "client_secret_basic"],
+        [["private_key_jwt"], "client_secret_basic"],
+        ["client_secret_post", "client_secret_basic"],
+        [["client_secret_post"], "client_secret_post"],
+        [["client_secret_basic", "client_secret_post"], "client_secret_post"],
+    ])("takes the token auth methods %j as %s", async (methods, method) => {
+        const { oidcEndpoints, loginSettings } = await load();
+        vi.spyOn(axios, "get").mockResolvedValue({
+            data: {
+                ...discovery,
+                token_endpoint_auth_methods_supported: methods,
+            },
+        });
+        const ls = loginSettings().providers[0];
+        expect((await oidcEndpoints(ls)).tokenAuthMethod).toBe(method);
+    });
+
+    it("accepts http endpoints of an issuer on the local machine", async () => {
+        const issuer = "http://oidc.localhost:8190/oidc";
+        const { oidcEndpoints, loginSettings } = await load({
+            LOGIN_PROVIDERS: JSON.stringify([{ ...provider, issuer }]),
+        });
+        vi.spyOn(axios, "get").mockResolvedValue({
+            data: {
+                issuer,
+                authorization_endpoint: `${issuer}/authorize`,
+                token_endpoint: `${issuer}/token`,
+                userinfo_endpoint: `${issuer}/userinfo`,
+                end_session_endpoint: `${issuer}/endsession`,
+            },
+        });
+        const ls = loginSettings().providers[0];
+        expect((await oidcEndpoints(ls)).token_endpoint).toBe(
+            `${issuer}/token`,
         );
     });
 
@@ -305,6 +394,31 @@ describe("oidcEndpoints", () => {
             { userinfo_endpoint: "not a URL" },
             /Malformed/,
         ],
+        [
+            "a malformed end session endpoint",
+            { end_session_endpoint: "not a URL" },
+            /Malformed/,
+        ],
+        [
+            "an http token endpoint",
+            { token_endpoint: "http://login.example.org/oidc/token" },
+            /aren't https/,
+        ],
+        [
+            "an http authorization endpoint",
+            { authorization_endpoint: "http://login.example.org/oidc/auth" },
+            /aren't https/,
+        ],
+        [
+            "an http user info endpoint",
+            { userinfo_endpoint: "http://login.example.org/oidc/userinfo" },
+            /aren't https/,
+        ],
+        [
+            "an http end session endpoint",
+            { end_session_endpoint: "http://login.example.org/oidc/logout" },
+            /aren't https/,
+        ],
     ])(
         "rejects %s, and fetches again next time",
         async (_, change, message) => {
@@ -319,6 +433,27 @@ describe("oidcEndpoints", () => {
             expect(get).toHaveBeenCalledTimes(2);
         },
     );
+});
+
+describe("loginProviderOrigins", () => {
+    it("lists the origins of the issuers once each", async () => {
+        const { loginProviderOrigins } = await load({
+            LOGIN_PROVIDERS: JSON.stringify([
+                provider,
+                { ...provider, id: "b", issuer: "https://login.example.org/b" },
+                { ...provider, id: "c", issuer: "http://localhost:8190/oidc" },
+            ]),
+        });
+        expect(loginProviderOrigins()).toEqual([
+            "https://login.example.org",
+            "http://localhost:8190",
+        ]);
+    });
+
+    it("lists none with invalid settings", async () => {
+        const { loginProviderOrigins } = await load({ LOGIN_PROVIDERS: "[" });
+        expect(loginProviderOrigins()).toEqual([]);
+    });
 });
 
 describe("loginErrorSummary", () => {
