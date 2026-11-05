@@ -41,6 +41,9 @@ type Props = {
     /** Take the state that the registry returned; the service's values may
      * have changed, too */
     onSyncChange: (sync?: ServiceSync) => void;
+    /** Read the state and the service again: a request failed, and may have
+     * worked in the registry if only its answer got lost */
+    onRefresh: () => void;
 };
 
 /** The sync of a service with its service info, in its details: its state, why
@@ -54,6 +57,7 @@ function ServiceSyncSection({
     canManage,
     provider,
     onSyncChange,
+    onRefresh,
 }: Props) {
     const { rules, loading } = useRegistrationRules();
     const [busy, setBusy] = useState(false);
@@ -76,6 +80,7 @@ function ServiceSyncSection({
             toast.error(syncFailedReason(err));
             // the service is gone, or sync was turned off during the fetch
             if (hasStatus(err, 404)) onSyncChange(undefined);
+            else onRefresh();
         } finally {
             setBusy(false);
         }
@@ -114,10 +119,12 @@ function ServiceSyncSection({
             toast.success("Sync is off: the service keeps its values.");
         } catch (err) {
             if (hasStatus(err, 404)) onSyncChange(undefined);
-            else
+            else {
                 toast.error(
                     mutationError(err, "Cannot turn off sync currently."),
                 );
+                onRefresh();
+            }
         } finally {
             setBusy(false);
         }

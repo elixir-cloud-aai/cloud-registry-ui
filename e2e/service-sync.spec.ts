@@ -250,6 +250,31 @@ test.describe("syncing services", () => {
         problems.splice(0);
     });
 
+    test("a lost answer shows the state in the registry", async ({
+        page,
+        browser,
+        problems,
+    }) => {
+        await addTesType(browser);
+        const token = await login(page, "owner");
+        const service = await syncedService(token);
+        await page.route(
+            `${registry}/services/${service.id}/sync`,
+            async (route) => {
+                if (route.request().method() !== "DELETE")
+                    return route.fallback();
+                await route.fetch();
+                await route.abort();
+            },
+        );
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        await page.getByRole("button", { name: "Turn sync off" }).click();
+        await expect(
+            page.getByRole("button", { name: "Turn sync on" }),
+        ).toBeVisible();
+        problems.splice(0);
+    });
+
     test("sync now doesn't turn on a sync turned off meanwhile", async ({
         page,
         browser,

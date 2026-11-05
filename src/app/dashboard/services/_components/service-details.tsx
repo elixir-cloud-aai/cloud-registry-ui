@@ -79,6 +79,7 @@ function ServiceDetails({
         loaded: syncLoaded,
         failed: syncFailed,
         setSync,
+        reload: reloadSync,
     } = useServiceSync(service.id);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
@@ -230,6 +231,10 @@ function ServiceDetails({
                 provider={cloudRegistryProvider}
                 onSyncChange={(state) => {
                     setSync(state);
+                    onChange();
+                }}
+                onRefresh={() => {
+                    reloadSync();
                     onChange();
                 }}
             />
