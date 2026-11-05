@@ -69,9 +69,9 @@ describe("offersNewTypes", () => {
     it("follows GET /me if it says", () => {
         expect(offersNewTypes(user, {})).toBe(true);
         expect(offersNewTypes(user, { maxUnusedServiceTypes: 0 })).toBe(false);
-        expect(
-            offersNewTypes({ ...user, mayAddServiceTypes: false }, {}),
-        ).toBe(false);
+        expect(offersNewTypes({ ...user, mayAddServiceTypes: false }, {})).toBe(
+            false,
+        );
     });
 
     it("follows the rules otherwise", () => {

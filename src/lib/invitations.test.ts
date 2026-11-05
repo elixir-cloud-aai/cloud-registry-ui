@@ -494,9 +494,7 @@ describe("invitation status", () => {
         // they don't list expired invitations, and the clock of the browser
         // mustn't make open ones removable
         it("is open also after the time of the browser passed", () => {
-            expect(invitationStatus({ ...base, expiresAt: past })).toBe(
-                "open",
-            );
+            expect(invitationStatus({ ...base, expiresAt: past })).toBe("open");
             expect(isExpiredInvitation({ ...base, expiresAt: past })).toBe(
                 false,
             );

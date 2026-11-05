@@ -65,9 +65,7 @@ function Page() {
             .then(([val, approvals]) => {
                 if (request !== latestRequest.current) return;
                 setServiceTypes(withPendingTypes(val, approvals));
-                setPending(
-                    new Set(approvals?.serviceTypes.map(typeKey) ?? []),
-                );
+                setPending(new Set(approvals?.serviceTypes.map(typeKey) ?? []));
                 if (!approvals)
                     toast.error(
                         "Could not load the pending service types. Please try again later.",

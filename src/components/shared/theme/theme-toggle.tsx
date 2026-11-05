@@ -28,7 +28,8 @@ export function ThemeToggle() {
                     variant="ghost"
                     size="icon"
                     disabled={!mounted}
-                    onClick={() => setTheme(isDark ? "light" : "dark")}>
+                    onClick={() => setTheme(isDark ? "light" : "dark")}
+                >
                     <Sun
                         className={`absolute size-4 transition-all duration-300 ease-in-out ${
                             mounted && isDark

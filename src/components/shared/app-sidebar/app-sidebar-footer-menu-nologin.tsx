@@ -14,7 +14,6 @@ function AppSidebarFooterMenuNoUser() {
             align="end"
             sideOffset={4}
         >
-            
             <DropdownMenuGroup>
                 <DropdownMenuItem asChild>
                     <Link href={"/auth/login"}>

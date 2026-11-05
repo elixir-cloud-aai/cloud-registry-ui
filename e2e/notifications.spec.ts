@@ -185,7 +185,9 @@ test.describe("notifications", () => {
         );
         await login(page, "other");
         await page.getByRole("button", { name: /^Notifications/ }).click();
-        await expect(page.getByText("Pending TES awaits approval")).toBeVisible();
+        await expect(
+            page.getByText("Pending TES awaits approval"),
+        ).toBeVisible();
     });
 
     test("shows only fixed texts", async ({ page }) => {

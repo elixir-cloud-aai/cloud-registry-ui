@@ -62,10 +62,7 @@ export function AppSidebarFooter() {
                         </SidebarMenuButton>
                     </DropdownMenuTrigger>
                     {user && (
-                        <AppSidebarFooterMenu
-                            user={user}
-                            userId={me?.userId}
-                        />
+                        <AppSidebarFooterMenu user={user} userId={me?.userId} />
                     )}
                     {!user && <AppSidebarFooterMenuNoUser />}
                 </DropdownMenu>
