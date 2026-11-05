@@ -156,9 +156,9 @@ function NotificationBell() {
         };
     }, [read]);
 
-    // the names of the services, once the list is opened; pending ones aren't
-    // listed publicly, and keep their identifier, so that they aren't asked for
-    // again
+    // the names of the services, once the list is opened, with the user's
+    // token, as pending ones aren't listed publicly; those without a name keep
+    // their identifier, so that they aren't asked for again
     const count = notifications?.length ?? 0;
     const namesMissing = !!notifications?.some(
         (val) => val.serviceId && !names.has(val.serviceId),
@@ -167,7 +167,7 @@ function NotificationBell() {
         if (!open || !namesMissing || !cloudRegistryProvider) return;
         let current = true;
         cloudRegistryProvider
-            .getServices()
+            .getServicesAsUser()
             .then((services) => {
                 if (!current) return;
                 const known = new Map(

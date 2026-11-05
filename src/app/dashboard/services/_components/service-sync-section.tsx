@@ -86,28 +86,31 @@ function ServiceSyncSection({
         }
     };
 
-    // The registry turns sync on if it is off, which needs a confirmation: if
-    // someone turned it off since this page loaded, don't override their
-    // values. This narrows the window, as only the registry could close it
+    // only if sync is on: turning it on needs a confirmation, and someone may
+    // have turned it off since this page loaded
     const handleSyncNow = async () => {
         if (!provider) return;
         setBusy(true);
         try {
-            await provider.getServiceSync(serviceId);
+            const state = await provider.syncService(serviceId, {
+                onlyIfEnabled: true,
+            });
+            onSyncChange(state);
+            const { kind, message } = syncStartedMessage(state);
+            toast[kind](message);
         } catch (err) {
-            setBusy(false);
             if (hasStatus(err, 404)) {
                 onSyncChange(undefined);
                 toast.info(
                     "Sync was turned off in the meantime, so nothing was synced.",
                 );
-            } else
-                toast.error(
-                    mutationError(err, "Cannot sync this service currently."),
-                );
-            return;
+            } else {
+                toast.error(syncFailedReason(err));
+                onRefresh();
+            }
+        } finally {
+            setBusy(false);
         }
-        await handleSync();
     };
 
     const handleTurnOff = async () => {

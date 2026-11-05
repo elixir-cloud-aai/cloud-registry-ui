@@ -283,6 +283,15 @@ class AuthenticatedCloudRegistryProvider
   }
 
   /**
+   * GET /services
+   * With the user's token, so also what only the user may see, e.g. pending
+   * services.
+   */
+  async getServicesAsUser(): Promise<ExternalService[]> {
+    return this.readAsUser("/services");
+  }
+
+  /**
    * GET /services/{serviceId}
    * Public.
    */
@@ -822,9 +831,13 @@ class AuthenticatedCloudRegistryProvider
    * @returns The state of the sync; values that can't be applied are a
    * `reason` in it, not an error
    */
-  async syncService(serviceId: ServiceId): Promise<ServiceSync> {
+  async syncService(
+    serviceId: ServiceId,
+    { onlyIfEnabled = false }: { onlyIfEnabled?: boolean } = {},
+  ): Promise<ServiceSync> {
+    const query = onlyIfEnabled ? "?onlyIfEnabled=true" : "";
     return this.request(
-      `/services/${this.idPath(serviceId)}/sync`,
+      `/services/${this.idPath(serviceId)}/sync${query}`,
       {
         method: "PUT",
         authenticated: true,
