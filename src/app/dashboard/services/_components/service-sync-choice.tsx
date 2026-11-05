@@ -19,7 +19,8 @@ type Props = {
 };
 
 /** Whether to keep a new service in sync, below the create form: only for
- * imported values that users didn't change, as sync would override changes */
+ * imported values that users didn't change, as sync would override changes.
+ * Otherwise, owners can turn sync on later, on the service's page */
 function ServiceSyncChoice({
     intervalHours,
     imported,

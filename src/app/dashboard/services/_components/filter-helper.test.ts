@@ -1,6 +1,10 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { describe, expect, it } from "vitest";
-import type { Me, ServiceVerification } from "@/lib/cloud-registry.types";
+import type {
+    Me,
+    ServiceSync,
+    ServiceVerification,
+} from "@/lib/cloud-registry.types";
 import { typeKey } from "@/lib/service-types";
 import {
     defaultFilters,
@@ -90,6 +94,7 @@ describe("isFiltered", () => {
         expect(isFiltered("", { verified: true })).toBe(true);
         expect(isFiltered("", { pending: true })).toBe(true);
         expect(isFiltered("", { mine: true })).toBe(true);
+        expect(isFiltered("", { synced: true })).toBe(true);
         expect(
             isFiltered("", { verified: false, pending: false, mine: false }),
         ).toBe(false);
@@ -112,6 +117,37 @@ describe("filterServices", () => {
                 mine,
             }),
         );
+
+    it("keeps only services in sync, if asked to", () => {
+        const state = (status: "synced" | "out-of-sync") =>
+            ({ status }) as ServiceSync;
+        const syncs = new Map([
+            ["a", state("synced")],
+            ["b", state("out-of-sync")],
+        ]);
+        const sets = { verifications: none, pending: new Set<string>() };
+        const mine = new Set<string>();
+        expect(
+            ids(
+                filterServices(
+                    services,
+                    "",
+                    { synced: true },
+                    { ...sets, mine, syncs },
+                ),
+            ),
+        ).toEqual(["a"]);
+        expect(
+            ids(
+                filterServices(
+                    services,
+                    "",
+                    { synced: true },
+                    { ...sets, mine },
+                ),
+            ),
+        ).toEqual([]);
+    });
 
     it("searches the main fields, ignoring case", () => {
         expect(run(" kubernetes ")).toEqual(["a"]);

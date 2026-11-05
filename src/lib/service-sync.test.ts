@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { failure } from "@/test/errors";
 import type { ServiceSync } from "./cloud-registry.types";
 import {
+    formatSyncTime,
+    syncedServices,
     syncFailedReason,
     syncFailedTitle,
     syncFrequency,
@@ -15,6 +17,39 @@ const synced: ServiceSync = {
     status: "synced",
     serviceInfoId: "org.example.tes",
 };
+
+describe("syncedServices", () => {
+    const service = {
+        id: "a",
+        name: "A",
+        url: synced.url,
+        type: synced.type,
+        organization: { name: "Org", url: "https://example.org" },
+        version: "1.0.0",
+    };
+    const state = { ...synced, serviceId: "a" };
+
+    it("takes the states of services as they were synced", () => {
+        expect(syncedServices([service], [state]).get("a")).toBe(state);
+    });
+
+    it("leaves out services that changed, and unknown ones", () => {
+        expect(
+            syncedServices(
+                [{ ...service, url: "https://other.example.org" }],
+                [state],
+            ).size,
+        ).toBe(0);
+        expect(syncedServices([], [state]).size).toBe(0);
+    });
+});
+
+describe("formatSyncTime", () => {
+    it("formats a time, and says so if there is none", () => {
+        expect(formatSyncTime("2026-11-05T12:00:00Z")).toContain("2026");
+        expect(formatSyncTime()).toBe("Never");
+    });
+});
 
 describe("syncFrequency", () => {
     it.each([

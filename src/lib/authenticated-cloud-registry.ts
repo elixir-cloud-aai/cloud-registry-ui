@@ -24,6 +24,7 @@ import type {
   ServicePermissions,
   ServiceRole,
   ServiceSync,
+  ServiceSyncState,
   ServiceVerification,
   UserId,
   Verification,
@@ -805,6 +806,47 @@ class AuthenticatedCloudRegistryProvider
         authenticated: true,
       },
     );
+  }
+
+  /**
+   * DELETE /services/{serviceId}/sync
+   * Authenticated (owners, maintainers, admins).
+   *
+   * Turn off the sync of a service, which keeps its values.
+   */
+  async removeServiceSync(serviceId: ServiceId): Promise<ServiceId> {
+    return this.request(
+      `/services/${this.idPath(serviceId)}/sync`,
+      {
+        method: "DELETE",
+        authenticated: true,
+      },
+    );
+  }
+
+  /**
+   * GET /services/{serviceId}/sync
+   * Public; with the user's token if logged in, as pending services show
+   * their sync only to those who may see them.
+   *
+   * @returns The state of the sync; fails with a 404 without one
+   */
+  async getServiceSync(serviceId: ServiceId): Promise<ServiceSync> {
+    return this.request(
+      `/services/${this.idPath(serviceId)}/sync`,
+      { authenticated: this.isAuthenticated },
+    );
+  }
+
+  /**
+   * GET /syncs
+   * Public; with the user's token if logged in.
+   *
+   * List the states of all services with sync, e.g. for the labels of a list;
+   * none if the deployment doesn't sync.
+   */
+  async getSyncs(): Promise<ServiceSyncState[]> {
+    return this.request("/syncs", { authenticated: this.isAuthenticated });
   }
 
   // --------------------------------------------------

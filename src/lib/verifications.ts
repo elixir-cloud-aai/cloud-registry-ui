@@ -47,7 +47,7 @@ function sameText(a: string, b: string) {
  */
 function matchesVerification(
     service: Pick<ExternalService, "url" | "type">,
-    verification: Verification,
+    verification: Pick<Verification, "url" | "type">,
 ) {
     return (
         service.url === verification.url &&

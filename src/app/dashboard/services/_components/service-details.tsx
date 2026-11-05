@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import { copyText } from "@/lib/clipboard";
+import { useServiceSync } from "@/hooks";
 import type { Me, Verification } from "@/lib/cloud-registry.types";
 import { isVerificationMismatch, mutationError } from "@/lib/errors";
 import {
@@ -27,6 +28,8 @@ import {
     canVerifyService,
 } from "@/lib/permissions";
 import { Breakable } from "./service-dailog-card-misc";
+import ServiceSyncSection from "./service-sync-section";
+import SyncBadge from "./sync-badge";
 import VerifiedBadge from "./verified-badge";
 import ViewServiceDialogBody from "./view-service-dailog-body";
 
@@ -71,6 +74,7 @@ function ServiceDetails({
     onAccessChange,
     onDeleted,
 }: Props) {
+    const { sync, loaded: syncLoaded, setSync } = useServiceSync(service.id);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
     const [manageOpen, setManageOpen] = useState(false);
@@ -189,9 +193,10 @@ function ServiceDetails({
                     Complete metadata of the service{" "}
                     <Breakable value={service.id} />.
                 </Description>
-                {(verification || pending) && (
+                {(verification || sync || pending) && (
                     <div className="flex gap-2">
                         {verification && <VerifiedBadge />}
+                        {sync && <SyncBadge status={sync.status} />}
                         {pending && <PendingBadge />}
                     </div>
                 )}
@@ -210,6 +215,18 @@ function ServiceDetails({
                     />
                 </div>
             )}
+
+            <ServiceSyncSection
+                serviceId={service.id}
+                sync={sync}
+                loaded={syncLoaded}
+                canManage={canEdit}
+                provider={cloudRegistryProvider}
+                onSyncChange={(state) => {
+                    setSync(state);
+                    onChange();
+                }}
+            />
 
             <ViewServiceDialogBody
                 service={service}

@@ -204,6 +204,15 @@ export interface ServiceSync {
 }
 
 /**
+ * GET /syncs
+ *
+ * The state of a sync with the service's identifier.
+ */
+export interface ServiceSyncState extends ServiceSync {
+  serviceId: ServiceId;
+}
+
+/**
  * GET /approvals
  *
  * Pending service types and services that the caller may see.

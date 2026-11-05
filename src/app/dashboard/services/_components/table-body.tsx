@@ -3,13 +3,19 @@ import { useState } from "react";
 import { PendingBadge } from "@/components/shared/pending";
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { useCloudRegistry } from "@/hooks";
-import type { Me, ServiceVerification } from "@/lib/cloud-registry.types";
+import type {
+    Me,
+    ServiceSyncState,
+    ServiceVerification,
+} from "@/lib/cloud-registry.types";
+import SyncBadge from "./sync-badge";
 import VerifiedBadge from "./verified-badge";
 import ServiceDetailsDialog from "./view-service-dailog";
 
 type Props = {
     services: ExternalService[];
     verifications: Map<string, ServiceVerification>;
+    syncs: Map<string, ServiceSyncState>;
     pending: Set<string>;
     fetchServices: () => void;
     refetchMe: () => void;
@@ -20,6 +26,7 @@ type Props = {
 function ServicesTableBody({
     services,
     verifications,
+    syncs,
     pending,
     fetchServices,
     refetchMe,
@@ -35,6 +42,11 @@ function ServicesTableBody({
         !services.some((val) => val.id === selectedService.id)
     )
         setSelectedService(null);
+
+    // as loaded last, e.g. with the values of a sync
+    const shownService =
+        services.find((val) => val.id === selectedService?.id) ??
+        selectedService;
 
     if (services.length === 0)
         return (
@@ -61,6 +73,17 @@ function ServicesTableBody({
                             <div className="flex items-center gap-2">
                                 {val.name}
                                 {verifications.has(val.id) && <VerifiedBadge />}
+                                {syncs.has(val.id) && (
+                                    <SyncBadge
+                                        status={
+                                            (
+                                                syncs.get(
+                                                    val.id,
+                                                ) as ServiceSyncState
+                                            ).status
+                                        }
+                                    />
+                                )}
                                 {pending.has(val.id) && <PendingBadge />}
                             </div>
                         </TableCell>
@@ -72,7 +95,7 @@ function ServicesTableBody({
                 ))}
             </TableBody>
             <ServiceDetailsDialog
-                service={selectedService}
+                service={shownService}
                 verification={
                     selectedService
                         ? verifications.get(selectedService.id)

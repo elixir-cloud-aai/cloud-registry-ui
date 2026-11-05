@@ -61,6 +61,49 @@ describe("syncService", () => {
     });
 });
 
+describe("removeServiceSync", () => {
+    it("turns sync off with the user's token", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValue(json("a/b"));
+        await expect(provider.removeServiceSync("a/b")).resolves.toBe("a/b");
+        expect(lastRequest()).toMatchObject({
+            url: `${base}/services/a%2Fb/sync`,
+            method: "DELETE",
+            auth: "Bearer t",
+        });
+    });
+});
+
+describe("getServiceSync", () => {
+    it("reads the state with the token of logged-in users", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValue(json({ status: "synced" }));
+        await provider.getServiceSync("a");
+        expect(lastRequest()).toMatchObject({
+            url: `${base}/services/a/sync`,
+            method: "GET",
+            auth: "Bearer t",
+        });
+    });
+
+    it("reads the state without a token for guests", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base);
+        fetchMock.mockResolvedValue(json({ status: "synced" }));
+        await provider.getServiceSync("a");
+        expect(lastRequest().auth).toBeNull();
+    });
+});
+
+describe("getSyncs", () => {
+    it("lists the states", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base);
+        const states = [{ serviceId: "a", status: "synced" }];
+        fetchMock.mockResolvedValue(json(states));
+        await expect(provider.getSyncs()).resolves.toEqual(states);
+        expect(lastRequest().url).toBe(`${base}/syncs`);
+    });
+});
+
 describe("revokeServicePermission", () => {
     it("takes the registry's answer for the requested user", async () => {
         const provider = new AuthenticatedCloudRegistryProvider(base, "t");
