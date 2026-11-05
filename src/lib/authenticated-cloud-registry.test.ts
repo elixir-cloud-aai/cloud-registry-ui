@@ -28,6 +28,69 @@ function lastRequest() {
     };
 }
 
+describe("request deadline", () => {
+    it("gives every request a deadline", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValue(json([]));
+        await provider.getServices();
+        expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(
+            AbortSignal,
+        );
+    });
+
+    it("says so when the registry doesn't answer in time", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockRejectedValue(
+            new DOMException("timed out", "TimeoutError"),
+        );
+        await expect(provider.getServices()).rejects.toMatchObject({
+            detail: expect.stringContaining("didn't answer within 30 seconds"),
+            timedOut: true,
+        });
+    });
+
+    it("says so when the body doesn't arrive in time", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        const response = json([]);
+        vi.spyOn(response, "json").mockRejectedValue(
+            new DOMException("timed out", "TimeoutError"),
+        );
+        fetchMock.mockResolvedValue(response);
+        await expect(provider.getServices()).rejects.toMatchObject({
+            timedOut: true,
+        });
+    });
+
+    it("leaves other failures as they are", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        const failure = new TypeError("Failed to fetch");
+        fetchMock.mockRejectedValue(failure);
+        await expect(provider.getServices()).rejects.toBe(failure);
+    });
+});
+
+describe("Retry-After", () => {
+    const limited = (value?: string) =>
+        new Response("{}", {
+            status: 429,
+            headers: value ? { "Retry-After": value } : {},
+        });
+
+    it.each([
+        ["120", 120],
+        ["0", undefined],
+        ["soon", undefined],
+        [undefined, undefined],
+    ])("reads %s as %s seconds", async (value, retryAfter) => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValue(limited(value));
+        await expect(provider.importServiceInfo("x")).rejects.toMatchObject({
+            status: 429,
+            retryAfter,
+        });
+    });
+});
+
 describe("importServiceInfo", () => {
     it("sends the address with the user's token, and returns the values", async () => {
         const provider = new AuthenticatedCloudRegistryProvider(base, "t");

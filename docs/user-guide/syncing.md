@@ -63,7 +63,8 @@ these buttons in its details:
   reasons.
 - **Turn sync off**: the entry keeps its values.
 
-Only publicly available service info can be synced, as no tokens are sent.
+Only publicly available service info can be synced, as no tokens are sent. If service
+info was fetched too often, the app says how long to wait.
 
 ## Changes while sync is on
 

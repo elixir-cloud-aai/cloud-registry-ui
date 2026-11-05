@@ -52,6 +52,13 @@ Serve the app over HTTPS, at the address of `LOGIN_REDIRECT_URI` (see
   store another ID. To check, on a service for testing, grant a role to such an
   ID, see that **Current Access** lists exactly that ID, and remove it.
 
+## Timeouts
+
+The app waits 30 seconds for each answer of the registry, then tells users that it
+didn't answer. Changes may still reach the registry, so the message asks them to reload
+first. Keep the timeouts of proxies in front of the registry above the time that it
+needs to answer: service info fetches take up to 10 seconds.
+
 ## Verifying images
 
 Released images are built by the release workflow on GitHub Actions, with an SBOM and the build provenance attached as attestations, a [GitHub artifact attestation](https://docs.github.com/en/actions/concepts/security/artifact-attestations) of their provenance, and a keyless [Sigstore](https://www.sigstore.dev/) signature. To check that an image was built by the release workflow for its tag, run (with the [GitHub CLI](https://cli.github.com/) or [cosign](https://docs.sigstore.dev/cosign/system_config/installation/) 3 or later), e.g. for 1.0.0-rc1:
