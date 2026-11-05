@@ -1,31 +1,41 @@
 import axios from "axios";
-import { getCookie } from "cookies-next/server";
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import {
     loginErrorSummary,
     loginProvider,
-    loginRequestTimeout,
+    loginRequestOptions,
     oidcEndpoints,
 } from "@/lib/login-providers";
+import { readSessionCookie } from "@/lib/session";
+
+/**
+ * Answer that there is no logged-in user
+ * @returns Response with status 401
+ */
+function loggedOut() {
+    return NextResponse.json({ error: true, user: null }, { status: 401 });
+}
 
 export async function GET() {
-    const accessToken = await getCookie("access_token", { cookies });
-    if (!accessToken)
-        return NextResponse.json({ error: true, user: null }, { status: 401 });
-    const providerId = await getCookie("login_provider", { cookies });
+    const accessToken = await readSessionCookie("access_token");
+    if (!accessToken) return loggedOut();
+    const providerId = await readSessionCookie("login_provider");
 
     try {
-        // sessions without the cookie, e.g. older ones, use the only provider
+        // sessions without the cookie, e.g. older ones, use the only
+        // provider; with several providers, and for providers that were
+        // removed, they are logged out, which is expected after such
+        // changes: no error. Their cookies stay, as a late answer could
+        // otherwise delete those of a new login
         const provider = loginProvider(providerId);
-        if (!provider) throw new Error("Unknown login provider");
+        if (!provider) return loggedOut();
         const { userinfo_endpoint } = await oidcEndpoints(provider);
         const res = await axios.get(userinfo_endpoint, {
             headers: {
                 Authorization: `Bearer ${accessToken}`,
                 Accept: "application/json",
             },
-            timeout: loginRequestTimeout,
+            ...loginRequestOptions,
         });
 
         if (!res.data || typeof res.data !== "object") {
@@ -37,6 +47,6 @@ export async function GET() {
         // expired or revoked tokens (401) are expected, other failures not
         if (!axios.isAxiosError(err) || err.response?.status !== 401)
             console.error("User info failed:", loginErrorSummary(err));
-        return NextResponse.json({ error: true, user: null }, { status: 401 });
+        return loggedOut();
     }
 }

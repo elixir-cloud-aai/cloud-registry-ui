@@ -44,6 +44,11 @@ const discovery = {
     authorization_endpoint: `${provider.issuer}/authorize?prompt=login`,
     token_endpoint: `${provider.issuer}/token`,
     userinfo_endpoint: `${provider.issuer}/userinfo`,
+    end_session_endpoint: `${provider.issuer}/logout?ui=1`,
+    token_endpoint_auth_methods_supported: [
+        "client_secret_basic",
+        "client_secret_post",
+    ],
 };
 
 /**

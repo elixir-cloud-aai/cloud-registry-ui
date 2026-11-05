@@ -9,6 +9,7 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useSidebar } from "@/components/ui/sidebar";
+import { sessionCookie } from "@/lib/session-cookies";
 
 // copying the access token puts a bearer token on the clipboard, so only
 // development servers offer it (see "Copying the access token" in
@@ -25,10 +26,10 @@ function AppSidebarFooterMenu({ user, userId }: Props) {
     const { isMobile } = useSidebar();
 
     const copyToken = () => {
-        const token = getCookie("access_token");
-        if (token && typeof token === "string") {
+        const token = sessionCookie("access_token", getCookie);
+        if (token) {
             navigator.clipboard
-                .writeText(token as string)
+                .writeText(token)
                 .then(() => toast.success("Token copied successfully."))
                 .catch(() =>
                     toast.error("Please try again to copy the token."),

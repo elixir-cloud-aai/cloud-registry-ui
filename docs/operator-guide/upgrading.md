@@ -95,6 +95,46 @@ the registry.
 attention (see [Notifications](../user-guide/notifications.md)). This takes no settings;
 a registry without notifications shows no bell.
 
+**Login:** the login is hardened (see [Login](login.md)). Check these
+points before the upgrade:
+
+- **`https` for login providers:** the `issuer` in `LOGIN_PROVIDERS` must be
+  an `https` URL (`http` only for `localhost`, `*.localhost` and loopback
+  addresses); the app refuses to start with others. Logins fail with
+  providers whose discovery document lists `http` endpoints.
+- **Token requests:** the app now sends the client ID and secret in the
+  body (`client_secret_post`) only to providers that list this method in
+  `token_endpoint_auth_methods_supported`, and uses HTTP Basic
+  authentication (`client_secret_basic`) otherwise. Providers that list
+  no methods and refuse Basic authentication don't follow OpenID Connect,
+  which takes Basic authentication as the default: logins with them fail
+  with `invalid_client` in the app's log.
+- **Logout at the provider:** for providers with an `end_session_endpoint`,
+  logging out now ends the session at the provider too. Register the app's
+  login page (`/auth/login` at the origin of `LOGIN_REDIRECT_URI`) as a
+  post-logout redirect URI with each such provider before the upgrade (see
+  [Sessions and logout](login.md#sessions-and-logout)); otherwise, the
+  provider may show an error after logging out.
+- **Cookie names:** the session's cookies now have the prefix `__Host-`
+  (e.g. `__Host-access_token`), which only the app's own origin can set.
+  Users who are logged in stay logged in: the app still reads the session
+  from the old names (`access_token`, `id_token`, `login_provider`), and
+  logging out or a new login deletes them. The next release stops reading
+  them, so users of sessions from before this upgrade log in again then.
+  Until then, sites on other subdomains of the app's domain can still set
+  these names for the whole domain, which logging out can't delete. A
+  login in progress during the upgrade fails, and the user logs in again.
+  During a rolling update, instances of the earlier version don't read the
+  new names: users who log in on a new instance seem logged out on an old
+  one until the update is complete.
+  Serve the app on a domain of its own (see [Sessions and
+  logout](login.md#sessions-and-logout)).
+- **Sessions without a provider:** sessions from versions before login
+  providers (without the provider's cookie) belong to the only provider.
+  Once there are several providers, the app can't tell their provider and
+  takes them as logged out, without logging an error: those users log in
+  again.
+
 **Listing the registry itself:** in admin mode, the service info page can list
 the registry among its own services (see [Listing the registry
 itself](admins.md#listing-the-registry-itself)). With a registry older than
@@ -164,7 +204,9 @@ Earlier versions supported only LS Login. Replace these variables:
 | `OIDC_REDIRECT_URI`  | `LOGIN_REDIRECT_URI` (same value)                             |
 
 Use the [LS Login example](login.md), with `"scopes"` as shown to keep
-requesting the same scopes. Users who are logged in stay logged in. The app
+requesting the same scopes. Users who are logged in stay logged in, as
+long as LS Login is the only provider: once you add a second one, their
+sessions end, and they log in again (see [1.0.0-rc2](#100-rc2)). The app
 stops with a message if it finds the old variables without
 `LOGIN_PROVIDERS`. On Vercel, change the project's environment variables
 before deploying this version: the build fails if the old ones are set

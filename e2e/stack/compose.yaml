@@ -14,7 +14,10 @@ name: cloud-registry-ui-e2e
 services:
     # reachable as `oidc.localhost:8190` from the browser and the app on the
     # host (`*.localhost` is the loopback interface) and, through the network
-    # alias, from the registry, so that tokens get the same issuer
+    # alias, from the registry, so that tokens get the same issuer. Its
+    # discovery lists no `token_endpoint_auth_methods_supported`, so the app
+    # authenticates with HTTP Basic (`client_secret_basic`), and an
+    # `end_session_endpoint`, to which the app's logout leads
     oidc:
         image: ghcr.io/navikt/mock-oauth2-server:6.0.7
         environment:

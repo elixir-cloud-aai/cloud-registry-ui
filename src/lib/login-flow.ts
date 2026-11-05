@@ -44,7 +44,9 @@ function pkceChallenge(verifier: string) {
  * expired (`exp`, with a minute for differing clocks), with the login's
  * nonce. The signature isn't checked:
  * the app gets the token straight from the provider's token endpoint, over
- * TLS (OpenID Connect Core, section 3.1.3.7), and reads no other claims
+ * TLS (OpenID Connect Core, section 3.1.3.7; `oidcEndpoints()` accepts only
+ * https endpoints, and http on the local machine), and reads no other
+ * claims
  * @param idToken ID token, a JWT
  * @param expected The provider's issuer, as discovered, the app's client
  * ID, and the login's nonce

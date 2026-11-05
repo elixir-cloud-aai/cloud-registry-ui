@@ -1,5 +1,5 @@
 import axios from "axios";
-import { deleteCookie, getCookie, setCookie } from "cookies-next/server";
+import { deleteCookie } from "cookies-next/server";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
@@ -11,12 +11,20 @@ import {
     returnPath,
 } from "@/lib/login-flow";
 import {
+    type LoginProvider,
     loginErrorSummary,
     loginProvider,
-    loginRequestTimeout,
+    loginRequestOptions,
     loginSettings,
     oidcEndpoints,
+    type TokenAuthMethod,
 } from "@/lib/login-providers";
+import {
+    deleteLoginCookies,
+    readLoginCookie,
+    setLoginCookie,
+} from "@/lib/session";
+import { sessionCookies } from "@/lib/session-cookies";
 import { z } from "@/lib/zod";
 
 // the tokens the app needs; the ID token marks the session as logged in,
@@ -41,6 +49,44 @@ const tokenResponseSchema = z.object({
 // longest session, also for tokens that live longer or don't say how long
 const maxSessionAge = 60 * 60 * 12;
 
+/**
+ * Encode a client ID or secret for HTTP Basic authentication at the token
+ * endpoint: form-urlencoded first (RFC 6749, section 2.3.1)
+ * @param value Client ID or secret
+ * @returns The encoded value
+ */
+function formEncoded(value: string) {
+    return new URLSearchParams({ v: value }).toString().slice(2);
+}
+
+/**
+ * Get the client authentication of a token request (RFC 6749, section
+ * 2.3.1), with the method that the provider supports
+ * @param provider Login provider, with the client ID and secret
+ * @param method Method, from the provider's discovery
+ * @returns Parameters for the request's body, and its headers
+ */
+function clientAuthentication(
+    provider: LoginProvider,
+    method: TokenAuthMethod,
+): { params: Record<string, string>; headers: Record<string, string> } {
+    if (method === "client_secret_post")
+        return {
+            params: {
+                client_id: provider.clientId,
+                client_secret: provider.clientSecret,
+            },
+            headers: {},
+        };
+    const credentials = `${formEncoded(provider.clientId)}:${formEncoded(provider.clientSecret)}`;
+    return {
+        params: {},
+        headers: {
+            Authorization: `Basic ${Buffer.from(credentials).toString("base64")}`,
+        },
+    };
+}
+
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get("code");
@@ -48,20 +94,19 @@ export async function GET(request: NextRequest) {
 
     // a wrong state, e.g. from another site, leaves a pending login intact;
     // so does a login without PKCE or nonce, e.g. of an earlier version
-    const authState = await getCookie("authState", { cookies });
-    const verifier = await getCookie("authVerifier", { cookies });
-    const nonce = await getCookie("authNonce", { cookies });
+    const authState = await readLoginCookie("authState");
+    const verifier = await readLoginCookie("authVerifier");
+    const nonce = await readLoginCookie("authNonce");
     if (state === null || !authState || authState !== state)
         redirect("/auth/error?type=state");
     if (!verifier || !nonce) redirect("/auth/error?type=state");
 
-    const providerId = await getCookie("authProvider", { cookies });
+    const providerId = await readLoginCookie("authProvider");
     // checked again: the cookie may be of an earlier version
-    const next = returnPath(await getCookie(returnCookie, { cookies }));
+    const next = returnPath(await readLoginCookie(returnCookie));
     // a state can be used once, also if this callback fails or the provider
     // sends an error (e.g. a denied login) instead of a code
-    for (const name of endedLoginCookies)
-        await deleteCookie(name, { cookies, path: "/" });
+    await deleteLoginCookies(endedLoginCookies);
     if (code === null) redirect("/auth/error?type=params");
 
     const provider = providerId ? loginProvider(providerId) : undefined;
@@ -101,22 +146,23 @@ export async function GET(request: NextRequest) {
 
     let tokens: z.infer<typeof tokenResponseSchema>;
     try {
+        const auth = clientAuthentication(provider, endpoints.tokenAuthMethod);
         const response = await axios.post(
             endpoints.token_endpoint,
             new URLSearchParams({
                 grant_type: "authorization_code",
                 code: code,
                 redirect_uri: loginSettings().redirectUri,
-                client_id: provider.clientId,
-                client_secret: provider.clientSecret,
+                ...auth.params,
                 code_verifier: verifier,
             }),
             {
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded",
+                    ...auth.headers,
                 },
                 validateStatus: (status) => status === 200,
-                timeout: loginRequestTimeout,
+                ...loginRequestOptions,
             },
         );
         const result = tokenResponseSchema.safeParse(response.data);
@@ -142,24 +188,21 @@ export async function GET(request: NextRequest) {
         redirect("/auth/error?type=internal");
     }
 
-    const cookieOptions = {
-        cookies: cookies,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax" as const,
-        // the session ends with the access token, which the registry
-        // rejects afterwards
-        maxAge: Math.min(tokens.expires_in ?? maxSessionAge, maxSessionAge),
-        path: "/",
-    };
+    // the session ends with the access token, which the registry rejects
+    // afterwards
+    const maxAge = Math.min(tokens.expires_in ?? maxSessionAge, maxSessionAge);
+    // a session of an earlier version, by the old names, mustn't outlive
+    // this one
+    await deleteLoginCookies(sessionCookies);
     // read by the browser, which sends it to the registry
-    await setCookie("access_token", tokens.access_token, cookieOptions);
+    await setLoginCookie("access_token", tokens.access_token, { maxAge });
     // read on the server only
-    await setCookie("id_token", tokens.id_token, {
-        ...cookieOptions,
+    await setLoginCookie("id_token", tokens.id_token, {
+        maxAge,
         httpOnly: true,
     });
-    await setCookie("login_provider", provider.id, {
-        ...cookieOptions,
+    await setLoginCookie("login_provider", provider.id, {
+        maxAge,
         httpOnly: true,
     });
     // admins start in user mode

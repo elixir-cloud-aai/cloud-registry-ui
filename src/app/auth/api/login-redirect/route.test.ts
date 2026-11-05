@@ -61,6 +61,25 @@ describe("GET /auth/api/login-redirect", () => {
         expect(jar.get("authProvider")?.value).toBe("mock");
     });
 
+    it("sets __Host- cookies in production", async () => {
+        vi.stubEnv("NODE_ENV", "production");
+        setUp({ authReturnTo: "/invitations" });
+        await login("?provider=mock&next=%2Fservices");
+        for (const name of [...loginCookies, "authReturnTo"]) {
+            expect(jar.get(`__Host-${name}`)).toMatchObject({
+                secure: true,
+                path: "/",
+            });
+            expect(jar.get(`__Host-${name}`)?.domain).toBeUndefined();
+        }
+        // only the old cookie of an earlier login is left, which the
+        // callback doesn't read
+        expect(jar.get("authReturnTo")?.value).toBe("/invitations");
+        await login("?provider=mock");
+        expect(jar.has("__Host-authReturnTo")).toBe(false);
+        expect(jar.has("authReturnTo")).toBe(false);
+    });
+
     it("makes new secrets for each login", async () => {
         setUp();
         await login("?provider=mock");

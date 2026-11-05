@@ -4,13 +4,18 @@
  */
 import axios from "axios";
 import { z } from "zod";
+import { isSecureUrl } from "./secure-urls";
 
 const loginProviderSchema = z.object({
     id: z.string().regex(/^[a-z0-9-]+$/, "Use a-z, 0-9 and - only"),
     name: z.string().min(1),
     logo: z.string().min(1),
-    // without a trailing slash, to compare it with the discovered one
-    issuer: z.url().transform((val) => val.replace(/\/$/, "")),
+    // without a trailing slash, to compare it with the discovered one;
+    // over TLS, as the client secret goes to its endpoints
+    issuer: z
+        .url()
+        .refine(isSecureUrl, "Use an https URL (http only for localhost)")
+        .transform((val) => val.replace(/\/$/, "")),
     clientId: z.string().min(1),
     clientSecret: z.string().min(1),
     scopes: z
@@ -44,8 +49,13 @@ type OidcDiscovery = {
     authorization_endpoint: string;
     token_endpoint: string;
     userinfo_endpoint: string;
+    end_session_endpoint?: string;
     authorization_response_iss_parameter_supported?: boolean | string;
+    token_endpoint_auth_methods_supported?: unknown;
 };
+
+/** @description how the app authenticates at the token endpoint */
+type TokenAuthMethod = "client_secret_basic" | "client_secret_post";
 
 type OidcEndpoints = {
     /** The issuer as discovered, which responses with `iss` must match */
@@ -53,12 +63,27 @@ type OidcEndpoints = {
     authorization_endpoint: string;
     token_endpoint: string;
     userinfo_endpoint: string;
+    /** Where to end the session at the provider (RP-Initiated Logout), if
+     * the provider has one */
+    end_session_endpoint?: string;
     /** Whether authorization responses have `iss` (RFC 9207) */
     issParameterSupported: boolean;
+    tokenAuthMethod: TokenAuthMethod;
 };
 
 /** @description timeout of requests to login providers, in milliseconds */
 const loginRequestTimeout = 10000;
+
+/**
+ * @description options of all requests to login providers: with a
+ * timeout, and without following redirects, which could lead to another
+ * host or to `http`, unchecked, with the request's secrets or for the
+ * discovery's endpoints
+ */
+const loginRequestOptions = {
+    timeout: loginRequestTimeout,
+    maxRedirects: 0,
+};
 
 // settings of earlier versions, which the app no longer reads (see
 // `docs/operator-guide/upgrading.md`)
@@ -190,8 +215,11 @@ function loginProvider(id?: string) {
 /**
  * Get a provider's endpoints from its OpenID Connect discovery document
  * @param provider Login provider
- * @returns Promise resolving to the issuer, the authorization, token and
- * user info URLs, and whether authorization responses name the issuer
+ * @returns Promise resolving to the issuer, the authorization, token, user
+ * info and end session URLs, whether authorization responses name the
+ * issuer, and how to authenticate at the token endpoint
+ * @throws Error (rejecting) for another issuer, missing or malformed
+ * endpoints, or endpoints without TLS
  */
 function oidcEndpoints(provider: LoginProvider): Promise<OidcEndpoints> {
     const cached = endpoints.get(provider.id);
@@ -199,14 +227,16 @@ function oidcEndpoints(provider: LoginProvider): Promise<OidcEndpoints> {
 
     const url = `${provider.issuer}/.well-known/openid-configuration`;
     const promise = axios
-        .get<OidcDiscovery>(url, { timeout: loginRequestTimeout })
+        .get<OidcDiscovery>(url, loginRequestOptions)
         .then((res) => {
             const {
                 issuer,
                 authorization_endpoint,
                 token_endpoint,
                 userinfo_endpoint,
+                end_session_endpoint,
                 authorization_response_iss_parameter_supported,
+                token_endpoint_auth_methods_supported,
             } = res.data;
             if (!issuer || issuer.replace(/\/$/, "") !== provider.issuer)
                 throw new Error(`Unexpected issuer ${issuer} at ${url}`);
@@ -218,23 +248,35 @@ function oidcEndpoints(provider: LoginProvider): Promise<OidcEndpoints> {
                 throw new Error(
                     `Incomplete OpenID Connect discovery at ${url}`,
                 );
-            if (
-                ![
-                    authorization_endpoint,
-                    token_endpoint,
-                    userinfo_endpoint,
-                ].every((val) => URL.canParse(val))
-            )
+            const urls = [
+                authorization_endpoint,
+                token_endpoint,
+                userinfo_endpoint,
+                end_session_endpoint,
+                // optional: an empty one counts as none
+            ].filter((val): val is string => !!val);
+            if (!urls.every((val) => URL.canParse(val)))
                 throw new Error(`Malformed endpoint URLs at ${url}`);
+            // the token endpoint gets the client secret and the code
+            // verifier, and its ID tokens are taken without checking their
+            // signature; the end session endpoint gets the ID token
+            if (!urls.every(isSecureUrl))
+                throw new Error(
+                    `Endpoint URLs that aren't https at ${url} (http only for localhost)`,
+                );
             console.info(issuerLogLine(provider.id, issuer));
             return {
                 issuer,
                 authorization_endpoint,
                 token_endpoint,
                 userinfo_endpoint,
+                end_session_endpoint: end_session_endpoint || undefined,
                 // a string "true" too: the check is safer than none
                 issParameterSupported: [true, "true"].includes(
                     authorization_response_iss_parameter_supported ?? false,
+                ),
+                tokenAuthMethod: tokenAuthMethod(
+                    token_endpoint_auth_methods_supported,
                 ),
             };
         });
@@ -242,6 +284,20 @@ function oidcEndpoints(provider: LoginProvider): Promise<OidcEndpoints> {
     promise.catch(() => endpoints.delete(provider.id));
     endpoints.set(provider.id, promise);
     return promise;
+}
+
+/**
+ * Choose how to authenticate at the token endpoint: in the request's body
+ * (`client_secret_post`) if the provider lists that method, else with HTTP
+ * Basic authentication (`client_secret_basic`), which OpenID Connect
+ * Discovery takes as the default if the provider lists none
+ * @param supported `token_endpoint_auth_methods_supported` as discovered
+ * @returns The method
+ */
+function tokenAuthMethod(supported: unknown): TokenAuthMethod {
+    return Array.isArray(supported) && supported.includes("client_secret_post")
+        ? "client_secret_post"
+        : "client_secret_basic";
 }
 
 /**
@@ -311,12 +367,12 @@ function loginErrorSummary(err: unknown) {
     );
 }
 
-export type { LoginProvider, LoginProviderInfo };
+export type { LoginProvider, LoginProviderInfo, TokenAuthMethod };
 export {
     loginErrorSummary,
     loginProvider,
     loginProviderInfos,
-    loginRequestTimeout,
+    loginRequestOptions,
     loginSettings,
     loginSettingsAtBuild,
     oidcEndpoints,
