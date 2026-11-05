@@ -9,6 +9,7 @@ import type {
 
 import type {
   ApiError,
+  AppNotification,
   Approvals,
   CloudRegistryProviderOptions,
   GroupName,
@@ -867,6 +868,35 @@ class AuthenticatedCloudRegistryProvider
    */
   async getSyncs(): Promise<ServiceSyncState[]> {
     return this.readAsUser("/syncs");
+  }
+
+  // --------------------------------------------------
+  // Notifications
+  // --------------------------------------------------
+
+  /**
+   * GET /notifications
+   * Authenticated.
+   *
+   * What needs the user's attention, most recent first; in admin mode, what
+   * needs the attention of admins.
+   */
+  async getNotifications(): Promise<AppNotification[]> {
+    return this.request("/notifications", { authenticated: true });
+  }
+
+  /**
+   * DELETE /notifications/{notificationId}
+   * Authenticated.
+   *
+   * Dismiss a notification for all who see it, until the problem ends and
+   * comes back, or its reason changes.
+   */
+  async dismissNotification(notificationId: string): Promise<string> {
+    return this.request(`/notifications/${this.idPath(notificationId)}`, {
+      method: "DELETE",
+      authenticated: true,
+    });
   }
 
   // --------------------------------------------------

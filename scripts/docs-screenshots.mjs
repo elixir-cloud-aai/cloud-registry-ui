@@ -322,6 +322,32 @@ try {
     await owner.route(`${registry}/services/tes-north/sync`, (route) =>
         route.fulfill({ json: northSync }),
     );
+    // some notifications: waiting for real ones would take a sync that fails
+    const notificationsPath = `${registry}/notifications`;
+    await owner.route(notificationsPath, (route) =>
+        route.fulfill({
+            json: [
+                {
+                    id: "1",
+                    type: "out-of-sync",
+                    reason: "unreachable",
+                    serviceId: "tes-south",
+                    since: new Date(Date.now() - 3 * 3_600_000).toISOString(),
+                },
+                {
+                    id: "2",
+                    type: "out-of-sync",
+                    reason: "version awaiting approval",
+                    serviceId: "tes-north",
+                    since: new Date(Date.now() - 26 * 3_600_000).toISOString(),
+                },
+            ],
+        }),
+    );
+    await owner.goto(`${appUrl}/dashboard/services`);
+    await owner.getByRole("button", { name: /^Notifications/ }).click();
+    await shoot(owner, "notifications");
+    await owner.unroute(notificationsPath);
     await owner.goto(`${appUrl}/dashboard/services`);
     await shoot(owner, "services");
     await owner.getByLabel("Search services").fill("tes");

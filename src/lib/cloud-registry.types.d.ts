@@ -213,6 +213,25 @@ export interface ServiceSyncState extends ServiceSync {
 }
 
 /**
+ * Something that needs the attention of a user (`GET /notifications`).
+ * `id` is opaque: an item may come back under the same one.
+ */
+export interface AppNotification {
+  id: string;
+  type:
+    | "out-of-sync"
+    | "pending-service-type"
+    | "pending-service"
+    | "environment-not-allowed"
+    | "url-scheme-not-allowed";
+  reason: string;
+  serviceId?: ServiceId;
+  /** Only for `pending-service-type` */
+  serviceType?: ServiceType;
+  since?: string;
+}
+
+/**
  * GET /approvals
  *
  * Pending service types and services that the caller may see.

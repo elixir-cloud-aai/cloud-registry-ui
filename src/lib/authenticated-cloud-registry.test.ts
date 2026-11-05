@@ -74,6 +74,30 @@ describe("removeServiceSync", () => {
     });
 });
 
+describe("notifications", () => {
+    it("reads them with the user's token", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValue(json([]));
+        await expect(provider.getNotifications()).resolves.toEqual([]);
+        expect(lastRequest()).toMatchObject({
+            url: `${base}/notifications`,
+            method: "GET",
+            auth: "Bearer t",
+        });
+    });
+
+    it("dismisses one with the user's token", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValue(json("a/b"));
+        await expect(provider.dismissNotification("a/b")).resolves.toBe("a/b");
+        expect(lastRequest()).toMatchObject({
+            url: `${base}/notifications/a%2Fb`,
+            method: "DELETE",
+            auth: "Bearer t",
+        });
+    });
+});
+
 describe("getServiceSync", () => {
     it("reads the state with the token of logged-in users", async () => {
         const provider = new AuthenticatedCloudRegistryProvider(base, "t");

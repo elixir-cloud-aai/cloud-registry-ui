@@ -33,6 +33,8 @@ The top bar has these buttons, from left to right:
 - **Service Info** (the "i" icon): what the registry tells about itself,
   e.g. its organization, version and type;
 - the light and dark colour scheme;
+- **Notifications** (the bell), if you're logged in: what needs your attention,
+  with a red number if anything does (see [Notifications](notifications.md));
 - **Log in**, or, for admins, the switch between **User mode** and **Admin
   mode** (see [Admin mode](admin-mode.md)).
 

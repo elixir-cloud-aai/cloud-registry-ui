@@ -71,6 +71,7 @@ nav:
       - Accepting an invitation: user-guide/invitations.md
       - Verifications: user-guide/verifications.md
       - Syncing services: user-guide/syncing.md
+      - Notifications: user-guide/notifications.md
       - Pending entries: user-guide/pending.md
       - Admin mode: user-guide/admin-mode.md
   - Operator guide:
