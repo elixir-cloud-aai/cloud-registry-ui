@@ -61,6 +61,85 @@ describe("syncService", () => {
     });
 });
 
+describe("removeServiceSync", () => {
+    it("turns sync off with the user's token", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValue(json("a/b"));
+        await expect(provider.removeServiceSync("a/b")).resolves.toBe("a/b");
+        expect(lastRequest()).toMatchObject({
+            url: `${base}/services/a%2Fb/sync`,
+            method: "DELETE",
+            auth: "Bearer t",
+        });
+    });
+});
+
+describe("getServiceSync", () => {
+    it("reads the state with the token of logged-in users", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValue(json({ status: "synced" }));
+        await provider.getServiceSync("a");
+        expect(lastRequest()).toMatchObject({
+            url: `${base}/services/a/sync`,
+            method: "GET",
+            auth: "Bearer t",
+        });
+    });
+
+    it("reads the state without a token for guests", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base);
+        fetchMock.mockResolvedValue(json({ status: "synced" }));
+        await provider.getServiceSync("a");
+        expect(lastRequest().auth).toBeNull();
+    });
+});
+
+describe("getSyncs", () => {
+    it("lists the states", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base);
+        const states = [{ serviceId: "a", status: "synced" }];
+        fetchMock.mockResolvedValue(json(states));
+        await expect(provider.getSyncs()).resolves.toEqual(states);
+        expect(lastRequest().url).toBe(`${base}/syncs`);
+    });
+
+    it("reads like a guest with an expired token", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock
+            .mockResolvedValueOnce(json({ status: 401 }, 401))
+            .mockResolvedValueOnce(json([]));
+        await expect(provider.getSyncs()).resolves.toEqual([]);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+        expect(lastRequest().auth).toBeNull();
+    });
+
+    it("reports the expired token if guests can't read it either", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock
+            .mockResolvedValueOnce(json({ status: 401 }, 401))
+            .mockResolvedValueOnce(json({ status: 404 }, 404));
+        await expect(provider.getServiceSync("a")).rejects.toMatchObject({
+            status: 401,
+        });
+    });
+
+    it("passes on other failures", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValue(json({ status: 500 }, 500));
+        await expect(provider.getSyncs()).rejects.toMatchObject({
+            status: 500,
+        });
+    });
+
+    it("passes on the 401 of a deployment that requires login", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base);
+        fetchMock.mockResolvedValue(json({ status: 401 }, 401));
+        await expect(provider.getSyncs()).rejects.toMatchObject({
+            status: 401,
+        });
+    });
+});
+
 describe("revokeServicePermission", () => {
     it("takes the registry's answer for the requested user", async () => {
         const provider = new AuthenticatedCloudRegistryProvider(base, "t");

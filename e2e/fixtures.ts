@@ -97,10 +97,11 @@ function expectedMessage(text: string, url: string) {
         )?.[1];
     if (status)
         return (
-            // the verification of a service without one, and the public
-            // read of a pending service, which the app repeats with the token
+            // the verification or sync of a service without one, and the
+            // public read of a pending service, which the app repeats with
+            // the token
             (status === "404" &&
-                /^\/services\/[^/]+(\/verification)?$/.test(
+                /^\/services\/[^/]+(\/verification|\/sync)?$/.test(
                     url.slice(registry.length),
                 ) &&
                 url.startsWith(registry)) ||

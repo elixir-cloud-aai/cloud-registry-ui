@@ -70,6 +70,7 @@ nav:
       - Access and permissions: user-guide/access.md
       - Accepting an invitation: user-guide/invitations.md
       - Verifications: user-guide/verifications.md
+      - Syncing services: user-guide/syncing.md
       - Pending entries: user-guide/pending.md
       - Admin mode: user-guide/admin-mode.md
   - Operator guide:

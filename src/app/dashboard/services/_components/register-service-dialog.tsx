@@ -212,7 +212,7 @@ function RegisterServiceForm({ onChange, onSending, onRegistered }: FormProps) {
             })
             .catch((err) => {
                 toast.error(syncFailedTitle(err), {
-                    description: syncFailedReason(err),
+                    description: `${syncFailedReason(err)} The service's page shows its sync, and can turn it on.`,
                     duration: 15000,
                 });
             })

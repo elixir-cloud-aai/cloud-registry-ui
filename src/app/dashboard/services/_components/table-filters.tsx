@@ -2,6 +2,7 @@ import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import {
     BadgeCheckIcon,
     ClockIcon,
+    RefreshCwIcon,
     SearchIcon,
     UserIcon,
     XIcon,
@@ -182,6 +183,23 @@ function ServicesTableFilters({
                 <BadgeCheckIcon />
                 Verified only
             </Toggle>
+            {rules.serviceInfoSync?.enabled && (
+                <Toggle
+                    variant={"outline"}
+                    aria-label="Show synced services only"
+                    pressed={!!filters.synced}
+                    onPressedChange={(pressed) =>
+                        onFiltersChange({
+                            ...filters,
+                            synced: pressed || undefined,
+                        })
+                    }
+                    disabled={disabled}
+                >
+                    <RefreshCwIcon />
+                    Synced only
+                </Toggle>
+            )}
             {showMine && (
                 <Toggle
                     variant={"outline"}
@@ -221,6 +239,12 @@ function ServicesTableFilters({
                     <XIcon />
                     Clear
                 </Button>
+            )}
+            {filters.synced && (
+                <p className="w-full text-sm text-muted-foreground">
+                    Verified and synced doesn't mean trusted: a service can
+                    change at any time, so decide yourself whom you trust.
+                </p>
             )}
         </div>
     );

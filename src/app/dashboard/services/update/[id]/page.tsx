@@ -8,6 +8,7 @@ import {
     useCloudRegistry,
     useMe,
     useRegistrationRules,
+    useServiceSync,
     useServiceVerification,
 } from "@/hooks";
 import { getApprovalsOrNull, getServiceWithApproval } from "@/lib/approvals";
@@ -27,6 +28,7 @@ function Page() {
     // undefined if unknown, see getServiceWithApproval
     const [pending, setPending] = useState<boolean>();
     const { verification } = useServiceVerification(service);
+    const { sync } = useServiceSync(service?.id);
     const { me, loading: meLoading, error: meError, expired } = useMe();
     const [loginRequired, setLoginRequired] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
@@ -185,6 +187,7 @@ function Page() {
                     service={service}
                     rules={rules}
                     verification={verification}
+                    synced={!!sync}
                     admin={me?.admin}
                     pending={pending}
                     typesPending={me?.serviceTypesPending}

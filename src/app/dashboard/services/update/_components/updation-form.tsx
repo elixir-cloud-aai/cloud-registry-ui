@@ -4,7 +4,7 @@ import type {
     ExternalServiceRegister,
 } from "@elixir-cloud/cloud-registry/providers";
 import { useForm } from "@tanstack/react-form";
-import { ClockIcon, TriangleAlertIcon } from "lucide-react";
+import { ClockIcon, RefreshCwIcon, TriangleAlertIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { UnsavedChangesGuard } from "@/components/shared/unsaved-changes-guard";
@@ -16,8 +16,10 @@ import {
     errorField,
     errorMessage,
     isDuplicate,
+    isSyncUrlLocked,
     mutationError,
     renameError,
+    syncUrlLockedMessage,
 } from "@/lib/errors";
 import type { RegistrationRules } from "@/lib/registration-rules";
 import { typeKey } from "@/lib/service-types";
@@ -48,6 +50,8 @@ type Props = {
     // the registry's rules, which the form checks the entries against
     rules: RegistrationRules;
     verification?: Verification;
+    // whether the service is kept in sync with its service info
+    synced?: boolean;
     admin?: boolean;
     pending?: boolean;
     typesPending?: boolean;
@@ -68,6 +72,7 @@ function ServiceUpdationForm({
     service,
     rules,
     verification,
+    synced = false,
     admin = false,
     pending,
     typesPending = false,
@@ -145,6 +150,10 @@ function ServiceUpdationForm({
             // toast.promise shows the error; a duplicate or a field the
             // registry rejected is also shown on the field
             const duplicate = isDuplicate(err);
+            if (isSyncUrlLocked(err)) {
+                showFieldError("url", syncUrlLockedMessage);
+                return undefined;
+            }
             const field = duplicate ? "url" : errorField(err, formFields);
             if (field)
                 showFieldError(
@@ -231,6 +240,14 @@ function ServiceUpdationForm({
                 disabled={updating || disabled}
                 className="min-w-0 space-y-4"
             >
+                {synced && (
+                    <p className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <RefreshCwIcon className="mt-0.5 size-4 shrink-0" />
+                        This service is kept in sync with its service info: the
+                        next sync overrides manual changes, and its URL can't
+                        change. To move it, turn sync off on the service's page.
+                    </p>
+                )}
                 {admin ? (
                     <TextField
                         form={form}
@@ -304,6 +321,18 @@ function ServiceUpdationForm({
                         form={form}
                         updatedAt={service.updatedAt}
                     />
+                )}
+                {synced && (
+                    <form.Subscribe selector={(state) => state.values.url}>
+                        {(url) =>
+                            url !== service.url && (
+                                <p className="flex items-center gap-2 text-sm text-destructive">
+                                    <TriangleAlertIcon className="size-4 shrink-0" />
+                                    {syncUrlLockedMessage}
+                                </p>
+                            )
+                        }
+                    </form.Subscribe>
                 )}
                 {verification && (
                     <form.Subscribe selector={(state) => state.values}>

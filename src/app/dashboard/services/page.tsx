@@ -11,10 +11,14 @@ import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/table";
 import { useCloudRegistry, useMe, usePagination } from "@/hooks";
 import { getApprovalsOrNull, withPendingServices } from "@/lib/approvals";
-import type { ServiceVerification } from "@/lib/cloud-registry.types";
+import type {
+    ServiceSyncState,
+    ServiceVerification,
+} from "@/lib/cloud-registry.types";
 import { errorMessage } from "@/lib/errors";
 import { loginHref } from "@/lib/links";
-import { isUnauthorized } from "@/lib/permissions";
+import { hasStatus, isUnauthorized } from "@/lib/permissions";
+import { syncedServices } from "@/lib/service-sync";
 import { verifiedServices } from "@/lib/verifications";
 import {
     ServicesTableBody,
@@ -41,6 +45,7 @@ function Page() {
     const [verifications, setVerifications] = useState<ServiceVerification[]>(
         [],
     );
+    const [syncStates, setSyncStates] = useState<ServiceSyncState[]>([]);
     const [pending, setPending] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
     const [loginRequired, setLoginRequired] = useState(false);
@@ -56,10 +61,12 @@ function Page() {
     const activeFilters = { ...filters, mine: !!me && filters.mine };
     const filtered = isFiltered(search, activeFilters);
     const verified = verifiedServices(services, verifications);
+    const syncs = syncedServices(services, syncStates);
     const filteredServices = filterServices(services, search, activeFilters, {
         verifications: verified,
         pending,
         mine,
+        syncs,
     });
     const { page, pageCount, pageItems, start, end, setPage } = usePagination(
         filteredServices,
@@ -87,13 +94,25 @@ function Page() {
             }),
             // pending services, for admins and users with a role on them
             getApprovalsOrNull(cloudRegistryProvider),
+            // none from registries that don't know syncs yet; on other
+            // failures, the labels and the filter keep what they had
+            cloudRegistryProvider.getSyncs().catch((err) => {
+                if (hasStatus(err, 404)) return [];
+                console.error("Failed to load the syncs:", err);
+                return null;
+            }),
         ])
-            .then(([_val, verified, approvals]) => {
+            .then(([_val, verified, approvals, synced]) => {
                 if (request !== latestRequest.current) return;
                 setServices(withPendingServices(_val, approvals));
                 setPending(
                     new Set(approvals?.services.map((val) => val.id) ?? []),
                 );
+                if (synced) setSyncStates(synced);
+                else
+                    toast.error(
+                        "Could not load the syncs, so their labels may be out of date. Please try again later.",
+                    );
                 if (verified) setVerifications(verified);
                 else
                     toast.error(
@@ -208,6 +227,7 @@ function Page() {
                                 <ServicesTableBody
                                     services={pageItems}
                                     verifications={verified}
+                                    syncs={syncs}
                                     pending={pending}
                                     fetchServices={fetchServices}
                                     refetchMe={refetchMe}

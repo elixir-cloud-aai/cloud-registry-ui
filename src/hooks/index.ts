@@ -5,6 +5,7 @@ import { useMe } from "./use-me";
 import { useIsMobile } from "./use-mobile";
 import { usePagination } from "./use-pagination";
 import { useRegistrationRules } from "./use-registration-rules";
+import { useServiceSync } from "./use-service-sync";
 import { useServiceVerification } from "./use-service-verification";
 import { useUserInfo } from "./use-user-info";
 
@@ -16,6 +17,7 @@ export {
     useMe,
     usePagination,
     useRegistrationRules,
+    useServiceSync,
     useServiceVerification,
     useUserInfo,
 };

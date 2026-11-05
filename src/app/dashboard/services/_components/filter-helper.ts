@@ -1,5 +1,9 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
-import type { Me, ServiceVerification } from "@/lib/cloud-registry.types";
+import type {
+    Me,
+    ServiceSync,
+    ServiceVerification,
+} from "@/lib/cloud-registry.types";
 import { environmentRank } from "@/lib/registration-rules";
 import { typeKey } from "@/lib/service-types";
 
@@ -13,6 +17,8 @@ export type ServiceFilters = {
     pending?: boolean;
     /** Only services on which the user has a role (see `myServices()`) */
     mine?: boolean;
+    /** Only services that are in sync with their service info */
+    synced?: boolean;
 };
 
 export type SelectFilterKey = "type" | "organization" | "environment";
@@ -57,7 +63,8 @@ export function isFiltered(search: string, filters: ServiceFilters) {
         filterKeys.some((key) => filters[key] !== undefined) ||
         !!filters.verified ||
         !!filters.pending ||
-        !!filters.mine
+        !!filters.mine ||
+        !!filters.synced
     );
 }
 
@@ -93,13 +100,15 @@ export type ServiceSets = {
     pending: Set<string>;
     /** The user's services (`myServices()`) */
     mine: Set<string>;
+    /** States of the services with sync (`syncedServices()`) */
+    syncs?: Map<string, ServiceSync>;
 };
 
 export function filterServices(
     services: ExternalService[],
     search: string,
     filters: ServiceFilters,
-    { verifications, pending, mine }: ServiceSets,
+    { verifications, pending, mine, syncs }: ServiceSets,
 ) {
     return services.filter(
         (service) =>
@@ -107,6 +116,7 @@ export function filterServices(
             (!filters.verified || verifications.has(service.id)) &&
             (!filters.pending || pending.has(service.id)) &&
             (!filters.mine || mine.has(service.id)) &&
+            (!filters.synced || syncs?.get(service.id)?.status === "synced") &&
             filterKeys.every(
                 (key) =>
                     filters[key] === undefined ||

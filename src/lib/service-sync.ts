@@ -4,7 +4,12 @@
  * to tell users about a sync. The registry's reasons are shown as fixed texts,
  * as it has no raw errors in them, and neither should the app.
  */
-import type { ServiceSync, SyncReason } from "./cloud-registry.types";
+import type {
+    ExternalService,
+    ServiceSync,
+    ServiceSyncState,
+    SyncReason,
+} from "./cloud-registry.types";
 import {
     errorMessage,
     isServiceBusy,
@@ -13,6 +18,7 @@ import {
     mutationError,
 } from "./errors";
 import { hasStatus } from "./permissions";
+import { matchesVerification } from "./verifications";
 
 const hoursPerDay = 24;
 
@@ -117,7 +123,41 @@ function syncFailedTitle(err: unknown) {
         : "The service is registered, but the app can't tell if sync is on.";
 }
 
+/**
+ * Get the states of the services' syncs, for their labels
+ * @param services Services as registered
+ * @param syncs States from `GET /syncs`
+ * @returns The states by service identifier, only those of the same URL and
+ * API type as the service, so that a service changed between the two requests
+ * has no label
+ */
+function syncedServices(
+    services: ExternalService[],
+    syncs: ServiceSyncState[],
+) {
+    const servicesById = new Map(services.map((val) => [val.id, val]));
+    return new Map(
+        syncs
+            .filter((val) => {
+                const service = servicesById.get(val.serviceId);
+                return !!service && matchesVerification(service, val);
+            })
+            .map((val) => [val.serviceId, val]),
+    );
+}
+
+/**
+ * Format the time of a sync
+ * @param time RFC 3339 date-time, if any
+ * @returns The time for the user's locale, or "Never"
+ */
+function formatSyncTime(time?: string) {
+    return time ? new Date(time).toLocaleString() : "Never";
+}
+
 export {
+    formatSyncTime,
+    syncedServices,
     syncFailedReason,
     syncFailedTitle,
     syncFrequency,

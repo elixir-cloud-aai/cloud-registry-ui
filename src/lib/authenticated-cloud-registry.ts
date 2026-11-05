@@ -24,12 +24,14 @@ import type {
   ServicePermissions,
   ServiceRole,
   ServiceSync,
+  ServiceSyncState,
   ServiceVerification,
   UserId,
   Verification,
   VerificationRegister,
   VerifiedServices,
 } from "./cloud-registry.types";
+import { hasStatus } from "./permissions";
 import { registrationRules } from "./registration-rules";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
@@ -137,6 +139,28 @@ class AuthenticatedCloudRegistryProvider
       });
     }
     return this.idPath(id);
+  }
+
+  /**
+   * Read something public with the user's token, which also shows what only
+   * the user may see. The registry refuses invalid tokens, so an expired one
+   * reads like a guest, as the other public reads do. If that fails as well,
+   * the expired login is the error: a 404 may only mean that guests can't see
+   * it, e.g. for a pending service.
+   */
+  private async readAsUser<T>(path: string): Promise<T> {
+    try {
+      return await this.request<T>(path, {
+        authenticated: this.isAuthenticated,
+      });
+    } catch (err) {
+      if (!this.isAuthenticated || !hasStatus(err, 401)) throw err;
+      try {
+        return await this.request<T>(path);
+      } catch {
+        throw err;
+      }
+    }
   }
 
   /**
@@ -805,6 +829,44 @@ class AuthenticatedCloudRegistryProvider
         authenticated: true,
       },
     );
+  }
+
+  /**
+   * DELETE /services/{serviceId}/sync
+   * Authenticated (owners, maintainers, admins).
+   *
+   * Turn off the sync of a service, which keeps its values.
+   */
+  async removeServiceSync(serviceId: ServiceId): Promise<ServiceId> {
+    return this.request(
+      `/services/${this.idPath(serviceId)}/sync`,
+      {
+        method: "DELETE",
+        authenticated: true,
+      },
+    );
+  }
+
+  /**
+   * GET /services/{serviceId}/sync
+   * Public; with the user's token if logged in, as pending services show
+   * their sync only to those who may see them.
+   *
+   * @returns The state of the sync; fails with a 404 without one
+   */
+  async getServiceSync(serviceId: ServiceId): Promise<ServiceSync> {
+    return this.readAsUser(`/services/${this.idPath(serviceId)}/sync`);
+  }
+
+  /**
+   * GET /syncs
+   * Public; with the user's token if logged in.
+   *
+   * List the states of all services with sync, e.g. for the labels of a list;
+   * none if the deployment doesn't sync.
+   */
+  async getSyncs(): Promise<ServiceSyncState[]> {
+    return this.readAsUser("/syncs");
   }
 
   // --------------------------------------------------
