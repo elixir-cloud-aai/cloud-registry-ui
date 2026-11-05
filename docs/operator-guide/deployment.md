@@ -59,6 +59,11 @@ didn't answer. Changes may still reach the registry, so the message asks them to
 first. Keep the timeouts of proxies in front of the registry above the time that it
 needs to answer: service info fetches take up to 10 seconds.
 
+After too many fetches of service info, the app says how long to wait, from the
+registry's `Retry-After`. Browsers only show this header to the app if the registry
+exposes it through CORS, as its default configuration does since 1.0.0rc2; without it,
+the app asks users to try again later.
+
 ## Verifying images
 
 Released images are built by the release workflow on GitHub Actions, with an SBOM and the build provenance attached as attestations, a [GitHub artifact attestation](https://docs.github.com/en/actions/concepts/security/artifact-attestations) of their provenance, and a keyless [Sigstore](https://www.sigstore.dev/) signature. To check that an image was built by the release workflow for its tag, run (with the [GitHub CLI](https://cli.github.com/) or [cosign](https://docs.sigstore.dev/cosign/system_config/installation/) 3 or later), e.g. for 1.0.0-rc1:

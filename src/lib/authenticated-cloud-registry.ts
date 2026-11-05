@@ -80,7 +80,8 @@ function requestTimedOut() {
 }
 
 /**
- * Read the header `Retry-After`, as the registry sends it
+ * Read the header `Retry-After`, as the registry sends it: in seconds, not as
+ * the date that HTTP also allows
  * @param value The header, if browsers may read it (CORS)
  * @returns The seconds to wait, if the value is a positive number of seconds
  */
@@ -199,7 +200,12 @@ class AuthenticatedCloudRegistryProvider
     options: RequestOptions = {},
   ): Promise<T> {
     try {
-      return await this.send<T>(path, options);
+      // one deadline, also for the retry with the token in `send`
+      return await this.send<T>(
+        path,
+        options,
+        AbortSignal.timeout(requestTimeoutMs),
+      );
     } catch (err) {
       if (err instanceof Error && err.name === "TimeoutError") {
         throw requestTimedOut();
@@ -208,7 +214,11 @@ class AuthenticatedCloudRegistryProvider
     }
   }
 
-  private async send<T>(path: string, options: RequestOptions): Promise<T> {
+  private async send<T>(
+    path: string,
+    options: RequestOptions,
+    signal: AbortSignal,
+  ): Promise<T> {
     const {
       method = "GET",
       body,
@@ -238,7 +248,7 @@ class AuthenticatedCloudRegistryProvider
     const response = await fetch(this.url(path), {
       method,
       headers,
-      signal: AbortSignal.timeout(requestTimeoutMs),
+      signal,
       ...(body !== undefined
         ? { body: JSON.stringify(body) }
         : {}),
@@ -246,7 +256,7 @@ class AuthenticatedCloudRegistryProvider
 
     // Deployments may require login for reads: retry once with the token.
     if (response.status === 401 && !authenticated && this.token) {
-      return this.request(path, { ...options, authenticated: true });
+      return this.send(path, { ...options, authenticated: true }, signal);
     }
 
     if (!response.ok) {
