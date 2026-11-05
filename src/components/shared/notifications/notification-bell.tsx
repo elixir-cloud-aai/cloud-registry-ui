@@ -86,21 +86,33 @@ function NotificationBell() {
     const stopped = useRef(false);
     // being dismissed, so that a read from before can't bring them back
     const dismissing = useRef(new Set<string>());
+    // at most one read at a time, also if the registry stalls
+    const reading = useRef(false);
+    // the login that the list belongs to, and the list's generation, so that
+    // nothing that was under way brings back the list of another login
+    const token = useRef<string>(undefined);
+    const session = useRef(0);
 
     // for another login: another user may use this browser
     const clear = useCallback(() => {
+        latest.current++;
+        session.current++;
+        reading.current = false;
         setNotifications(undefined);
         setOpen(false);
     }, []);
 
     const read = useCallback(() => {
         if (!cloudRegistryProvider) return;
-        // e.g. logged out in another tab, which nothing here gets to know of
-        if (!isLoggedIn || !getCookie("access_token")) {
+        // e.g. logged out or in as another user in another tab, which nothing
+        // here gets to know of
+        const current = getCookie("access_token");
+        if (!isLoggedIn || !current || current !== token.current) {
             clear();
             return;
         }
-        if (stopped.current) return;
+        if (stopped.current || reading.current) return;
+        reading.current = true;
         const request = ++latest.current;
         cloudRegistryProvider
             .getNotifications()
@@ -120,11 +132,16 @@ function NotificationBell() {
                     // a registry without notifications
                     stopped.current = true;
                 } else console.error("Failed to load notifications:", err);
+            })
+            .finally(() => {
+                if (request === latest.current) reading.current = false;
             });
     }, [clear, cloudRegistryProvider, isLoggedIn]);
 
     useEffect(() => {
         stopped.current = false;
+        reading.current = false;
+        token.current = getCookie("access_token");
         read();
         const refresh = () => {
             if (document.visibilityState === "visible") read();
@@ -132,6 +149,7 @@ function NotificationBell() {
         const timer = setInterval(refresh, refreshInterval);
         document.addEventListener("visibilitychange", refresh);
         return () => {
+            session.current++;
             clearInterval(timer);
             document.removeEventListener("visibilitychange", refresh);
             latest.current++;
@@ -139,7 +157,8 @@ function NotificationBell() {
     }, [read]);
 
     // the names of the services, once the list is opened; pending ones aren't
-    // listed publicly, and show their identifier
+    // listed publicly, and keep their identifier, so that they aren't asked for
+    // again
     const count = notifications?.length ?? 0;
     const namesMissing = !!notifications?.some(
         (val) => val.serviceId && !names.has(val.serviceId),
@@ -150,10 +169,14 @@ function NotificationBell() {
         cloudRegistryProvider
             .getServices()
             .then((services) => {
-                if (current)
-                    setNames(
-                        new Map(services.map((val) => [val.id, val.name])),
-                    );
+                if (!current) return;
+                const known = new Map(
+                    services.map((val) => [val.id, val.name]),
+                );
+                for (const { serviceId } of notifications ?? [])
+                    if (serviceId && !known.has(serviceId))
+                        known.set(serviceId, serviceId);
+                setNames(known);
             })
             .catch((err) => {
                 console.error("Failed to load the services' names:", err);
@@ -161,12 +184,19 @@ function NotificationBell() {
         return () => {
             current = false;
         };
-    }, [open, namesMissing, cloudRegistryProvider]);
+    }, [open, namesMissing, notifications, cloudRegistryProvider]);
 
     const dismiss = async (id: string) => {
         const index = notifications?.findIndex((item) => item.id === id) ?? -1;
         const notification = notifications?.[index];
-        if (!cloudRegistryProvider || !notification) return;
+        if (
+            !cloudRegistryProvider ||
+            !notification ||
+            dismissing.current.has(id)
+        )
+            return;
+        const started = session.current;
+        let failed = false;
         dismissing.current.add(id);
         setNotifications((val) => val?.filter((item) => item.id !== id));
         try {
@@ -179,9 +209,12 @@ function NotificationBell() {
                 clear();
                 return;
             }
-            setNotifications(
-                (val) => val && restoreNotification(val, notification, index),
-            );
+            failed = true;
+            if (started === session.current)
+                setNotifications(
+                    (val) =>
+                        val && restoreNotification(val, notification, index),
+                );
             toast.error(
                 "Could not dismiss this notification. Please try again.",
             );
@@ -190,6 +223,9 @@ function NotificationBell() {
             // what a read from before the end of this request says is outdated;
             // the next one comes with the interval
             latest.current++;
+            reading.current = false;
+            // it may have worked, if only the answer got lost
+            if (failed && started === session.current) read();
         }
     };
 

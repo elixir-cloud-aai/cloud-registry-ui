@@ -280,6 +280,53 @@ test.describe("notifications", () => {
         await expect(bell).toHaveCount(0);
     });
 
+    test("a login elsewhere removes the list of the other", async ({
+        page,
+    }) => {
+        await page.route(`${registry}/notifications`, (route) =>
+            route.fulfill({
+                json:
+                    route.request().headers().authorization === "Bearer other"
+                        ? []
+                        : [item("x")],
+            }),
+        );
+        await login(page, "other");
+        await page.getByRole("button", { name: /^Notifications/ }).click();
+        await expect(page.getByText("x is out of sync")).toBeVisible();
+
+        await page.evaluate(() => {
+            document.cookie = "access_token=other; path=/";
+        });
+        await readAgain(page);
+        await expect(page.getByText("x is out of sync")).toHaveCount(0);
+    });
+
+    test("an answer that got lost doesn't bring it back for long", async ({
+        page,
+        problems,
+    }) => {
+        let listed = ["x"];
+        await page.route(`${registry}/notifications`, (route) =>
+            route.fulfill({ json: listed.map(item) }),
+        );
+        await page.route(`${registry}/notifications/x`, async (route) => {
+            listed = [];
+            await route.abort();
+        });
+        await login(page, "other");
+        await page.getByRole("button", { name: /^Notifications/ }).click();
+        await page
+            .getByRole("button", { name: "Dismiss: x is out of sync" })
+            .click();
+        await expect(
+            page.getByText("Nothing needs your attention."),
+        ).toBeVisible();
+        await page.waitForTimeout(500);
+        await expect(page.getByText("x is out of sync")).toHaveCount(0);
+        problems.splice(0);
+    });
+
     test("an older read doesn't bring back a dismissed one", async ({
         page,
     }) => {
@@ -338,9 +385,12 @@ test.describe("notifications", () => {
         );
         await login(page, "other");
         await page.getByRole("button", { name: /^Notifications/ }).click();
+        const gone = page.waitForResponse(`${registry}/notifications/1`);
         await page
             .getByRole("button", { name: "Dismiss: x is out of sync" })
             .click();
+        await gone;
+        await page.waitForTimeout(500);
         await expect(
             page.getByText("Nothing needs your attention."),
         ).toBeVisible();
@@ -354,15 +404,9 @@ test.describe("notifications", () => {
         page,
         problems,
     }) => {
+        let listed = ["x", "y"];
         await page.route(`${registry}/notifications`, (route) =>
-            route.fulfill({
-                json: ["x", "y"].map((val) => ({
-                    id: val,
-                    type: "out-of-sync",
-                    serviceId: val,
-                    reason: "unreachable",
-                })),
-            }),
+            route.fulfill({ json: listed.map(item) }),
         );
         let answerFailure = () => {};
         const failing = new Promise<void>((resolve) => {
@@ -372,9 +416,10 @@ test.describe("notifications", () => {
             await failing;
             await route.fulfill({ status: 500, json: { status: 500 } });
         });
-        await page.route(`${registry}/notifications/y`, (route) =>
-            route.fulfill({ json: "y" }),
-        );
+        await page.route(`${registry}/notifications/y`, (route) => {
+            listed = ["x"];
+            return route.fulfill({ json: "y" });
+        });
         await login(page, "other");
         await page.getByRole("button", { name: /^Notifications/ }).click();
         await page
