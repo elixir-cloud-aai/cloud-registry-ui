@@ -142,7 +142,10 @@ function NotificationBell() {
     useEffect(() => {
         stopped.current = false;
         reading.current = false;
-        token.current = getCookie("access_token");
+        const now = getCookie("access_token");
+        // names depend on who reads them
+        if (now !== token.current) setNames(new Map());
+        token.current = now;
         read();
         const refresh = () => {
             if (document.visibilityState === "visible") read();
@@ -167,10 +170,11 @@ function NotificationBell() {
     useEffect(() => {
         if (!open || !namesMissing || !cloudRegistryProvider) return;
         let current = true;
+        const lookup = session.current;
         cloudRegistryProvider
             .getServicesAsUser()
             .then((services) => {
-                if (!current) return;
+                if (!current || lookup !== session.current) return;
                 const known = new Map(
                     services.map((val) => [val.id, val.name]),
                 );

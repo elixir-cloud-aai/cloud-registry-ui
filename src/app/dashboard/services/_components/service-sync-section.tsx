@@ -81,7 +81,7 @@ function ServiceSyncSection({
         } catch (err) {
             if (onlyIfEnabled && hasStatus(err, 404))
                 toast.info(
-                    "Sync was turned off in the meantime, so nothing was synced.",
+                    "Sync was turned off in the meantime, or the service was deleted, so nothing was synced.",
                 );
             else toast.error(syncFailedReason(err));
             // the service is gone, or sync was turned off
