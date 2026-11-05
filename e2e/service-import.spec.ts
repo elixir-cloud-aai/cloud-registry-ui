@@ -315,12 +315,19 @@ test.describe("importing service info", () => {
             route.fulfill({
                 status: 429,
                 contentType: "application/problem+json",
-                headers: { "Retry-After": "60" },
+                headers: {
+                    "Retry-After": "60",
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Expose-Headers": "Retry-After",
+                },
                 body: JSON.stringify({ status: 429, title: "Too many" }),
             }),
         );
         await importInto(page, serviceWithInfo().address);
         await expect(form.getByRole("alert")).toContainText("too often");
+        await expect(form.getByRole("alert")).toContainText(
+            "try again in about 1 minute",
+        );
         // the 429, which the app handles
         problems.splice(0);
     });

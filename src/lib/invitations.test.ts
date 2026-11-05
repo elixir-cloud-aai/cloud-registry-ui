@@ -705,3 +705,27 @@ describe("removing expired invitations", () => {
         );
     });
 });
+
+describe("renewals without an answer", () => {
+    const noAnswer = Object.assign(new Error("x"), { timedOut: true });
+
+    it("don't claim what became of the old invitation", () => {
+        expect(renewRevokeError(noAnswer)).toContain("may still work");
+        expect(renewRemoveError(noAnswer)).toContain("may still be listed");
+    });
+
+    it("treat a failed connection alike, but not a refused ID", () => {
+        expect(renewRevokeError(new TypeError("Failed to fetch"))).toContain(
+            "may still work",
+        );
+        expect(renewRevokeError(new Error("Invalid ID"))).toContain(
+            "still works",
+        );
+    });
+
+    it("say so if the registry answered", () => {
+        const refused = Object.assign(new Error("x"), { status: 500 });
+        expect(renewRevokeError(refused)).toContain("still works");
+        expect(renewRemoveError(refused)).toContain("is still listed");
+    });
+});

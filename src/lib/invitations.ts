@@ -178,6 +178,15 @@ function removeInvitationError(err: unknown) {
     );
 }
 
+/** Check if a request got no answer, so that it may have taken effect */
+function noAnswer(err: unknown) {
+    // `TypeError`: what `fetch` rejects with if the connection fails
+    return (
+        err instanceof TypeError ||
+        (err instanceof Error && "timedOut" in err && err.timedOut === true)
+    );
+}
+
 /**
  * Get the message for a failed revocation of an invitation that got a new
  * link: the new invitation exists already
@@ -187,6 +196,8 @@ function renewRevokeError(err: unknown) {
         return "Created the new link; the old invitation had expired or was revoked already.";
     if (isInvitationAccepted(err))
         return "Created the new link, but the old invitation was accepted meanwhile: revoke the new one if it isn't needed.";
+    if (noAnswer(err))
+        return `Created the new link, but the old one may still work: ${revokeInvitationError(err)}`;
     return `Created the new link, but the old one still works: ${revokeInvitationError(err)}`;
 }
 
@@ -197,6 +208,8 @@ function renewRevokeError(err: unknown) {
 function renewRemoveError(err: unknown) {
     if (hasStatus(err, 404))
         return "Created the new link; the expired invitation was removed already.";
+    if (noAnswer(err))
+        return `Created the new link, but the expired invitation may still be listed: ${removeInvitationError(err)}`;
     return `Created the new link, but the expired invitation is still listed: ${removeInvitationError(err)}`;
 }
 

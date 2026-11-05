@@ -15,6 +15,7 @@ import {
     isVerificationMismatch,
     mutationError,
     renameError,
+    retryAfterText,
     selfListingError,
     serviceTypeConflict,
     withFieldLabels,
@@ -363,5 +364,20 @@ describe("selfListingError", () => {
         expect(selfListingError(new TypeError("x"), fallback)).toEqual({
             message: fallback,
         });
+    });
+});
+
+describe("retryAfterText", () => {
+    const limited = (retryAfter?: number) =>
+        Object.assign(new Error("x"), { status: 429, retryAfter });
+
+    it.each([
+        [undefined, "Please try again later."],
+        [1, "Please try again in 1 second."],
+        [10, "Please try again in 10 seconds."],
+        [60, "Please try again in about 1 minute."],
+        [61, "Please try again in about 2 minutes."],
+    ])("for %s seconds says: %s", (seconds, text) => {
+        expect(retryAfterText(limited(seconds))).toBe(text);
     });
 });

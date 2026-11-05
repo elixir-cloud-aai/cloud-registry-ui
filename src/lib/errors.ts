@@ -90,6 +90,31 @@ function errorDetail(err: unknown) {
         : undefined;
 }
 
+/** Check if the registry didn't answer a request in time */
+function isTimedOut(err: unknown) {
+    return err instanceof Error && "timedOut" in err && err.timedOut === true;
+}
+
+/**
+ * Say how long to wait after too many requests (429)
+ * @param err Error of the request
+ * @returns E.g. "Please try again in about 5 minutes."; without a wait from
+ * the registry (`Retry-After`), to try again later
+ */
+function retryAfterText(err: unknown) {
+    const seconds =
+        err instanceof Error &&
+        "retryAfter" in err &&
+        typeof err.retryAfter === "number"
+            ? err.retryAfter
+            : undefined;
+    if (seconds === undefined) return "Please try again later.";
+    if (seconds < 60)
+        return `Please try again in ${seconds} second${seconds === 1 ? "" : "s"}.`;
+    const minutes = Math.ceil(seconds / 60);
+    return `Please try again in about ${minutes} minute${minutes === 1 ? "" : "s"}.`;
+}
+
 /**
  * Get the form field that the registry's detail for a failed request names
  * @param err Error of the request
@@ -349,11 +374,13 @@ export {
     isServiceIdTaken,
     isServicesLimit,
     isSyncIdentityMismatch,
+    isTimedOut,
     isSyncUnavailable,
     isSyncUrlLocked,
     isVerificationMismatch,
     mutationError,
     renameError,
+    retryAfterText,
     selfListingError,
     serviceTypeConflict,
     syncUrlLockedMessage,

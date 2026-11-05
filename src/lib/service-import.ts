@@ -9,7 +9,12 @@
  * this state.
  */
 import type { ExternalServiceRegister } from "@elixir-cloud/cloud-registry/providers";
-import { errorMessage, mutationError } from "./errors";
+import {
+    errorMessage,
+    isTimedOut,
+    mutationError,
+    retryAfterText,
+} from "./errors";
 import { hasStatus } from "./permissions";
 import { typeKey } from "./service-types";
 
@@ -164,10 +169,13 @@ function formSnapshot(form: unknown) {
  * doesn't tell them apart
  */
 function importError(err: unknown) {
+    // imports store nothing, so there is no state to check
+    if (isTimedOut(err))
+        return "The registry didn't answer in time. Please try again, or fill in the form yourself.";
     if (hasStatus(err, 502))
         return "The registry could not fetch this service info. Check the address; only publicly available service info can be imported, as no tokens are sent.";
     if (hasStatus(err, 429))
-        return "You have imported service info too often, or the registry is busy. Please try again later, or fill in the form yourself.";
+        return `You have imported service info too often, or the registry is busy. ${retryAfterText(err)} Or fill in the form yourself.`;
     if (hasStatus(err, 400))
         return errorMessage(
             err,

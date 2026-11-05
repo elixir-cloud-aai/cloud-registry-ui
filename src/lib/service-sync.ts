@@ -16,6 +16,7 @@ import {
     isSyncIdentityMismatch,
     isSyncUnavailable,
     mutationError,
+    retryAfterText,
 } from "./errors";
 import { hasStatus } from "./permissions";
 import { matchesVerification } from "./verifications";
@@ -87,7 +88,7 @@ function syncStartedMessage({ status, reason }: ServiceSync) {
 
 /**
  * Get the reason for a sync that couldn't be turned on, or a sync that failed;
- * the registry changes nothing in these cases
+ * the registry changes nothing if it answers with a failure
  * @param err Error of the request
  * @returns The reason, for all problems of fetching the same one, as the
  * registry doesn't tell them apart
@@ -96,7 +97,7 @@ function syncFailedReason(err: unknown) {
     if (hasStatus(err, 502))
         return "The registry could not fetch the service info. It must be publicly available at the service's URL followed by /service-info.";
     if (hasStatus(err, 429))
-        return "Service info was fetched too often, or the registry is busy. Please try again later.";
+        return `Service info was fetched too often, or the registry is busy. ${retryAfterText(err)}`;
     if (hasStatus(err, 400))
         return errorMessage(
             err,

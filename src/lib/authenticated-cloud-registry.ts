@@ -41,6 +41,9 @@ type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 // providers of all pages; see `hasApprovals`.
 const approvalsSupport = new Map<string, Promise<boolean>>();
 
+/** How long to wait for an answer of the registry, including its body */
+const requestTimeoutMs = 30_000;
+
 interface RequestOptions {
   method?: HttpMethod;
   body?: unknown;
@@ -64,6 +67,32 @@ const dotSegment = /(^|[/\\])\.\.?([/\\]|$)/;
 function tooOldRegistry(what: string) {
   const detail = `This registry is too old for this version of the app: ${what}. Ask its admins to upgrade it; until then, this app can't change the roles of users.`;
   return Object.assign(new Error(detail), { detail });
+}
+
+/**
+ * Get the error for a request without an answer in time. A change may still
+ * have reached the registry, so the message doesn't say that nothing happened
+ * @param method Method of the request
+ * @returns The error, with the message for the user
+ */
+function requestTimedOut(method: HttpMethod) {
+  const wait = `The registry didn't answer within ${requestTimeoutMs / 1000} seconds`;
+  const detail =
+    method === "GET"
+      ? `${wait}. Please try again.`
+      : `${wait}, so the app can't tell whether this took effect. Check the current state before you try again.`;
+  return Object.assign(new Error(detail), { detail, timedOut: true });
+}
+
+/**
+ * Read the header `Retry-After`, as the registry sends it: in seconds, not as
+ * the date that HTTP also allows
+ * @param value The header, if browsers may read it (CORS)
+ * @returns The seconds to wait, if the value is a positive number of seconds
+ */
+function retryAfterSeconds(value: string | null) {
+  const seconds = value && /^\d+$/.test(value.trim()) ? Number(value) : 0;
+  return seconds > 0 && Number.isFinite(seconds) ? seconds : undefined;
 }
 
 class AuthenticatedCloudRegistryProvider
@@ -174,6 +203,26 @@ class AuthenticatedCloudRegistryProvider
     path: string,
     options: RequestOptions = {},
   ): Promise<T> {
+    try {
+      // one deadline, also for the retry with the token in `send`
+      return await this.send<T>(
+        path,
+        options,
+        AbortSignal.timeout(requestTimeoutMs),
+      );
+    } catch (err) {
+      if (err instanceof Error && err.name === "TimeoutError") {
+        throw requestTimedOut(options.method ?? "GET");
+      }
+      throw err;
+    }
+  }
+
+  private async send<T>(
+    path: string,
+    options: RequestOptions,
+    signal: AbortSignal,
+  ): Promise<T> {
     const {
       method = "GET",
       body,
@@ -203,6 +252,7 @@ class AuthenticatedCloudRegistryProvider
     const response = await fetch(this.url(path), {
       method,
       headers,
+      signal,
       ...(body !== undefined
         ? { body: JSON.stringify(body) }
         : {}),
@@ -210,7 +260,7 @@ class AuthenticatedCloudRegistryProvider
 
     // Deployments may require login for reads: retry once with the token.
     if (response.status === 401 && !authenticated && this.token) {
-      return this.request(path, { ...options, authenticated: true });
+      return this.send(path, { ...options, authenticated: true }, signal);
     }
 
     if (!response.ok) {
@@ -237,6 +287,7 @@ class AuthenticatedCloudRegistryProvider
         detail: body.detail,
         code: body.code,
         serviceId: body.serviceId,
+        retryAfter: retryAfterSeconds(response.headers.get("Retry-After")),
       });
     }
 
@@ -826,7 +877,7 @@ class AuthenticatedCloudRegistryProvider
    * Authenticated (owners, maintainers, admins).
    *
    * Turn on the sync of a service with its service info, or sync it now.
-   * Nothing changes if the request fails.
+   * Nothing changes if the registry answers with a failure.
    *
    * @returns The state of the sync; values that can't be applied are a
    * `reason` in it, not an error
