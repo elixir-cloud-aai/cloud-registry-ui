@@ -75,6 +75,20 @@ describe("errorField and errorMessage", () => {
     });
 });
 
+describe("mutationError for a locked URL", () => {
+    it("tells how to move a service with sync", () => {
+        expect(
+            mutationError(failure(409, { code: "sync-url-locked" }), "x"),
+        ).toContain("turn sync off");
+    });
+
+    it("isn't assumed without the code", () => {
+        expect(mutationError(failure(409, { detail: "Other." }), "x")).toBe(
+            "Other.",
+        );
+    });
+});
+
 describe("mutationError", () => {
     it("explains logins and roles before details", () => {
         expect(mutationError(failure(401, { detail: "d" }), "f")).toBe(

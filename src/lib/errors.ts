@@ -48,6 +48,9 @@ function withFieldLabels(message: string) {
     );
 }
 
+const syncUrlLockedMessage =
+    "This service is kept in sync with its service info, so its URL can't change. To move it, turn sync off on the service's page, or import and register it anew.";
+
 const duplicateMessage =
     "A service with this URL and API type is already registered.";
 
@@ -68,7 +71,8 @@ type ConflictCode =
     | "invitations-limit"
     | "invitation-accepted"
     | "sync-unavailable"
-    | "sync-identity-mismatch";
+    | "sync-identity-mismatch"
+    | "sync-url-locked";
 
 // for registries that send no code (cloud-registry#247): the detail of the
 // 409 for changes of pending services (see `@/lib/approvals`) to types that
@@ -147,6 +151,7 @@ function mutationError(
     if (isForbidden(err)) return forbidden;
     if (isServiceBusy(err))
         return "The service is being changed by another request. Please try again in a moment.";
+    if (isSyncUrlLocked(err)) return syncUrlLockedMessage;
     return serviceTypeConflict(err) ?? errorMessage(err, fallback);
 }
 
@@ -223,6 +228,11 @@ function isSyncUnavailable(err: unknown) {
 /** Check if turning on a sync failed as the service info is of another service */
 function isSyncIdentityMismatch(err: unknown) {
     return isConflictOf(err, "sync-identity-mismatch", () => false);
+}
+
+/** Check if a change failed as sync is on, and the URL can't change then */
+function isSyncUrlLocked(err: unknown) {
+    return isConflictOf(err, "sync-url-locked", () => false);
 }
 
 /** Check if a registration failed as the user has as many as allowed */
@@ -340,10 +350,12 @@ export {
     isServicesLimit,
     isSyncIdentityMismatch,
     isSyncUnavailable,
+    isSyncUrlLocked,
     isVerificationMismatch,
     mutationError,
     renameError,
     selfListingError,
     serviceTypeConflict,
+    syncUrlLockedMessage,
     withFieldLabels,
 };
