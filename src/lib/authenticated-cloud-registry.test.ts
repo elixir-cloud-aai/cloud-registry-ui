@@ -29,13 +29,38 @@ function lastRequest() {
 }
 
 describe("request deadline", () => {
-    it("gives every request a deadline", async () => {
-        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+    it("gives a request one deadline of 30 seconds, also for its retry", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base);
+        const timeout = vi.spyOn(AbortSignal, "timeout");
         fetchMock.mockResolvedValue(json([]));
         await provider.getServices();
-        expect(fetchMock.mock.calls[0]?.[1]?.signal).toBeInstanceOf(
-            AbortSignal,
+        expect(timeout.mock.calls).toEqual([[30_000]]);
+        timeout.mockClear();
+
+        const withToken = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockReset();
+        fetchMock
+            .mockResolvedValueOnce(json({}, 401))
+            .mockResolvedValueOnce(json([]));
+        await withToken.getServices();
+        expect(timeout.mock.calls).toEqual([[30_000]]);
+        const [first, second] = fetchMock.mock.calls;
+        expect(first?.[1]?.signal).toBeInstanceOf(AbortSignal);
+        expect(second?.[1]?.signal).toBe(first?.[1]?.signal);
+        timeout.mockRestore();
+    });
+
+    it("says that a change may have taken effect, but not a read", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockRejectedValue(
+            new DOMException("timed out", "TimeoutError"),
         );
+        await expect(provider.syncService("a")).rejects.toMatchObject({
+            detail: expect.stringContaining("can't tell"),
+        });
+        await expect(provider.getServices()).rejects.toMatchObject({
+            detail: expect.stringContaining("Please try again."),
+        });
     });
 
     it("says so when the registry doesn't answer in time", async () => {

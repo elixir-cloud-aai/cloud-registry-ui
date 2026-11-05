@@ -72,10 +72,15 @@ function tooOldRegistry(what: string) {
 /**
  * Get the error for a request without an answer in time. A change may still
  * have reached the registry, so the message doesn't say that nothing happened
+ * @param method Method of the request
  * @returns The error, with the message for the user
  */
-function requestTimedOut() {
-  const detail = `The registry didn't answer within ${requestTimeoutMs / 1000} seconds, so the app can't tell whether this took effect. Check the current state before you try again.`;
+function requestTimedOut(method: HttpMethod) {
+  const wait = `The registry didn't answer within ${requestTimeoutMs / 1000} seconds`;
+  const detail =
+    method === "GET"
+      ? `${wait}. Please try again.`
+      : `${wait}, so the app can't tell whether this took effect. Check the current state before you try again.`;
   return Object.assign(new Error(detail), { detail, timedOut: true });
 }
 
@@ -208,7 +213,7 @@ class AuthenticatedCloudRegistryProvider
       );
     } catch (err) {
       if (err instanceof Error && err.name === "TimeoutError") {
-        throw requestTimedOut();
+        throw requestTimedOut(options.method ?? "GET");
       }
       throw err;
     }
