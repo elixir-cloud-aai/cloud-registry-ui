@@ -25,6 +25,13 @@ async function openTypeList(page: Page, id: string) {
     await page.getByRole("combobox", { name: "Service Type" }).click();
 }
 
+// the page may still read through a test's routes when the test ends, e.g.
+// the service info, which it reads more than once: their fetches would fail
+// on the closed page
+test.afterEach(async ({ page }) => {
+    await page.unrouteAll({ behavior: "ignoreErrors" });
+});
+
 test.describe("pending entries", () => {
     /**
      * Keep the page's reads of the pending entries
