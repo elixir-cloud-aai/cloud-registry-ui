@@ -182,7 +182,11 @@ async function login(page, user) {
     await page.waitForURL(/\/dashboard/);
     await page.waitForLoadState("networkidle");
     const cookies = await page.context().cookies();
-    return cookies.find((val) => val.name === "access_token")?.value;
+    // `__Host-access_token` in production builds, `access_token` with
+    // `bun run dev`
+    return cookies.find((val) =>
+        ["__Host-access_token", "access_token"].includes(val.name),
+    )?.value;
 }
 
 /**

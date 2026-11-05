@@ -13,6 +13,14 @@ import {
 
 const registry = "http://localhost:8180/ga4gh/registry/v1";
 
+/** Names of the session's cookies: the tests run the app in production
+ * mode (`next start`, or the image), where they have the prefix `__Host-` */
+const sessionCookie = {
+    accessToken: "__Host-access_token",
+    idToken: "__Host-id_token",
+    loginProvider: "__Host-login_provider",
+};
+
 const adminGroup =
     "urn:geant:lifescience-ri.eu:group:elixir:ECP_CLN:ADMIN#aai.lifescience-ri.eu";
 
@@ -57,7 +65,9 @@ async function login(page: Page, user: User, { adminMode = false } = {}) {
         await page.waitForLoadState("networkidle");
     }
     const cookies = await page.context().cookies();
-    const token = cookies.find((val) => val.name === "access_token")?.value;
+    const token = cookies.find(
+        (val) => val.name === sessionCookie.accessToken,
+    )?.value;
     expect(token).toBeTruthy();
     return token as string;
 }
@@ -416,6 +426,7 @@ export {
     registerService,
     registry,
     serviceWithInfo,
+    sessionCookie,
     test,
     tokenOf,
     uniqueId,

@@ -7,6 +7,7 @@ import {
     login,
     registry,
     serviceWithInfo,
+    sessionCookie,
     test,
     tokenOf,
 } from "./fixtures";
@@ -307,7 +308,7 @@ test.describe("notifications", () => {
         await bell.click();
         await expect(page.getByText("x is out of sync")).toBeVisible();
 
-        await context.clearCookies({ name: "access_token" });
+        await context.clearCookies({ name: sessionCookie.accessToken });
         await readAgain(page);
         await expect(page.getByText("x is out of sync")).toHaveCount(0);
         await expect(bell).toHaveCount(0);
@@ -328,10 +329,10 @@ test.describe("notifications", () => {
         await page.getByRole("button", { name: /^Notifications/ }).click();
         await expect(page.getByText("x is out of sync")).toBeVisible();
 
-        await page.evaluate(() => {
+        await page.evaluate((name) => {
             // biome-ignore lint/suspicious/noDocumentCookie: the test switches the user as a login does, with a cookie the app reads
-            document.cookie = "access_token=other; path=/";
-        });
+            document.cookie = `${name}=other; path=/; secure`;
+        }, sessionCookie.accessToken);
         await readAgain(page);
         await expect(page.getByText("x is out of sync")).toHaveCount(0);
     });
