@@ -118,7 +118,7 @@ describe("POST /auth/api/logout", () => {
         },
     );
 
-    it("goes on to the provider with a page, not a redirect", async () => {
+    it("goes on to the provider with a page, not a redirect, also on another host than the issuer", async () => {
         setUp(session);
         // e.g. on another host than the issuer
         vi.spyOn(axios, "get").mockResolvedValue({

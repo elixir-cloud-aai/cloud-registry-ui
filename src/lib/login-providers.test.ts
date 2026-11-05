@@ -415,6 +415,11 @@ describe("oidcEndpoints", () => {
             /aren't https/,
         ],
         [
+            "an end session endpoint of another scheme",
+            { end_session_endpoint: "javascript:alert(1)" },
+            /aren't https/,
+        ],
+        [
             "an http end session endpoint",
             { end_session_endpoint: "http://login.example.org/oidc/logout" },
             /aren't https/,
