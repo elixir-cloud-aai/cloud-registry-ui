@@ -80,6 +80,12 @@ they created and nobody accepted, as the registry does this. The **Invitations**
 tab follows at once (see [Managing
 access](../user-guide/access.md#managing-access)).
 
+**Import and sync of service info:** the registration form can import a service's
+public service info, and keep the new entry in sync with it (see [Importing from
+service info](../user-guide/registering.md#importing-from-service-info)). This takes
+no settings in the app; the registry's settings say whether it syncs and how often.
+With a registry older than 1.0.0rc2, the form has neither.
+
 **Listing the registry itself:** in admin mode, the service info page can list
 the registry among its own services (see [Listing the registry
 itself](admins.md#listing-the-registry-itself)). With a registry older than
