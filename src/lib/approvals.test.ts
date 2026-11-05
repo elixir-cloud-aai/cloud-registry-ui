@@ -89,6 +89,23 @@ describe("getApprovalsOrNull", () => {
         expect(log).toHaveBeenCalled();
     });
 
+    it("is null without a log when aborted during the probe", async () => {
+        const log = vi.spyOn(console, "error").mockImplementation(() => {});
+        const controller = new AbortController();
+        const getApprovals = vi.fn();
+        const hasApprovals = () => {
+            controller.abort();
+            return Promise.reject(new TypeError("Failed to fetch"));
+        };
+        expect(
+            await getApprovalsOrNull(provider({ hasApprovals, getApprovals }), {
+                signal: controller.signal,
+            }),
+        ).toBeNull();
+        expect(getApprovals).not.toHaveBeenCalled();
+        expect(log).not.toHaveBeenCalled();
+    });
+
     it("is null without a log when aborted", async () => {
         const log = vi.spyOn(console, "error").mockImplementation(() => {});
         const { signal } = new AbortController();

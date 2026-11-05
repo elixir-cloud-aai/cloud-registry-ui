@@ -1,6 +1,7 @@
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { isAborted } from "@/lib/abort";
 import type { Verification } from "@/lib/cloud-registry.types";
 import { errorMessage } from "@/lib/errors";
 import { hasStatus } from "@/lib/permissions";
@@ -35,7 +36,7 @@ export function useServiceVerification(service?: ExternalService) {
                 });
             })
             .catch((err) => {
-                if (signal.aborted) return;
+                if (signal.aborted || isAborted(err)) return;
                 setState({ service });
                 if (hasStatus(err, 404)) return;
                 toast.error(

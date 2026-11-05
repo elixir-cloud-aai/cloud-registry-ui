@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { isAborted } from "@/lib/abort";
 import type { ServiceSync } from "@/lib/cloud-registry.types";
 import { errorMessage } from "@/lib/errors";
 import { hasStatus, isUnauthorized } from "@/lib/permissions";
@@ -33,7 +34,7 @@ function useServiceSync(serviceId?: string) {
                 if (!signal.aborted) setState({ id: serviceId, sync });
             })
             .catch((err) => {
-                if (signal.aborted) return;
+                if (signal.aborted || isAborted(err)) return;
                 const failed = !hasStatus(err, 404);
                 setState({ id: serviceId, failed });
                 // an expired login has its own message on the page

@@ -41,12 +41,16 @@ async function getApprovals(
     options: ReadOptions = {},
 ) {
     if (!provider.isAuthenticated) return noApprovals;
-    // in browsers, the request with the token can't tell a missing route
-    // (404) from an outage: both fail without a status
-    if (!(await provider.hasApprovals())) return noApprovals;
     try {
+        // in browsers, the request with the token can't tell a missing route
+        // (404) from an outage: both fail without a status. The probe is
+        // shared by the pages (see `hasApprovals`), so it isn't aborted with
+        // this read
+        if (!(await provider.hasApprovals())) return noApprovals;
         return await provider.getApprovals(options);
     } catch (err) {
+        // aborted, also if the probe failed after the abort
+        if (options.signal?.aborted) throw options.signal.reason;
         if (hasStatus(err, 403) || hasStatus(err, 404)) return noApprovals;
         throw err;
     }

@@ -1,5 +1,6 @@
 import { getCookie } from "cookies-next/client";
 import { useCallback, useEffect, useState } from "react";
+import { isAborted } from "@/lib/abort";
 import type { Me } from "@/lib/cloud-registry.types";
 import { isUnauthorized } from "@/lib/permissions";
 import { useCloudRegistry } from "./use-cloud-registry";
@@ -35,7 +36,7 @@ function useMe() {
                 if (!signal.aborted) setMe(val);
             })
             .catch((err) => {
-                if (signal.aborted) return;
+                if (signal.aborted || isAborted(err)) return;
                 // keep the user on transient errors, e.g. of a refetch
                 if (isUnauthorized(err)) setMe(null);
                 setError(true);

@@ -39,6 +39,12 @@ describe("useLatestRequest", () => {
         expect(react.render(useLatestRequest)).toBe(first);
     });
 
+    it("starts no request after unmount", () => {
+        const { next } = react.render(useLatestRequest);
+        react.unmount();
+        expect(next().aborted).toBe(true);
+    });
+
     it("has nothing to abort before the first request", () => {
         const { abort } = react.render(useLatestRequest);
         expect(() => abort()).not.toThrow();

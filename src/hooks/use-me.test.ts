@@ -42,6 +42,14 @@ describe("useMe", () => {
         expect(react.render(useMe).me).toEqual({ userId: "u" });
     });
 
+    it("ignores reads that the browser aborts", async () => {
+        registry.answer = () =>
+            Promise.reject(new DOMException("aborted", "AbortError"));
+        react.render(useMe);
+        await new Promise((resolve) => setTimeout(resolve));
+        expect(react.render(useMe)).toMatchObject({ error: false });
+    });
+
     it("aborts the read on unmount", () => {
         react.render(useMe);
         expect(registry.signals[0]?.aborted).toBe(false);
