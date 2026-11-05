@@ -21,7 +21,8 @@ function isAborted(err: unknown) {
 }
 
 /**
- * Combine signals, as `AbortSignal.any()` does, which older browsers lack
+ * Combine signals, as `AbortSignal.any()` does, which browsers that Next.js
+ * supports lack (e.g. Chrome before 116, Safari before 17.4)
  * @param signals Signals
  * @returns A signal that aborts with the first of them, with its reason
  */

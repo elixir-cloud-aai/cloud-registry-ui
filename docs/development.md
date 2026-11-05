@@ -93,12 +93,8 @@ docker compose -f e2e/stack/compose.yaml down
 
 `npm run test:e2e` reuses an app already running on port 3100; stop it to
 test changes. CI fails a test that passes only on its retry, as such flaky
-tests hide bugs. Requests that a page still waits for when it is left are
-a common cause: loaders abort their requests when their component unmounts
-or loads anew (`useLatestRequest()`, or an `AbortController` in the
-effect), pass the signal to the registry's client (`{ signal }`), and
-neither log nor show aborted requests (`isAborted()` in `src/lib/abort.ts`),
-also those that browsers abort when they leave a page.
+tests hide bugs; requests that are logged as errors when a page is left
+are a common cause (see [Loaders](#loaders)).
 
 `E2E_BASE_URL` points the tests to an app that runs already, e.g.
 `http://localhost:3100`, instead of building and starting one; it must
@@ -107,7 +103,8 @@ the app as it ships: the standalone server on Bun, where `npm run test:e2e`
 runs `next start` on Node.js. The service `app` of the stack (profile
 `image`) runs the image `cloud-registry-ui:ci`, or the one of
 `E2E_APP_IMAGE`, with these settings on port 3100. CI's `e2e-image` job
-runs the login and services tests against the image that it builds:
+runs the login and services tests against the image that the `image` job
+builds:
 
 ```
 docker build -t cloud-registry-ui:ci .
@@ -117,7 +114,20 @@ docker compose -f e2e/stack/compose.yaml --profile image down
 ```
 
 The app's container uses the host's network, as Docker Engine on Linux
-has it; Docker Desktop needs its host networking turned on.
+has it; Docker Desktop needs its host networking turned on. As above, the
+browsers must resolve `oidc.localhost` to the local machine.
+
+## Loaders
+
+Pages and components that load from the registry abort their requests
+when they unmount or load anew: `useLatestRequest()` for loaders that can
+load again (each request aborts the one before), or an `AbortController`
+in the effect for those that load once. They pass its signal to the
+registry's client, whose reads take `{ signal }` (`ReadOptions`; new reads
+take it, too), and neither log nor show aborted requests (`isAborted()` in
+`src/lib/abort.ts`), also those that browsers abort when they leave a
+page. Otherwise every navigation during loading logs errors, and the
+end-to-end tests, which fail on logged errors, become flaky.
 
 ## Cloud Components
 

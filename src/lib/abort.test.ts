@@ -13,7 +13,7 @@ describe("isAborted", () => {
         expect(isAborted(null)).toBe(false);
     });
 
-    it("knows the reason of an aborted controller", async () => {
+    it("knows the reason of an aborted controller", () => {
         const controller = new AbortController();
         controller.abort();
         expect(isAborted(controller.signal.reason)).toBe(true);

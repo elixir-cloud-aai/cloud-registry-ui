@@ -169,6 +169,32 @@ describe("abort", () => {
         controller.abort();
         await expect(result).rejects.toMatchObject({ name: "AbortError" });
     });
+
+    it("is aborted, not expired, if the read as a guest is aborted", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        const controller = new AbortController();
+        fetchMock
+            .mockResolvedValueOnce(json({}, 401))
+            .mockImplementationOnce(pending);
+        const result = provider.getSyncs({ signal: controller.signal });
+        await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+        controller.abort();
+        await expect(result).rejects.toMatchObject({ name: "AbortError" });
+    });
+
+    it("is aborted while the body of a failure is read", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        const controller = new AbortController();
+        const response = json({ detail: "x" }, 500);
+        vi.spyOn(response, "json").mockImplementation(() => {
+            controller.abort();
+            return Promise.reject(controller.signal.reason);
+        });
+        fetchMock.mockResolvedValue(response);
+        await expect(
+            provider.getServices({ signal: controller.signal }),
+        ).rejects.toMatchObject({ name: "AbortError" });
+    });
 });
 
 describe("Retry-After", () => {

@@ -15,7 +15,7 @@ describe("useLatestRequest", () => {
         const { next } = react.render(useLatestRequest);
         const first = next();
         expect(first.aborted).toBe(false);
-        const second = react.render(useLatestRequest).next();
+        const second = next();
         expect(first.aborted).toBe(true);
         expect(second.aborted).toBe(false);
     });

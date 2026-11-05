@@ -5,7 +5,7 @@ import type {
     Service,
     ServiceType,
 } from "@elixir-cloud/cloud-registry/providers";
-import { anySignal } from "./abort";
+import { anySignal, isAborted } from "./abort";
 import type {
     ApiError,
     AppNotification,
@@ -194,8 +194,9 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
             if (!this.isAuthenticated || !hasStatus(err, 401)) throw err;
             try {
                 return await this.request<T>(path, { signal });
-            } catch {
-                throw err;
+            } catch (retryErr) {
+                // aborted, not expired
+                throw isAborted(retryErr) ? retryErr : err;
             }
         }
     }
@@ -282,7 +283,9 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
                 } else if (typeof body.message === "string") {
                     message = body.message;
                 }
-            } catch {
+            } catch (err) {
+                // An aborted read is aborted, not failed.
+                if (isAborted(err)) throw err;
                 // The error response may not contain JSON.
             }
 
