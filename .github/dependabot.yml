@@ -18,9 +18,18 @@ updates:
       # Playwright is pinned exactly, in line with the Playwright image of
       # the `e2e` job in `.github/workflows/ci.yml`: bump both by hand
       - dependency-name: "@playwright/test"
+      # The types follow the oldest Node.js that the tests support (22, see
+      # `docs/development.md`), not the newest
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
+      # Cloud Components (prereleases, pinned exactly), whose updates may
+      # break the create form: in pull requests of their own
+      elixir-cloud:
+        patterns: ["@elixir-cloud/*"]
       node-dependencies:
         patterns: ["*"]
+        exclude-patterns: ["@elixir-cloud/*"]
   # Packages that build the docs (`docs/requirements.txt`)
   - package-ecosystem: pip
     directory: /docs
@@ -47,8 +56,9 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
-  # Images in the `Dockerfile` (Bun); pull requests that bump it must also
-  # bump `bun-version` in the workflows
+  # Images in the `Dockerfile` (Bun, pinned by digest); pull requests that
+  # bump its version must also bump `packageManager` in `package.json`,
+  # which CI's `lint` job checks
   - package-ecosystem: docker
     directory: /
     schedule:

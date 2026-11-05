@@ -2,6 +2,7 @@
     "name": "elixir-cloud-registry-frontend",
     "version": "1.0.0-rc1",
     "private": true,
+    "packageManager": "bun@1.4.4",
     "scripts": {
         "dev": "next dev",
         "build": "next build",
@@ -13,7 +14,7 @@
         "test:e2e": "playwright test"
     },
     "dependencies": {
-        "@elixir-cloud/cloud-registry": "^2.0.0-alpha.50",
+        "@elixir-cloud/cloud-registry": "2.0.0-alpha.50",
         "@tanstack/react-form": "^1.33.5",
         "axios": "^1.21.0",
         "class-variance-authority": "^0.7.1",
@@ -34,7 +35,7 @@
         "@biomejs/biome": "^2.6.4",
         "@playwright/test": "1.56.1",
         "@tailwindcss/postcss": "^4",
-        "@types/node": "^26",
+        "@types/node": "^22",
         "@types/react": "^19",
         "@types/react-dom": "^19",
         "@vitest/coverage-v8": "^5.0.5",

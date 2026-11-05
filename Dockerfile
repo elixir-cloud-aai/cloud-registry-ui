@@ -1,5 +1,10 @@
+# Both stages use the Bun version of `packageManager` in `package.json`,
+# the one source of the version (CI's `lint` job checks that they match),
+# pinned by digest. Dependabot bumps tag and digest: bump `packageManager`
+# in the same pull request
+#
 # Build stage: dependencies, sources and the build; none of it is kept
-FROM oven/bun:1.4.4 AS build
+FROM oven/bun:1.4.4@sha256:1d22548f177f4ff38e0c15baa3c2c46c6c2060ba2d1bc573bb4720b407548f1d AS build
 WORKDIR /app
 
 # Install deps
@@ -15,7 +20,7 @@ COPY . .
 RUN NEXT_OUTPUT=standalone bun run build
 
 # Runtime stage: only the standalone server, its static files and `public/`
-FROM oven/bun:1.4.4
+FROM oven/bun:1.4.4@sha256:1d22548f177f4ff38e0c15baa3c2c46c6c2060ba2d1bc573bb4720b407548f1d
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=3000

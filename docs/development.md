@@ -3,7 +3,8 @@
 ## Requirements
 
 - [Git](https://git-scm.com/)
-- [Bun 1.4+](https://bun.com/)
+- [Bun](https://bun.com/), in the version of `packageManager` in
+  `package.json`
 - [Node.js 22+](https://nodejs.org/), for the tests
 - [Docker](https://www.docker.com/)
 - A cloud-registry deployment (see
@@ -37,6 +38,21 @@ bun run dev
 
 The app runs at http://localhost:3000. To run a production build locally,
 run `bun run build` and `bun run start`.
+
+## Lint
+
+[Biome](https://biomejs.dev/) (`biome.json`) checks the lint rules, the
+formatting and the order of imports of the code; Markdown and YAML files
+are left out. CI's `lint` job runs it:
+
+```
+bun run lint
+```
+
+`bun x biome check --write` fixes what Biome can fix safely, and
+`bun run format` formats only. Where a rule doesn't fit, suppress it on
+the line with a reason, e.g.
+`// biome-ignore lint/suspicious/noArrayIndexKey: placeholders, which never change order`.
 
 ## Tests
 
@@ -91,10 +107,20 @@ Components changes it. Move to properties once the component has them.
 Dependabot (`.github/dependabot.yml`) opens grouped pull requests against
 `dev` each month, with commit messages starting with
 `build(deps)`, for the Bun dependencies, the docs packages, the actions and
-the Docker image. `@playwright/test` is left out: bump it by hand, together
+the Docker image. Cloud Components (`@elixir-cloud/*`), prereleases pinned
+to exact versions, come in pull requests of their own, as their updates
+may break the create form (see [Cloud Components](#cloud-components)).
+`@types/node` stays on the major version of the oldest Node.js the tests
+support (22). `@playwright/test` is left out: bump it by hand, together
 with the Playwright image of the `e2e` job (`.github/workflows/ci.yml`).
-Pull requests that bump the Bun image of the `Dockerfile` must also bump
-`bun-version` in the workflows. Codecov uploads use the organisation secret `CODECOV_TOKEN`.
+Codecov uploads use the organisation secret `CODECOV_TOKEN`.
+
+`packageManager` in `package.json` is the one source of the Bun version:
+the workflows read it (`bun-version-file`), and the Bun images of the
+`Dockerfile`, pinned by digest, must have the same version, which the
+`lint` job checks. Pull requests that bump the Bun image must also bump
+`packageManager`, and the other way round (with the image's digest, e.g.
+from `docker buildx imagetools inspect oven/bun:<version>`).
 
 ## Dependency audit
 
