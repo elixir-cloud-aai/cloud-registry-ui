@@ -90,6 +90,11 @@ function errorDetail(err: unknown) {
         : undefined;
 }
 
+/** Check if the registry didn't answer a request in time */
+function isTimedOut(err: unknown) {
+    return err instanceof Error && "timedOut" in err && err.timedOut === true;
+}
+
 /**
  * Say how long to wait after too many requests (429)
  * @param err Error of the request
@@ -369,6 +374,7 @@ export {
     isServiceIdTaken,
     isServicesLimit,
     isSyncIdentityMismatch,
+    isTimedOut,
     isSyncUnavailable,
     isSyncUrlLocked,
     isVerificationMismatch,

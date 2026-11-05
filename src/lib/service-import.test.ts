@@ -220,6 +220,9 @@ describe("importError", () => {
 
     it("asks to wait above the limit", () => {
         expect(importError(failure(429))).toContain("too often");
+        expect(
+            importError(Object.assign(new Error("x"), { timedOut: true })),
+        ).toContain("fill in the form yourself");
     });
 
     it("names the field of an invalid address or service info", () => {

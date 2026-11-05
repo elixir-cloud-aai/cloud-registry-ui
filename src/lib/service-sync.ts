@@ -88,7 +88,7 @@ function syncStartedMessage({ status, reason }: ServiceSync) {
 
 /**
  * Get the reason for a sync that couldn't be turned on, or a sync that failed;
- * the registry changes nothing in these cases
+ * the registry changes nothing if it answers with a failure
  * @param err Error of the request
  * @returns The reason, for all problems of fetching the same one, as the
  * registry doesn't tell them apart

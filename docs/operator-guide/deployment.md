@@ -55,8 +55,8 @@ Serve the app over HTTPS, at the address of `LOGIN_REDIRECT_URI` (see
 ## Timeouts
 
 The app waits 30 seconds for each answer of the registry, then tells users that it
-didn't answer. Changes may still reach the registry, so the message asks them to reload
-first. Keep the timeouts of proxies in front of the registry above the time that it
+didn't answer. Changes may still reach the registry, so the message asks them to check
+the current state first. Keep the timeouts of proxies in front of the registry above the time that it
 needs to answer: service info fetches take up to 10 seconds.
 
 After too many fetches of service info, the app says how long to wait, from the

@@ -13,6 +13,7 @@ import type {
 import {
     errorDetail,
     isInvitationAccepted,
+    isTimedOut,
     isInvitationsLimit,
     isLastOwner,
     mutationError,
@@ -187,6 +188,8 @@ function renewRevokeError(err: unknown) {
         return "Created the new link; the old invitation had expired or was revoked already.";
     if (isInvitationAccepted(err))
         return "Created the new link, but the old invitation was accepted meanwhile: revoke the new one if it isn't needed.";
+    if (isTimedOut(err))
+        return `Created the new link, but the old one may still work: ${revokeInvitationError(err)}`;
     return `Created the new link, but the old one still works: ${revokeInvitationError(err)}`;
 }
 

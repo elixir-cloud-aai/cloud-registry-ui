@@ -75,7 +75,7 @@ function tooOldRegistry(what: string) {
  * @returns The error, with the message for the user
  */
 function requestTimedOut() {
-  const detail = `The registry didn't answer within ${requestTimeoutMs / 1000} seconds. Please reload the page to see the current state, and try again.`;
+  const detail = `The registry didn't answer within ${requestTimeoutMs / 1000} seconds, so the app can't tell whether this took effect. Check the current state before you try again.`;
   return Object.assign(new Error(detail), { detail, timedOut: true });
 }
 
@@ -864,7 +864,7 @@ class AuthenticatedCloudRegistryProvider
    * Authenticated (owners, maintainers, admins).
    *
    * Turn on the sync of a service with its service info, or sync it now.
-   * Nothing changes if the request fails.
+   * Nothing changes if the registry answers with a failure.
    *
    * @returns The state of the sync; values that can't be applied are a
    * `reason` in it, not an error
