@@ -114,9 +114,7 @@ test.describe("service info", () => {
         await page.goto("/dashboard/service-info");
 
         await expect(
-            page
-                .getByRole("region", { name: "API Address" })
-                .getByRole("code"),
+            page.getByRole("region", { name: "API Address" }).getByRole("code"),
         ).toHaveText(registry);
     });
 
@@ -163,9 +161,7 @@ test.describe("service info", () => {
         await page.goto("/dashboard/service-info");
 
         await expect(
-            page
-                .getByRole("region", { name: "API Address" })
-                .getByRole("code"),
+            page.getByRole("region", { name: "API Address" }).getByRole("code"),
         ).toHaveText(`${baseURL}/ga4gh/registry/v1`);
     });
 

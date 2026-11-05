@@ -1,4 +1,6 @@
+import { getCookie } from "cookies-next/server";
 import { Info, LogIn } from "lucide-react";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,8 +11,6 @@ import {
 import { AdminModeToggle } from "../admin-mode";
 import { NotificationBell } from "../notifications";
 import { ThemeToggle } from "../theme";
-import { getCookie } from "cookies-next/server";
-import { cookies } from "next/headers";
 
 async function AppTopbarActions() {
     const idToken = await getCookie("id_token", { cookies });

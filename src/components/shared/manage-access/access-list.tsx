@@ -106,9 +106,7 @@ function AccessList({
                             const key = isGroup(val)
                                 ? `group:${val.group}`
                                 : `user:${val.userId}`;
-                            const label = isGroup(val)
-                                ? val.group
-                                : val.userId;
+                            const label = isGroup(val) ? val.group : val.userId;
                             const name = isGroup(val)
                                 ? undefined
                                 : userName(val);

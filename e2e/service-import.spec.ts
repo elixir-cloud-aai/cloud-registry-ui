@@ -189,12 +189,16 @@ test.describe("importing service info", () => {
             await route.fallback();
         });
         await importInto(page, serviceWithInfo().address);
-        await expect(page.getByLabel("Import from service info")).toBeDisabled();
-        await field(page, "Enter a descriptive name for your service").fill("Typed meanwhile");
-        await expect(page.getByText("The form changed")).toBeVisible();
-        await expect(field(page, "Enter a descriptive name for your service")).toHaveValue(
+        await expect(
+            page.getByLabel("Import from service info"),
+        ).toBeDisabled();
+        await field(page, "Enter a descriptive name for your service").fill(
             "Typed meanwhile",
         );
+        await expect(page.getByText("The form changed")).toBeVisible();
+        await expect(
+            field(page, "Enter a descriptive name for your service"),
+        ).toHaveValue("Typed meanwhile");
     });
 
     test("Reset ends the import", async ({ page, browser }) => {

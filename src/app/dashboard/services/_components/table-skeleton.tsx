@@ -14,8 +14,10 @@ function ServiceTableBodySkeleton() {
     return (
         <TableBody>
             {Array.from({ length: 6 }).map((_, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: placeholders, which never change order
                 <TableRow key={i} style={{ opacity: 1 - i * 0.14 }}>
                     {columnWidths.map((w, j) => (
+                        // biome-ignore lint/suspicious/noArrayIndexKey: placeholders, which never change order
                         <TableCell key={j}>
                             <Skeleton className={`h-3 ${w}`} />
                         </TableCell>

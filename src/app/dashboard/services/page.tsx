@@ -3,7 +3,7 @@ import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
 import { LogIn, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { PageSubtitle } from "@/components/shared/page-subtitle";
@@ -27,7 +27,6 @@ import {
     ServicesTableHeader,
     ServiceTableBodySkeleton,
 } from "./_components";
-import RegisterServiceDialog from "./_components/register-service-dialog";
 import {
     defaultFilters,
     filterServices,
@@ -35,6 +34,7 @@ import {
     myServices,
     type ServiceFilters,
 } from "./_components/filter-helper";
+import RegisterServiceDialog from "./_components/register-service-dialog";
 
 const pageSize = 10;
 
@@ -83,7 +83,9 @@ function Page() {
         setPage(1);
     };
 
-    const fetchServices = () => {
+    // one function per provider, so that the effect below loads the
+    // services again only when the provider changes
+    const fetchServices = useCallback(() => {
         if (!cloudRegistryProvider) return;
         const request = ++latestRequest.current;
         Promise.all([
@@ -143,11 +145,11 @@ function Page() {
             .finally(() => {
                 if (request === latestRequest.current) setLoading(false);
             });
-    };
+    }, [cloudRegistryProvider]);
 
     useEffect(() => {
         fetchServices();
-    }, [cloudRegistryProvider]);
+    }, [fetchServices]);
 
     // links to the create form (`?register`, e.g. from
     // `/dashboard/services/create`) open it, also on this page, and leave

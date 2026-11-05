@@ -185,7 +185,9 @@ test.describe("notifications", () => {
         );
         await login(page, "other");
         await page.getByRole("button", { name: /^Notifications/ }).click();
-        await expect(page.getByText("Pending TES awaits approval")).toBeVisible();
+        await expect(
+            page.getByText("Pending TES awaits approval"),
+        ).toBeVisible();
     });
 
     test("shows only fixed texts", async ({ page }) => {
@@ -327,6 +329,7 @@ test.describe("notifications", () => {
         await expect(page.getByText("x is out of sync")).toBeVisible();
 
         await page.evaluate(() => {
+            // biome-ignore lint/suspicious/noDocumentCookie: the test switches the user as a login does, with a cookie the app reads
             document.cookie = "access_token=other; path=/";
         });
         await readAgain(page);

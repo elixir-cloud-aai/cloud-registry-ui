@@ -177,7 +177,6 @@ test.describe("syncing services", () => {
     test("the edit form says that the URL is locked", async ({
         page,
         browser,
-        problems,
     }) => {
         await addTesType(browser);
         const token = await login(page, "owner");

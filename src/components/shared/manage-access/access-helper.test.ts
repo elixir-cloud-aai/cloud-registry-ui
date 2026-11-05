@@ -54,7 +54,10 @@ describe("grantSchema", () => {
         [{ principal: "x/.." }, "User ID can't have the parts '.' or '..'."],
         [{ principal: "../x" }, "User ID can't have the parts '.' or '..'."],
         [{ principal: "a/./b" }, "User ID can't have the parts '.' or '..'."],
-        [{ principal: "a\\..\\b" }, "User ID can't have the parts '.' or '..'."],
+        [
+            { principal: "a\\..\\b" },
+            "User ID can't have the parts '.' or '..'.",
+        ],
         [
             { kind: "group", principal: "a/../b" },
             "Group can't have the parts '.' or '..'.",
@@ -121,9 +124,7 @@ describe("role holders", () => {
         expect(userName({ userId: "u", name: "  ", role: "owner" })).toBe(
             undefined,
         );
-        expect(userName({ userId: "u", name: " N ", role: "owner" })).toBe(
-            "N",
-        );
+        expect(userName({ userId: "u", name: " N ", role: "owner" })).toBe("N");
     });
 
     it("filters by name, user ID, group and role, ignoring case", () => {
