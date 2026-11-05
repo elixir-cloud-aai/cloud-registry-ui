@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useCloudRegistry, useMe } from "@/hooks";
+import { useCloudRegistry, useLatestRequest, useMe } from "@/hooks";
+import { isAborted } from "@/lib/abort";
 import type { SelfListing as Listing } from "@/lib/cloud-registry.types";
 import { selfListingError } from "@/lib/errors";
 import { canChangeSelfListing } from "@/lib/permissions";
@@ -35,20 +36,29 @@ function SelfListing() {
     const [listing, setListing] = useState<Listing | null>();
     const [changing, setChanging] = useState(false);
 
-    // whether the state could be read
+    // also aborted on unmount
+    const latestRequest = useLatestRequest();
+
+    // whether the state could be read; aborted reads, by a newer one or on
+    // unmount, have nothing to report
     const load = useCallback(async () => {
         if (!cloudRegistryProvider) return false;
+        const signal = latestRequest.next();
         try {
-            setListing(await cloudRegistryProvider.getSelfListing());
+            const listing = await cloudRegistryProvider.getSelfListing({
+                signal,
+            });
+            if (!signal.aborted) setListing(listing);
             return true;
         } catch (err) {
+            if (signal.aborted || isAborted(err)) return true;
             console.error("Failed to load the listing of the registry:", err);
             // what the page knows stays, e.g. if a change failed for the same
             // reason, which its toast tells
             setListing((val) => val ?? null);
             return false;
         }
-    }, [cloudRegistryProvider]);
+    }, [cloudRegistryProvider, latestRequest]);
 
     useEffect(() => {
         if (allowed) load();

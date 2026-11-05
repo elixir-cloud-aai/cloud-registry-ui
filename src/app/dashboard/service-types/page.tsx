@@ -10,10 +10,12 @@ import { PageSubtitle } from "@/components/shared/page-subtitle";
 import { Button } from "@/components/ui/button";
 import {
     useCloudRegistry,
+    useLatestRequest,
     useMe,
     usePagination,
     useRegistrationRules,
 } from "@/hooks";
+import { isAborted } from "@/lib/abort";
 import { getApprovalsOrNull, withPendingTypes } from "@/lib/approvals";
 import { errorMessage, mutationError } from "@/lib/errors";
 import { loginHref } from "@/lib/links";
@@ -41,7 +43,8 @@ function Page() {
     const [loading, setLoading] = useState(true);
     const [loginRequired, setLoginRequired] = useState(false);
     const [removing, setRemoving] = useState(false);
-    const latestRequest = useRef(0);
+    // also aborted on unmount
+    const latestRequest = useLatestRequest();
     const removingRef = useRef(false);
     const { me, loading: meLoading, expired } = useMe();
     // the limit of unused types; adding is offered once it is known
@@ -56,14 +59,14 @@ function Page() {
     const fetchServiceTypes = useCallback(() => {
         if (!cloudRegistryProvider) return Promise.resolve();
         // responses of earlier requests must not replace the list
-        const request = ++latestRequest.current;
+        const signal = latestRequest.next();
         return Promise.all([
-            cloudRegistryProvider.getServiceTypes(),
+            cloudRegistryProvider.getServiceTypes({ signal }),
             // pending types, for admins and the users who added them
-            getApprovalsOrNull(cloudRegistryProvider),
+            getApprovalsOrNull(cloudRegistryProvider, { signal }),
         ])
             .then(([val, approvals]) => {
-                if (request !== latestRequest.current) return;
+                if (signal.aborted) return;
                 setServiceTypes(withPendingTypes(val, approvals));
                 setPending(new Set(approvals?.serviceTypes.map(typeKey) ?? []));
                 if (!approvals)
@@ -72,7 +75,7 @@ function Page() {
                     );
             })
             .catch((err) => {
-                if (request !== latestRequest.current) return;
+                if (signal.aborted || isAborted(err)) return;
                 if (isUnauthorized(err)) setLoginRequired(true);
                 else
                     toast.error(
@@ -80,16 +83,14 @@ function Page() {
                     );
             })
             .finally(() => {
-                if (request === latestRequest.current) setLoading(false);
+                if (!signal.aborted) setLoading(false);
             });
-    }, [cloudRegistryProvider]);
+    }, [cloudRegistryProvider, latestRequest]);
 
     useEffect(() => {
         fetchServiceTypes();
-        return () => {
-            latestRequest.current++;
-        };
-    }, [fetchServiceTypes]);
+        return latestRequest.abort;
+    }, [fetchServiceTypes, latestRequest]);
 
     const handleRemove = async (serviceType: ServiceType) => {
         // one removal at a time, also on double clicks

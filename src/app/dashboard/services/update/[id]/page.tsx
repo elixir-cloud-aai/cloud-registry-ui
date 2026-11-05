@@ -6,11 +6,13 @@ import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import {
     useCloudRegistry,
+    useLatestRequest,
     useMe,
     useRegistrationRules,
     useServiceSync,
     useServiceVerification,
 } from "@/hooks";
+import { isAborted } from "@/lib/abort";
 import { getApprovalsOrNull, getServiceWithApproval } from "@/lib/approvals";
 import type { ServiceType } from "@/lib/cloud-registry.types";
 import { errorMessage } from "@/lib/errors";
@@ -46,16 +48,22 @@ function Page() {
     const [serviceTypes, setServiceTypes] = useState<ServiceType[] | null>();
     // whether the user's pending types are known, and so left out
     const [pendingTypesKnown, setPendingTypesKnown] = useState(true);
+    // the load of the service: each one aborts the one before, e.g. for the
+    // ID before a rename; also aborted on unmount
+    const latestRequest = useLatestRequest();
 
     // pending services are only listed in GET /approvals, e.g. after a
     // change to a pending type
     const fetchService = useCallback(() => {
         if (!id || !cloudRegistryProvider) return;
+        const signal = latestRequest.next();
         return getServiceWithApproval(
             cloudRegistryProvider,
             decodeURIComponent(id as string),
+            { signal },
         )
             .then((_val) => {
+                if (signal.aborted) return;
                 setService(_val.service);
                 setPending(_val.pending);
                 if (_val.pending === undefined)
@@ -64,6 +72,7 @@ function Page() {
                     );
             })
             .catch((err) => {
+                if (signal.aborted || isAborted(err)) return;
                 if (isUnauthorized(err)) setLoginRequired(true);
                 else
                     toast.error(
@@ -73,8 +82,10 @@ function Page() {
                         ),
                     );
             })
-            .finally(() => setLoading(false));
-    }, [cloudRegistryProvider, id]);
+            .finally(() => {
+                if (!signal.aborted) setLoading(false);
+            });
+    }, [cloudRegistryProvider, id, latestRequest]);
 
     // the form stays disabled until the service is loaded again
     const refetchService = useCallback(
@@ -90,30 +101,31 @@ function Page() {
 
     useEffect(() => {
         if (!cloudRegistryProvider) return;
-        let current = true;
+        // aborted on unmount
+        const controller = new AbortController();
+        const { signal } = controller;
         // registries that require login for reads list the user's pending
         // types too: they are left out, as approved types only can be
         // chosen (see the form)
         Promise.all([
-            cloudRegistryProvider.getServiceTypes(),
-            getApprovalsOrNull(cloudRegistryProvider),
+            cloudRegistryProvider.getServiceTypes({ signal }),
+            getApprovalsOrNull(cloudRegistryProvider, { signal }),
         ])
             .then(([val, approvals]) => {
-                if (!current) return;
+                if (signal.aborted) return;
                 setServiceTypes(
                     approvedTypes(val, approvals?.serviceTypes ?? []),
                 );
                 setPendingTypesKnown(approvals !== null);
             })
             .catch((err) => {
+                if (signal.aborted || isAborted(err)) return;
                 // the form then offers the stored type, and new ones if
                 // the user may add them
                 console.error("Failed to load the service types:", err);
-                if (current) setServiceTypes(null);
+                setServiceTypes(null);
             });
-        return () => {
-            current = false;
-        };
+        return () => controller.abort();
     }, [cloudRegistryProvider]);
 
     // the saved values are the form's new defaults; the form stays disabled

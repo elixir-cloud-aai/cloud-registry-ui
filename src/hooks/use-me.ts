@@ -1,8 +1,9 @@
 import { getCookie } from "cookies-next/client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Me } from "@/lib/cloud-registry.types";
 import { isUnauthorized } from "@/lib/permissions";
 import { useCloudRegistry } from "./use-cloud-registry";
+import { useLatestRequest } from "./use-latest-request";
 
 function useMe() {
     const { cloudRegistryProvider } = useCloudRegistry();
@@ -10,39 +11,40 @@ function useMe() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
     const [expired, setExpired] = useState(false);
-    const latestRequest = useRef(0);
+    // also aborted on unmount
+    const latestRequest = useLatestRequest();
 
     const fetchMe = useCallback(() => {
         if (!cloudRegistryProvider) return;
         if (!getCookie("access_token")) {
             // logged out: there is nobody to fetch, and pending requests
             // must not restore the previous user
-            latestRequest.current++;
+            latestRequest.abort();
             setMe(null);
             setLoading(false);
             return;
         }
 
-        const request = ++latestRequest.current;
+        const signal = latestRequest.next();
         setLoading(true);
         setError(false);
         setExpired(false);
         cloudRegistryProvider
-            .getCurrentUser()
+            .getCurrentUser({ signal })
             .then((val) => {
-                if (request === latestRequest.current) setMe(val);
+                if (!signal.aborted) setMe(val);
             })
             .catch((err) => {
-                if (request !== latestRequest.current) return;
+                if (signal.aborted) return;
                 // keep the user on transient errors, e.g. of a refetch
                 if (isUnauthorized(err)) setMe(null);
                 setError(true);
                 setExpired(isUnauthorized(err));
             })
             .finally(() => {
-                if (request === latestRequest.current) setLoading(false);
+                if (!signal.aborted) setLoading(false);
             });
-    }, [cloudRegistryProvider]);
+    }, [cloudRegistryProvider, latestRequest]);
 
     useEffect(() => {
         fetchMe();

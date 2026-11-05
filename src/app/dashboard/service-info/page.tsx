@@ -1,9 +1,10 @@
 "use client";
 import type { Service } from "@elixir-cloud/cloud-registry/providers";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { useCloudRegistry } from "@/hooks";
+import { isAborted } from "@/lib/abort";
 import { errorMessage } from "@/lib/errors";
 import {
     CardSkeleton,
@@ -17,22 +18,28 @@ function Page() {
     const [error, setError] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    const fetchServiceInfo = useCallback(() => {
+    useEffect(() => {
+        if (!cloudRegistryProvider) return;
+        // aborted on unmount
+        const controller = new AbortController();
+        const { signal } = controller;
         cloudRegistryProvider
-            ?.getServiceInfo()
-            .then((data) => setServiceInfo(data))
+            .getServiceInfo({ signal })
+            .then((data) => {
+                if (!signal.aborted) setServiceInfo(data);
+            })
             .catch((err) => {
+                if (signal.aborted || isAborted(err)) return;
                 toast.error(
                     errorMessage(err, "Could not fetch the service info."),
                 );
                 setError(true);
             })
-            .finally(() => setLoading(false));
+            .finally(() => {
+                if (!signal.aborted) setLoading(false);
+            });
+        return () => controller.abort();
     }, [cloudRegistryProvider]);
-
-    useEffect(() => {
-        fetchServiceInfo();
-    }, [fetchServiceInfo]);
 
     if (loading) return <CardSkeleton />;
 

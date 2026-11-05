@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLatestRequest } from "@/hooks";
+import { isAborted } from "@/lib/abort";
 import { accessPageSize, invitationLabelRequired } from "@/lib/access-settings";
 import type {
     GroupPermission,
@@ -59,22 +61,23 @@ function ManageAccessDialog({
     const [linksGone, setLinksGone] = useState(0);
     // why the dialog must close, e.g. after removing one's own owner role
     const [closeReason, setCloseReason] = useState<string | null>(null);
-    const latestRequest = useRef(0);
+    // also aborted on unmount
+    const latestRequest = useLatestRequest();
     const pageSize = accessPageSize();
 
     const fetchPermissions = useCallback(() => {
         // tells whether the user may still manage access; if not, the dialog
         // closes
         if (!provider) return Promise.resolve(true);
-        const request = ++latestRequest.current;
+        const signal = latestRequest.next();
         return provider
-            .getServicePermissions(serviceId)
+            .getServicePermissions(serviceId, { signal })
             .then((val) => {
-                if (request === latestRequest.current) setPermissions(val);
+                if (!signal.aborted) setPermissions(val);
                 return true;
             })
             .catch((err) => {
-                if (request !== latestRequest.current) return true;
+                if (signal.aborted || isAborted(err)) return true;
                 if (isUnauthorized(err)) {
                     setCloseReason(
                         "Your session expired. Please log in again.",
@@ -93,9 +96,9 @@ function ManageAccessDialog({
                 return true;
             })
             .finally(() => {
-                if (request === latestRequest.current) setLoading(false);
+                if (!signal.aborted) setLoading(false);
             });
-    }, [provider, serviceId]);
+    }, [provider, serviceId, latestRequest]);
 
     useEffect(() => {
         if (open) fetchPermissions();

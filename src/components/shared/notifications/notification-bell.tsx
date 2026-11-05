@@ -10,7 +10,8 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover";
-import { useCloudRegistry } from "@/hooks";
+import { useCloudRegistry, useLatestRequest } from "@/hooks";
+import { isAborted } from "@/lib/abort";
 import type { AppNotification } from "@/lib/cloud-registry.types";
 import {
     notificationCount,
@@ -80,7 +81,8 @@ function NotificationBell() {
     const [notifications, setNotifications] = useState<AppNotification[]>();
     const [names, setNames] = useState<Map<string, string>>(new Map());
     const [open, setOpen] = useState(false);
-    const latest = useRef(0);
+    // the read under way, also aborted on unmount
+    const latest = useLatestRequest();
     // whether reading has ever worked, and whether to give up on it
     const loaded = useRef(false);
     const stopped = useRef(false);
@@ -95,13 +97,13 @@ function NotificationBell() {
 
     // for another login: another user may use this browser
     const clear = useCallback(() => {
-        latest.current++;
+        latest.abort();
         session.current++;
         reading.current = false;
         setNotifications(undefined);
         setNames(new Map());
         setOpen(false);
-    }, []);
+    }, [latest]);
 
     const read = useCallback(() => {
         if (!cloudRegistryProvider) return;
@@ -114,18 +116,18 @@ function NotificationBell() {
         }
         if (stopped.current || reading.current) return;
         reading.current = true;
-        const request = ++latest.current;
+        const signal = latest.next();
         cloudRegistryProvider
-            .getNotifications()
+            .getNotifications({ signal })
             .then((val) => {
-                if (request !== latest.current) return;
+                if (signal.aborted) return;
                 loaded.current = true;
                 setNotifications(
                     val?.filter((item) => !dismissing.current.has(item.id)),
                 );
             })
             .catch((err) => {
-                if (request !== latest.current) return;
+                if (signal.aborted || isAborted(err)) return;
                 if (isUnauthorized(err)) {
                     stopped.current = true;
                     clear();
@@ -135,9 +137,9 @@ function NotificationBell() {
                 } else console.error("Failed to load notifications:", err);
             })
             .finally(() => {
-                if (request === latest.current) reading.current = false;
+                if (!signal.aborted) reading.current = false;
             });
-    }, [clear, cloudRegistryProvider, isLoggedIn]);
+    }, [clear, cloudRegistryProvider, isLoggedIn, latest]);
 
     useEffect(() => {
         stopped.current = false;
@@ -156,9 +158,9 @@ function NotificationBell() {
             session.current++;
             clearInterval(timer);
             document.removeEventListener("visibilitychange", refresh);
-            latest.current++;
+            latest.abort();
         };
-    }, [read]);
+    }, [read, latest]);
 
     // the names of the services, once the list is opened, with the user's
     // token, as pending ones aren't listed publicly; those without a name keep
@@ -169,12 +171,13 @@ function NotificationBell() {
     );
     useEffect(() => {
         if (!open || !namesMissing || !cloudRegistryProvider) return;
-        let current = true;
+        const controller = new AbortController();
+        const { signal } = controller;
         const lookup = session.current;
         cloudRegistryProvider
-            .getServicesAsUser()
+            .getServicesAsUser({ signal })
             .then((services) => {
-                if (!current || lookup !== session.current) return;
+                if (signal.aborted || lookup !== session.current) return;
                 const known = new Map(
                     services.map((val) => [val.id, val.name]),
                 );
@@ -184,11 +187,10 @@ function NotificationBell() {
                 setNames(known);
             })
             .catch((err) => {
-                console.error("Failed to load the services' names:", err);
+                if (!isAborted(err))
+                    console.error("Failed to load the services' names:", err);
             });
-        return () => {
-            current = false;
-        };
+        return () => controller.abort();
     }, [open, namesMissing, notifications, cloudRegistryProvider]);
 
     const dismiss = async (id: string) => {
@@ -227,7 +229,7 @@ function NotificationBell() {
             dismissing.current.delete(id);
             // what a read from before the end of this request says is outdated;
             // the next one comes with the interval
-            latest.current++;
+            latest.abort();
             reading.current = false;
             // it may have worked, if only the answer got lost
             if (failed && started === session.current) read();

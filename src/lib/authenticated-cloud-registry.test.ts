@@ -94,6 +94,83 @@ describe("request deadline", () => {
     });
 });
 
+describe("abort", () => {
+    // a fetch that only ends when its signal aborts, as browsers do
+    const pending: typeof fetch = (_url, init) =>
+        new Promise((_resolve, reject) => {
+            const signal = init?.signal as AbortSignal;
+            if (signal.aborted) reject(signal.reason);
+            signal.addEventListener("abort", () => reject(signal.reason));
+        });
+
+    it.each<
+        [
+            string,
+            (
+                provider: AuthenticatedCloudRegistryProvider,
+                signal: AbortSignal,
+            ) => Promise<unknown>,
+        ]
+    >([
+        ["getCurrentUser", (p, signal) => p.getCurrentUser({ signal })],
+        ["getServices", (p, signal) => p.getServices({ signal })],
+        ["getServicesAsUser", (p, signal) => p.getServicesAsUser({ signal })],
+        ["getServiceById", (p, signal) => p.getServiceById("a", { signal })],
+        ["getServiceTypes", (p, signal) => p.getServiceTypes({ signal })],
+        ["getApprovals", (p, signal) => p.getApprovals({ signal })],
+        [
+            "getServicePermissions",
+            (p, signal) => p.getServicePermissions("a", { signal }),
+        ],
+        [
+            "getServiceInvitations",
+            (p, signal) => p.getServiceInvitations("a", { signal }),
+        ],
+        [
+            "getServiceVerification",
+            (p, signal) => p.getServiceVerification("a", { signal }),
+        ],
+        ["getVerifications", (p, signal) => p.getVerifications({ signal })],
+        ["getServiceSync", (p, signal) => p.getServiceSync("a", { signal })],
+        ["getSyncs", (p, signal) => p.getSyncs({ signal })],
+        ["getNotifications", (p, signal) => p.getNotifications({ signal })],
+        ["getServiceInfo", (p, signal) => p.getServiceInfo({ signal })],
+        ["getSelfListing", (p, signal) => p.getSelfListing({ signal })],
+    ])("%s stops when the caller aborts", async (_name, read) => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockImplementation(pending);
+        const controller = new AbortController();
+        const result = read(provider, controller.signal);
+        controller.abort();
+        await expect(result).rejects.toMatchObject({ name: "AbortError" });
+        expect(fetchMock).toHaveBeenCalledOnce();
+    });
+
+    it("keeps the deadline next to the caller's signal", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        const deadline = new AbortController();
+        vi.spyOn(AbortSignal, "timeout").mockReturnValue(deadline.signal);
+        fetchMock.mockImplementation(pending);
+        const result = provider.getServices({
+            signal: new AbortController().signal,
+        });
+        deadline.abort(new DOMException("timed out", "TimeoutError"));
+        await expect(result).rejects.toMatchObject({ timedOut: true });
+    });
+
+    it("keeps the caller's signal for the retry with the token", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        const controller = new AbortController();
+        fetchMock
+            .mockResolvedValueOnce(json({}, 401))
+            .mockImplementationOnce(pending);
+        const result = provider.getServices({ signal: controller.signal });
+        await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+        controller.abort();
+        await expect(result).rejects.toMatchObject({ name: "AbortError" });
+    });
+});
+
 describe("Retry-After", () => {
     const limited = (value?: string) =>
         new Response("{}", {

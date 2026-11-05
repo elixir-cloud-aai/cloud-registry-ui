@@ -6,7 +6,8 @@ import { ListPagination } from "@/components/shared/list-pagination";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { usePagination } from "@/hooks";
+import { useLatestRequest, usePagination } from "@/hooks";
+import { isAborted } from "@/lib/abort";
 import type { Invitation, Role } from "@/lib/cloud-registry.types";
 import {
     createInvitationError,
@@ -88,7 +89,8 @@ function Invitations({
     const [created, setCreated] = useState<CreatedLink[]>([]);
     // the link that couldn't be copied, shown to be selected instead
     const [uncopied, setUncopied] = useState<string>();
-    const latestRequest = useRef(0);
+    // also aborted on unmount
+    const latestRequest = useLatestRequest();
     // browsers copy in the background: only the latest result counts, and none
     // once the invitations changed
     const latestCopy = useRef(0);
@@ -123,11 +125,11 @@ function Invitations({
 
     const fetchInvitations = useCallback(() => {
         if (!provider) return Promise.resolve();
-        const request = ++latestRequest.current;
+        const signal = latestRequest.next();
         return provider
-            .getServiceInvitations(serviceId)
+            .getServiceInvitations(serviceId, { signal })
             .then((val) => {
-                if (request !== latestRequest.current) return;
+                if (signal.aborted) return;
                 setInvitations(val);
                 setListFailure(undefined);
                 // links of invitations that were accepted, revoked or expired
@@ -142,12 +144,12 @@ function Invitations({
                 );
             })
             .catch((err) => {
-                if (request !== latestRequest.current) return;
+                if (signal.aborted || isAborted(err)) return;
                 // an outdated list must not be acted on
                 setInvitations(null);
                 setListFailure(listInvitationsError(err));
             });
-    }, [provider, serviceId]);
+    }, [provider, serviceId, latestRequest]);
 
     // biome-ignore lint/correctness/useExhaustiveDependencies: asks for it
     useEffect(() => {
@@ -166,7 +168,7 @@ function Invitations({
         if (!provider) return;
         setChanging(true);
         // a list read before the change would drop the link of a new invitation
-        latestRequest.current++;
+        latestRequest.abort();
         latestCopy.current++;
         setUncopied(undefined);
         // new links are shown only while the dialog is open

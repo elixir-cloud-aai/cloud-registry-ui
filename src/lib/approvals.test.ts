@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { failure } from "@/test/errors";
+
+// the error of an aborted read
+const aborted = () => new DOMException("aborted", "AbortError");
+
 import {
     getApprovalsOrNull,
     getServiceWithApproval,
@@ -28,8 +32,13 @@ function provider(
     overrides: Partial<{
         isAuthenticated: boolean;
         hasApprovals: () => Promise<boolean>;
-        getApprovals: () => Promise<Approvals>;
-        getServiceById: (id: string) => Promise<ExternalService>;
+        getApprovals: (options?: {
+            signal?: AbortSignal;
+        }) => Promise<Approvals>;
+        getServiceById: (
+            id: string,
+            options?: { signal?: AbortSignal },
+        ) => Promise<ExternalService>;
     }> = {},
 ) {
     return {
@@ -78,6 +87,17 @@ describe("getApprovalsOrNull", () => {
             ),
         ).toBeNull();
         expect(log).toHaveBeenCalled();
+    });
+
+    it("is null without a log when aborted", async () => {
+        const log = vi.spyOn(console, "error").mockImplementation(() => {});
+        const { signal } = new AbortController();
+        const getApprovals = vi.fn(() => Promise.reject(aborted()));
+        expect(
+            await getApprovalsOrNull(provider({ getApprovals }), { signal }),
+        ).toBeNull();
+        expect(getApprovals).toHaveBeenCalledWith({ signal });
+        expect(log).not.toHaveBeenCalled();
     });
 });
 
@@ -162,5 +182,23 @@ describe("getServiceWithApproval", () => {
                 "a",
             ),
         ).rejects.toBe(outage);
+    });
+
+    it("rethrows the abort of the approvals without a log", async () => {
+        const log = vi.spyOn(console, "error").mockImplementation(() => {});
+        const { signal } = new AbortController();
+        const getServiceById = vi.fn(async (id: string) => service(id));
+        await expect(
+            getServiceWithApproval(
+                provider({
+                    getServiceById,
+                    getApprovals: () => Promise.reject(aborted()),
+                }),
+                "a",
+                { signal },
+            ),
+        ).rejects.toMatchObject({ name: "AbortError" });
+        expect(getServiceById).toHaveBeenCalledWith("a", { signal });
+        expect(log).not.toHaveBeenCalled();
     });
 });

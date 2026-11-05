@@ -20,11 +20,13 @@ export function useServiceVerification(service?: ExternalService) {
 
     useEffect(() => {
         if (!service) return;
-        let current = true;
+        // aborted on unmount and when the service changes
+        const controller = new AbortController();
+        const { signal } = controller;
         cloudRegistryProvider
-            ?.getServiceVerification(service.id)
+            ?.getServiceVerification(service.id, { signal })
             .then((val) => {
-                if (!current) return;
+                if (signal.aborted) return;
                 setState({
                     service,
                     verification: matchesVerification(service, val)
@@ -33,7 +35,7 @@ export function useServiceVerification(service?: ExternalService) {
                 });
             })
             .catch((err) => {
-                if (!current) return;
+                if (signal.aborted) return;
                 setState({ service });
                 if (hasStatus(err, 404)) return;
                 toast.error(
@@ -43,9 +45,7 @@ export function useServiceVerification(service?: ExternalService) {
                     ),
                 );
             });
-        return () => {
-            current = false;
-        };
+        return () => controller.abort();
     }, [cloudRegistryProvider, service]);
 
     const loaded = !!service && state?.service === service;

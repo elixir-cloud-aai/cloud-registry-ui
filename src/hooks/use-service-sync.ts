@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { ServiceSync } from "@/lib/cloud-registry.types";
 import { errorMessage } from "@/lib/errors";
 import { hasStatus, isUnauthorized } from "@/lib/permissions";
 import { useCloudRegistry } from "./use-cloud-registry";
+import { useLatestRequest } from "./use-latest-request";
 
 /**
  * The state of a service's sync with its service info
@@ -20,19 +21,19 @@ function useServiceSync(serviceId?: string) {
         sync?: ServiceSync;
         failed?: boolean;
     }>();
-    const latest = useRef(0);
+    // also aborted on unmount
+    const latest = useLatestRequest();
 
     const reload = useCallback(() => {
         if (!serviceId || !cloudRegistryProvider) return;
-        const request = ++latest.current;
+        const signal = latest.next();
         cloudRegistryProvider
-            .getServiceSync(serviceId)
+            .getServiceSync(serviceId, { signal })
             .then((sync) => {
-                if (request === latest.current)
-                    setState({ id: serviceId, sync });
+                if (!signal.aborted) setState({ id: serviceId, sync });
             })
             .catch((err) => {
-                if (request !== latest.current) return;
+                if (signal.aborted) return;
                 const failed = !hasStatus(err, 404);
                 setState({ id: serviceId, failed });
                 // an expired login has its own message on the page
@@ -44,21 +45,19 @@ function useServiceSync(serviceId?: string) {
                     ),
                 );
             });
-    }, [cloudRegistryProvider, serviceId]);
+    }, [cloudRegistryProvider, serviceId, latest]);
 
     useEffect(() => {
         reload();
-        return () => {
-            latest.current++;
-        };
-    }, [reload]);
+        return latest.abort;
+    }, [reload, latest]);
 
     const setSync = useCallback(
         (sync?: ServiceSync) => {
-            latest.current++;
+            latest.abort();
             if (serviceId) setState({ id: serviceId, sync });
         },
-        [serviceId],
+        [serviceId, latest],
     );
 
     const loaded = !!serviceId && state?.id === serviceId;

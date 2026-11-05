@@ -7,7 +7,13 @@ import { toast } from "sonner";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
-import { useCloudRegistry, useMe, useServiceVerification } from "@/hooks";
+import {
+    useCloudRegistry,
+    useLatestRequest,
+    useMe,
+    useServiceVerification,
+} from "@/hooks";
+import { isAborted } from "@/lib/abort";
 import { getServiceWithApproval } from "@/lib/approvals";
 import { errorMessage } from "@/lib/errors";
 import { hasStatus, isUnauthorized } from "@/lib/permissions";
@@ -26,7 +32,8 @@ function Page() {
     const { me, refetch } = useMe();
     const [loginRequired, setLoginRequired] = useState(false);
     const [notFound, setNotFound] = useState(false);
-    const latestRequest = useRef(0);
+    // also aborted on unmount
+    const latestRequest = useLatestRequest();
     // warn once per service that its approval couldn't be checked, not
     // after every change
     const warnedPending = useRef(false);
@@ -46,13 +53,14 @@ function Page() {
         if (!id || !cloudRegistryProvider || id !== currentId.current) return;
         // responses of earlier requests, e.g. for a previous ID, must not
         // replace the service
-        const request = ++latestRequest.current;
+        const signal = latestRequest.next();
         getServiceWithApproval(
             cloudRegistryProvider,
             decodeURIComponent(id as string),
+            { signal },
         )
             .then((_val) => {
-                if (request !== latestRequest.current) return;
+                if (signal.aborted) return;
                 setService(_val.service);
                 setPending(_val.pending);
                 setNotFound(false);
@@ -64,7 +72,7 @@ function Page() {
                 }
             })
             .catch((err) => {
-                if (request !== latestRequest.current) return;
+                if (signal.aborted || isAborted(err)) return;
                 if (isUnauthorized(err)) setLoginRequired(true);
                 // also services that the user may not see, e.g. pending
                 // ones for guests
@@ -81,9 +89,9 @@ function Page() {
                     );
             })
             .finally(() => {
-                if (request === latestRequest.current) setLoading(false);
+                if (!signal.aborted) setLoading(false);
             });
-    }, [cloudRegistryProvider, id]);
+    }, [cloudRegistryProvider, id, latestRequest]);
 
     useEffect(() => {
         setService(undefined);
@@ -93,10 +101,8 @@ function Page() {
         warnedPending.current = false;
         fetchService();
         // e.g. for a previous ID
-        return () => {
-            latestRequest.current++;
-        };
-    }, [fetchService]);
+        return latestRequest.abort;
+    }, [fetchService, latestRequest]);
 
     if (loginRequired)
         return (
