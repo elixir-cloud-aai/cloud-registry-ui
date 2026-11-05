@@ -91,6 +91,10 @@ role, controls on their page (see [Syncing services](../user-guide/syncing.md)).
 out-of-sync label without a reason means that the registry's syncs aren't running: check
 the registry.
 
+**Notifications:** logged-in users have a bell in the top bar, with what needs their
+attention (see [Notifications](../user-guide/notifications.md)). This takes no settings;
+a registry without notifications shows no bell.
+
 **Listing the registry itself:** in admin mode, the service info page can list
 the registry among its own services (see [Listing the registry
 itself](admins.md#listing-the-registry-itself)). With a registry older than

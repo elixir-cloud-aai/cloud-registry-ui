@@ -45,7 +45,7 @@ success and the last attempt and, if the service is out of sync, why:
 | The registry hasn't synced this service in time | Nothing failed, but syncs may not be running: tell the registry's operators |
 
 These texts are fixed: the registry doesn't pass on network errors. Those with a role
-on the service also get a notification.
+on the service also get a [notification](notifications.md).
 
 ## Turning sync on and off
 

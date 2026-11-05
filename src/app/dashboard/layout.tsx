@@ -23,7 +23,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         orientation="vertical"
                         className="mr-2 data-[orientation=vertical]:h-4 mt-6"
                     />
-                    <div className="flex items-center justify-between w-full">
+                    {/* on phones, the path gives way to the buttons */}
+                    <div className="flex min-w-0 items-center justify-between gap-2 w-full">
                         <AppBreadcrumb />
                         <AppTopbarActions />
                     </div>
