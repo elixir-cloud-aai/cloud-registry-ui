@@ -124,7 +124,7 @@ test.describe("login", () => {
         // with HTTP Basic (client_secret_basic), and the mock took the
         // audience from it; the mock would accept client_secret_post too:
         // the unit tests check the method and its header
-        expect(claims.aud).toEqual(["cloud-registry-ui-e2e"]);
+        expect([claims.aud].flat()).toEqual(["cloud-registry-ui-e2e"]);
         // the secrets of the login are used up
         for (const name of ["authState", "authVerifier", "authNonce"])
             expect(cookies.map((val) => val.name)).not.toContain(
