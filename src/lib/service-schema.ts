@@ -253,7 +253,6 @@ function serviceFields(service?: ServiceInput): ServiceFields {
 export {
     defaultTypeGroup,
     type ServiceFields,
-    type ServiceInput,
     type ServiceSchemaRules,
     serviceFields,
     serviceSchema,

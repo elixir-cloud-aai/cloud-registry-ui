@@ -88,4 +88,4 @@ function registrationRuleRows(rules: RegistrationRules): RuleRow[] {
     ];
 }
 
-export { type RuleRow, registrationRuleRows };
+export { registrationRuleRows };

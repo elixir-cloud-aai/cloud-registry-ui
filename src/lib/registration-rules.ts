@@ -200,7 +200,5 @@ export {
     type RegistrationRules,
     readRegistrationRules,
     registrationRules,
-    type ServiceInfoSyncRule,
-    type ServiceTypesMode,
     unknownRegistrationRules,
 };
