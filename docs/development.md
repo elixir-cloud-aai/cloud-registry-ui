@@ -106,9 +106,8 @@ reads that the page starts last (see the function's comment), e.g.
 form, and `isRead(path)` for the reads of any other path (e.g.
 `isRead("/services")` for the list of guests). Not
 `waitForLoadState("networkidle")`, which may return before the app has
-started its reads. At the end of a test, the fixtures wait for the reads
-still running before they check for problems. Selects of the app are
-opened with `openList()`, which waits until their options take clicks.
+started its reads. Selects of the app are opened with `openList()`, which
+waits until their options take clicks.
 
 `E2E_BASE_URL` points the tests to an app that runs already, e.g.
 `http://localhost:3100`, instead of building and starting one; it must

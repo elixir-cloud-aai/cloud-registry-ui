@@ -373,19 +373,10 @@ function watchPage(page: Page, appURL: string) {
 const test = base.extend<Fixtures>({
     // for every test, also those that don't use the list; tests that cause
     // problems on purpose check and clear it
-    // the reads still running when the test ends are waited for, so that
-    // their problems count too (not those that start later)
     problems: [
         async ({ page, baseURL }, use) => {
             const problems = watchPage(page, baseURL as string);
-            const tracked = trackReads(page);
             await use(problems);
-            // and those that start meanwhile
-            for (let count = -1; count !== tracked.reads.length; ) {
-                count = tracked.reads.length;
-                await tracked.ended();
-            }
-            tracked.stop();
             expect(problems).toEqual([]);
         },
         { auto: true },

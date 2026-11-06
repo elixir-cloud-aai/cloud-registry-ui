@@ -50,7 +50,13 @@ test.describe("registration rules", () => {
 
         const url = service.url.replace("https:", "http:");
         await page.locator("input[name=url]").fill(url);
-        await page.getByRole("button", { name: "Submit" }).click();
+        // the form reads the service again, with the service info through
+        // the test's route, whose fetch would fail on the closed page
+        await waitForReads(
+            page,
+            () => page.getByRole("button", { name: "Submit" }).click(),
+            [isRead(`/services/${service.id}`)],
+        );
         await expect
             .poll(
                 async () =>
