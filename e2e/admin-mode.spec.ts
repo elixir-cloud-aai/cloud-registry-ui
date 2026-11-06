@@ -10,6 +10,7 @@ import {
     serviceReads,
     test,
     users,
+    waitForReads,
 } from "./fixtures";
 
 /**
@@ -89,7 +90,13 @@ test.describe("admin mode", () => {
 
         await expect.poll(() => hasRedBackground(userMode)).toBe(false);
 
-        await userMode.click();
+        // the switch loads the page again, whose reads the reload below
+        // would cut off
+        await waitForReads(
+            page,
+            () => userMode.click(),
+            serviceReads(service.id),
+        );
         await expect(adminMode).toBeVisible();
         await expect(adminMode).toHaveAttribute("aria-pressed", "true");
         await expect(verify).toBeVisible();
@@ -306,6 +313,10 @@ test.describe("admin mode", () => {
 
         await login(page, "owner");
         await openPage(page, "/dashboard/services", [isApprovalsRead]);
+        // the user's roles are shown, as the switch would be
+        await expect(
+            page.getByText("View our registered services and manage your own"),
+        ).toBeVisible();
         await expect(
             page.getByRole("button", { name: /User mode|Admin mode/ }),
         ).toHaveCount(0);

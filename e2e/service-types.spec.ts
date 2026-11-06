@@ -22,6 +22,15 @@ const pendingNote =
     "A service type that isn't registered yet is pending until an admin approves it";
 
 /**
+ * Get the select of the type in a service's edit form
+ * @param page Page with the form
+ * @returns The select
+ */
+function typeSelect(page: Page) {
+    return page.getByRole("combobox", { name: "Service Type" });
+}
+
+/**
  * Open the list of types in a service's edit form, once the form's reads
  * have finished
  * @param page Page, logged in
@@ -29,7 +38,7 @@ const pendingNote =
  */
 async function openTypeList(page: Page, id: string) {
     await openPage(page, `/dashboard/services/update/${id}`, editFormReads(id));
-    await openList(page.getByRole("combobox", { name: "Service Type" }));
+    await openList(typeSelect(page));
 }
 
 // the page may still read through a test's routes when the test ends, e.g.
@@ -169,7 +178,7 @@ test.describe("service types", () => {
         // new types of users are pending in the registry of the tests
         await expect(page.getByText(pendingNote)).toBeVisible();
 
-        await openList(page.getByRole("combobox", { name: "Service Type" }));
+        await openList(typeSelect(page));
         const label = `${other.group} · ${other.artifact} · ${other.version}`;
         await page.getByRole("option", { name: label }).click();
         await expect(
@@ -313,7 +322,7 @@ test.describe("service types", () => {
             page.getByRole("combobox", { name: "Service Type" }),
         ).toHaveText("org.ga4gh · tes · 1.1.0");
 
-        await openList(page.getByRole("combobox", { name: "Service Type" }));
+        await openList(typeSelect(page));
         await page
             .getByRole("option", { name: "Add new service type" })
             .click();

@@ -60,9 +60,10 @@ test.describe("services", () => {
                         .body?.name,
             )
             .toBe(renamed);
-        // the form reloads the service: requests cut off by leaving the
-        // page fail, and the app logs them; the sidebar's link ends them,
-        // and the list's reads are waited for
+        // the form reads the service again: requests cut off by loading
+        // another document fail, and the app logs them; the sidebar's link
+        // leaves the form without one, which aborts them, and the reads of
+        // the list are waited for
         await waitForReads(
             page,
             () =>

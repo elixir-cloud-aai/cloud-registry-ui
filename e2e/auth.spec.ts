@@ -2,10 +2,10 @@ import {
     expect,
     isApprovalsRead,
     login,
+    openPage,
     sessionCookie,
     test,
     users,
-    waitForReads,
 } from "./fixtures";
 
 const sessionCookies = Object.values(sessionCookie);
@@ -94,9 +94,7 @@ test.describe("login", () => {
                 })),
         );
         // the Services page, whose reads the logout below would cut off
-        await waitForReads(page, () => page.goto("/dashboard"), [
-            isApprovalsRead,
-        ]);
+        await openPage(page, "/dashboard", [isApprovalsRead]);
         const menu = page.getByRole("button", { name: users.owner.sub });
         await expect(menu).toContainText(users.owner.name);
 
