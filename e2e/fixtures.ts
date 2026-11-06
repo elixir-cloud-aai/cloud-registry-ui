@@ -9,6 +9,8 @@ import {
     test as base,
     expect,
     type Page,
+    type Request,
+    type Response,
 } from "@playwright/test";
 
 const registry = "http://localhost:8180/ga4gh/registry/v1";
@@ -38,6 +40,76 @@ const users = {
 type User = keyof typeof users;
 
 /**
+ * Whether a response is that of the read of the pending entries with the
+ * token (`getApprovals()`), which the pages with lists start last: first,
+ * the app may have to find out whether the registry has them
+ * (`hasApprovals()`, which reads the service info, and may probe the route)
+ * @param response Response
+ * @returns Whether it is
+ */
+function isApprovalsRead(response: Response) {
+    return (
+        response.url() === `${registry}/approvals` &&
+        !!response.request().headers().authorization
+    );
+}
+
+/**
+ * Wait until a read has finished: its response has arrived in full, or it
+ * failed. A response of a test's route (`page.route()`, which has no
+ * server address) only needs to have arrived, as the route hands over the
+ * whole body at once: Chromium reports it as finished only once the page
+ * reads the body, which the app doesn't do for every response (e.g. for a
+ * 503 of the service info in `hasApprovals()`)
+ * @param request The read
+ */
+async function readFinished(request: Request) {
+    const response = await request.response();
+    if (response && (await response.serverAddr())) await response.finished();
+}
+
+/**
+ * Do something that makes the page read from the registry, and wait until
+ * those reads have finished: first for the given responses, which show
+ * that the page has started all of them, then for every read that started
+ * meanwhile. Firefox fails reads that are still running when the test
+ * leaves the page (with a `TypeError`, not an `AbortError`), and so may
+ * Chromium, and the app logs them as errors. Not
+ * `waitForLoadState("networkidle")`: a page may start its reads more than
+ * 500 ms after its scripts have loaded, and a link changes the page without
+ * loading a document, whose network was idle before; either way, the wait
+ * returns before the reads have started
+ * @param page Page
+ * @param action What starts the reads, e.g. a click
+ * @param last What the responses to wait for match: the reads that the
+ * page starts last, e.g. `isApprovalsRead`
+ * @returns The responses, in the order of `last`
+ */
+async function waitForReads(
+    page: Page,
+    action: () => Promise<unknown>,
+    last: ((response: Response) => boolean)[],
+) {
+    const reads: Request[] = [];
+    const record = (request: Request) => {
+        if (request.url().startsWith(registry)) reads.push(request);
+    };
+    page.on("request", record);
+    let responses: Response[];
+    try {
+        const waits = Promise.all(last.map((val) => page.waitForResponse(val)));
+        // awaited below, unless the action fails
+        waits.catch(() => undefined);
+        await action();
+        responses = await waits;
+    } finally {
+        page.off("request", record);
+    }
+    await Promise.all(reads.map(readFinished));
+    return responses;
+}
+
+/**
  * Log in through the login page and the mock provider's form
  * @param page Page
  * @param user Test user
@@ -52,17 +124,21 @@ async function login(page: Page, user: User, { adminMode = false } = {}) {
     await page
         .locator("textarea[name=claims], input[name=claims]")
         .fill(JSON.stringify({ name, eduperson_entitlement: groups }));
-    await page.locator("input[type=submit]").click();
+    // the login ends on the Services page, which reads the same for every
+    // user, and so does its reload by the switch to admin mode
+    await waitForReads(page, () => page.locator("input[type=submit]").click(), [
+        isApprovalsRead,
+    ]);
     await page.waitForURL(/\/dashboard/);
-    // Firefox fails the dashboard's requests that are still running when the
-    // test moves on to another page, and the app logs them as errors
-    await page.waitForLoadState("networkidle");
     if (adminMode) {
-        await page.getByRole("button", { name: "User mode" }).click();
+        await waitForReads(
+            page,
+            () => page.getByRole("button", { name: "User mode" }).click(),
+            [isApprovalsRead],
+        );
         await expect(
             page.getByRole("button", { name: "Admin mode" }),
         ).toBeVisible();
-        await page.waitForLoadState("networkidle");
     }
     const cookies = await page.context().cookies();
     const token = cookies.find(
@@ -419,6 +495,7 @@ export {
     expect,
     failWithConflict,
     fillCreateForm,
+    isApprovalsRead,
     login,
     newService,
     openCreateForm,
@@ -431,5 +508,6 @@ export {
     tokenOf,
     uniqueId,
     users,
+    waitForReads,
     watchPage,
 };
