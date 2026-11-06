@@ -158,8 +158,8 @@ Owners and maintainers of a service, and admins, can edit it:
 2. Change the fields. The **Service Type** is chosen from the registered
    types, as in the form for new services; the service's current type is
    always offered, also if it isn't listed (e.g. a pending one). If you may
-   add types, **Add new service type** shows the fields **Type Group**,
-   **Type Artifact** and **Type Version** for a new one. The environment is
+   add types, **Add new service type**, first in the list, shows the fields
+   **Type Group**, **Type Artifact** and **Type Version** for a new one. The environment is
    chosen from those that the registry allows, as it publishes them in its
    service info (any text if it allows any environment), and the service
    URL must have a scheme that it allows (e.g. `https`).

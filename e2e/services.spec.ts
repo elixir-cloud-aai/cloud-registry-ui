@@ -52,7 +52,13 @@ test.describe("services", () => {
         await page.waitForURL(/\/update\//);
         const renamed = `${service.name} renamed`;
         await page.locator("input[name=name]").fill(renamed);
-        await page.getByRole("button", { name: "Submit" }).click();
+        // the form reads the service and the pending entries again, which
+        // the wait for the list's reads below would take for the list's
+        await waitForReads(
+            page,
+            () => page.getByRole("button", { name: "Submit" }).click(),
+            [isRead(`/services/${service.id}`)],
+        );
         await expect
             .poll(
                 async () =>
@@ -60,7 +66,7 @@ test.describe("services", () => {
                         .body?.name,
             )
             .toBe(renamed);
-        // the form reads the service again: requests cut off by loading
+        // then it reads the verification again: requests cut off by loading
         // another document fail, and the app logs them; the sidebar's link
         // leaves the form without one, which aborts them, and the reads of
         // the list are waited for

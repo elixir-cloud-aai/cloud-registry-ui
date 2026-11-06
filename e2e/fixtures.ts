@@ -182,7 +182,9 @@ function trackReads(page: Page) {
  * logs them as errors. Not `waitForLoadState("networkidle")`: a page may
  * start its reads more than 500 ms after its scripts have loaded, and a
  * link changes the page without loading a document, whose network was
- * idle before; either way, the wait returns before the reads have started
+ * idle before; either way, the wait returns before the reads have started.
+ * The reads of what the page did before must have ended (e.g. after a
+ * save), as reads that it starts during the action would match, too
  * @param page Page
  * @param action What starts the reads, e.g. a click
  * @param last What the responses to wait for match: the reads that the

@@ -88,7 +88,10 @@ function ServiceTypeSection({
                                 >
                                     <SelectValue placeholder="Select a service type" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                {/* below the field, from the top of the
+                                list: aligned on the chosen type, a long list
+                                would scroll the first entry out of view */}
+                                <SelectContent position="popper">
                                     {allowNewType && (
                                         // first and set apart, so that long
                                         // lists don't hide it

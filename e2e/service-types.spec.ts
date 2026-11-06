@@ -352,6 +352,33 @@ test.describe("service types", () => {
         });
     });
 
+    test("long lists of types keep the new type in view", async ({
+        page,
+        browser,
+    }) => {
+        const service = await registerService(browser, "owner", "Long list");
+        // types before the service's own, which the list shows first
+        await page.route(`${registry}/services/types`, async (route) => {
+            const response = await route.fetch();
+            const more = Array.from({ length: 40 }, (_, idx) => ({
+                group: "org.example",
+                artifact: `long-${String(idx).padStart(2, "0")}`,
+                version: "1.0.0",
+            }));
+            await route.fulfill({
+                response,
+                json: [...(await response.json()), ...more],
+            });
+        });
+        await login(page, "owner");
+
+        await openTypeList(page, service.id);
+        await expect(
+            page.getByRole("option", { name: "Add new service type" }),
+        ).toBeInViewport({ ratio: 1 });
+        await page.keyboard.press("Escape");
+    });
+
     test("the user's own pending types aren't offered", async ({
         page,
         browser,
