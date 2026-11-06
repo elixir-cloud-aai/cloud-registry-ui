@@ -104,8 +104,9 @@ test.describe("admin mode", () => {
         // the switch is the only sign of admin mode: light red
         await expect.poll(() => hasRedBackground(adminMode)).toBe(true);
 
-        // kept on reloads
-        await page.reload();
+        // kept on reloads; the switch below loads the page again, which
+        // would cut off its reads
+        await waitForReads(page, () => page.reload(), serviceReads(service.id));
         await expect(adminMode).toBeVisible();
         await expect(verify).toBeVisible();
 
@@ -313,7 +314,8 @@ test.describe("admin mode", () => {
 
         await login(page, "owner");
         await openPage(page, "/dashboard/services", [isApprovalsRead]);
-        // the user's roles are shown, as the switch would be
+        // `openPage()` waited for the reads of the user's roles, which the
+        // subtitle shows, too
         await expect(
             page.getByText("View our registered services and manage your own"),
         ).toBeVisible();
