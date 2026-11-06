@@ -256,14 +256,14 @@ jobs:
                   if-no-files-found: error
 
     # Scans the image of `image` with Trivy (shared action
-    # `elixir-cloud-aai/.github/actions/scan-image`), with the flags of the release scan (`release.yml`), in a job of its own
-    # without credentials, so that a vulnerability with a fix shows up before
-    # a release, not in it. The findings that have a fix are uploaded to code
-    # scanning (not for pull requests from forks, whose token can't write
-    # them), and the job fails on critical and high vulnerabilities that have
-    # a fix. Accepted findings are listed, with a reason and an expiry date,
-    # in `.trivyignore.yaml`. The image of the latest release is scanned
-    # weekly (`scan.yml`)
+    # `elixir-cloud-aai/.github/actions/scan-image`), with the flags of the
+    # release scan (`release.yml`), in a job of its own without credentials,
+    # so that a vulnerability with a fix shows up before a release, not in it.
+    # The findings that have a fix are uploaded to code scanning (not for pull
+    # requests from forks, whose token can't write them), and the job fails on
+    # critical and high vulnerabilities that have a fix. Accepted findings are
+    # listed, with a reason and an expiry date, in `.trivyignore.yaml`. The
+    # image of the latest release is scanned weekly (`scan.yml`)
     scan:
         name: Scan image
         needs: image
