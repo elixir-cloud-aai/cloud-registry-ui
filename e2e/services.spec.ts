@@ -2,25 +2,29 @@ import type { Page } from "@playwright/test";
 import {
     api,
     expect,
+    isApprovalsRead,
+    isRead,
     login,
+    openPage,
     registerService,
+    serviceReads,
     test,
     tokenOf,
     uniqueId,
     users,
+    waitForReads,
     watchPage,
 } from "./fixtures";
 
 /**
- * Open a service's page and wait until the app knows the user's roles, so
- * that missing controls are missing for the user, not for lack of the roles
+ * Open a service's page and wait until its reads have finished, those for
+ * the user's roles (`/me`) included, so that missing controls are missing
+ * for the user, not for lack of the roles
  * @param page Page, logged in
  * @param id ID of the service
  */
 async function openAsUser(page: Page, id: string) {
-    await page.goto(`/dashboard/services/view/${id}`);
-    // all requests for the user (`/me`) answered, and rendered since
-    await page.waitForLoadState("networkidle");
+    await openPage(page, `/dashboard/services/view/${id}`, serviceReads(id));
 }
 
 test.describe("services", () => {
@@ -31,13 +35,17 @@ test.describe("services", () => {
         const service = await registerService(browser, "owner", "Owned");
         await login(page, "owner");
 
-        await page.goto("/dashboard/services");
+        await openPage(page, "/dashboard/services", [isApprovalsRead]);
         await page.getByLabel("Search services").fill(service.name);
-        await page.getByText(service.name, { exact: true }).click();
+        // the details read the service's sync: requests cut off by leaving
+        // the page fail, and the app logs them
+        await waitForReads(
+            page,
+            () => page.getByText(service.name, { exact: true }).click(),
+            [isRead(`/services/${service.id}/sync`)],
+        );
         await expect(page.getByRole("dialog")).toContainText(service.url);
         await page.keyboard.press("Escape");
-        // requests cut off by leaving the page fail, and the app logs them
-        await page.waitForLoadState("networkidle");
 
         await page.goto(`/dashboard/services/view/${service.id}`);
         await page.getByRole("link", { name: "Edit" }).click();
@@ -52,8 +60,18 @@ test.describe("services", () => {
                         .body?.name,
             )
             .toBe(renamed);
-        await page.waitForLoadState("networkidle");
-
+        // the form reloads the service: requests cut off by leaving the
+        // page fail, and the app logs them; the sidebar's link ends them,
+        // and the list's reads are waited for
+        await waitForReads(
+            page,
+            () =>
+                page
+                    .getByRole("link", { name: "Services", exact: true })
+                    .first()
+                    .click(),
+            [isApprovalsRead],
+        );
         await page.goto(`/dashboard/services/view/${service.id}`);
         await expect(page.getByText(renamed, { exact: true })).toBeVisible();
         await page.getByRole("button", { name: "Delete" }).click();
@@ -194,9 +212,8 @@ test.describe("services", () => {
     });
 
     test("guests get no filter for their services", async ({ page }) => {
-        await page.goto("/dashboard/services");
         // the list has loaded
-        await page.waitForLoadState("networkidle");
+        await openPage(page, "/dashboard/services", [isRead("/services")]);
         await expect(page.getByLabel("Search services")).toBeEnabled();
         await expect(
             page.getByRole("button", { name: "Show my services only" }),

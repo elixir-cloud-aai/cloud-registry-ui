@@ -4,12 +4,16 @@ import {
     api,
     changeServiceInfo,
     expect,
+    isApprovalsRead,
+    isRead,
     login,
+    openPage,
     registry,
     serviceWithInfo,
     sessionCookie,
     test,
     tokenOf,
+    waitForReads,
 } from "./fixtures";
 
 /**
@@ -58,8 +62,7 @@ test.describe("notifications", () => {
     });
 
     test("guests have no bell", async ({ page }) => {
-        await page.goto("/dashboard/services");
-        await page.waitForLoadState("networkidle");
+        await openPage(page, "/dashboard/services", [isRead("/services")]);
         await expect(
             page.getByRole("button", { name: /^Notifications/ }),
         ).toHaveCount(0);
@@ -72,8 +75,7 @@ test.describe("notifications", () => {
         await addTesType(browser);
         const token = await login(page, "owner");
         const service = await outOfSyncService(token);
-        await page.reload();
-        await page.waitForLoadState("networkidle");
+        await waitForReads(page, () => page.reload(), [isApprovalsRead]);
 
         const bell = page.getByRole("button", { name: /^Notifications/ });
         await expect(page.getByTestId("notification-count")).toBeVisible();
@@ -149,8 +151,9 @@ test.describe("notifications", () => {
             )
                 adminRole = true;
         });
+        // the reads after the switch, that of the bell included, have
+        // finished
         await login(page, "admin", { adminMode: true });
-        await page.waitForLoadState("networkidle");
         expect(adminRole).toBe(true);
         await page.getByRole("button", { name: /^Notifications/ }).click();
         await expect(
@@ -221,7 +224,6 @@ test.describe("notifications", () => {
             route.fulfill({ status: 404, json: { status: 404 } }),
         );
         await login(page, "other");
-        await page.waitForLoadState("networkidle");
         await expect(
             page.getByRole("button", { name: /^Notifications/ }),
         ).toHaveCount(0);
@@ -238,8 +240,9 @@ test.describe("notifications", () => {
             return route.fulfill({ status: 404, json: { status: 404 } });
         });
         await login(page, "other");
+        // the bell reads again neither while the read runs nor once it has
+        // failed
         await expect.poll(() => reads).toBeGreaterThan(0);
-        await page.waitForLoadState("networkidle");
         const before = reads;
         await readAgain(page);
         await page.waitForTimeout(500);

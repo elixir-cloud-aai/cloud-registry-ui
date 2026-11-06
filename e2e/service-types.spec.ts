@@ -1,14 +1,20 @@
 import type { Page, Request } from "@playwright/test";
 import {
     api,
+    editFormReads,
     expect,
+    isApprovalsRead,
+    isRead,
     login,
     newService,
+    openList,
+    openPage,
     registerService,
     registry,
     test,
     tokenOf,
     uniqueId,
+    waitForReads,
 } from "./fixtures";
 
 // the note of the edit form (`updation-form.tsx`) on new types
@@ -16,13 +22,14 @@ const pendingNote =
     "A service type that isn't registered yet is pending until an admin approves it";
 
 /**
- * Open the list of types in a service's edit form
- * @param page Page
+ * Open the list of types in a service's edit form, once the form's reads
+ * have finished
+ * @param page Page, logged in
  * @param id ID of the service
  */
 async function openTypeList(page: Page, id: string) {
-    await page.goto(`/dashboard/services/update/${id}`);
-    await page.getByRole("combobox", { name: "Service Type" }).click();
+    await openPage(page, `/dashboard/services/update/${id}`, editFormReads(id));
+    await openList(page.getByRole("combobox", { name: "Service Type" }));
 }
 
 // the page may still read through a test's routes when the test ends, e.g.
@@ -53,9 +60,7 @@ test.describe("pending entries", () => {
     test("are read with the token only", async ({ page }) => {
         const reads = watchApprovals(page);
         await login(page, "admin", { adminMode: true });
-        await page.goto("/dashboard/services");
-        await expect.poll(() => reads.length).toBeGreaterThan(0);
-        await page.waitForLoadState("networkidle");
+        await openPage(page, "/dashboard/services", [isApprovalsRead]);
         // checks the requests, as `expectedMessage` allows the probe's 401
         for (const read of reads)
             expect(read.headers().authorization).toBeTruthy();
@@ -164,7 +169,7 @@ test.describe("service types", () => {
         // new types of users are pending in the registry of the tests
         await expect(page.getByText(pendingNote)).toBeVisible();
 
-        await page.getByRole("combobox", { name: "Service Type" }).click();
+        await openList(page.getByRole("combobox", { name: "Service Type" }));
         const label = `${other.group} · ${other.artifact} · ${other.version}`;
         await page.getByRole("option", { name: label }).click();
         await expect(
@@ -179,7 +184,6 @@ test.describe("service types", () => {
                         .body?.type,
             )
             .toEqual(other);
-        await page.waitForLoadState("networkidle");
     });
 
     test("users who may not add types choose a registered one", async ({
@@ -205,7 +209,6 @@ test.describe("service types", () => {
             page.getByRole("option", { name: "Add new service type" }),
         ).toHaveCount(0);
         await page.keyboard.press("Escape");
-        await page.waitForLoadState("networkidle");
     });
 
     test("pending services keep their type, and take no new one", async ({
@@ -236,7 +239,6 @@ test.describe("service types", () => {
             page.getByRole("option", { name: "Add new service type" }),
         ).toHaveCount(0);
         await page.keyboard.press("Escape");
-        await page.waitForLoadState("networkidle");
     });
 
     test("without the registered types, the edit form keeps the stored one", async ({
@@ -267,7 +269,13 @@ test.describe("service types", () => {
 
         const renamed = `${service.name} renamed`;
         await page.locator("input[name=name]").fill(renamed);
-        await page.getByRole("button", { name: "Submit" }).click();
+        // the form reads the service again, whose problems would come
+        // after the check
+        await waitForReads(
+            page,
+            () => page.getByRole("button", { name: "Submit" }).click(),
+            [isRead(`/services/${service.id}`)],
+        );
         await expect
             .poll(
                 async () =>
@@ -275,9 +283,6 @@ test.describe("service types", () => {
                         .body?.name,
             )
             .toBe(renamed);
-        // the page is reloaded after the change: requests cut off by
-        // leaving it fail, and the app logs them
-        await page.waitForLoadState("networkidle");
         // the failed reads of the types, which the page reports
         expect(
             problems.filter(
@@ -308,7 +313,7 @@ test.describe("service types", () => {
             page.getByRole("combobox", { name: "Service Type" }),
         ).toHaveText("org.ga4gh · tes · 1.1.0");
 
-        await page.getByRole("combobox", { name: "Service Type" }).click();
+        await openList(page.getByRole("combobox", { name: "Service Type" }));
         await page
             .getByRole("option", { name: "Add new service type" })
             .click();
@@ -336,7 +341,6 @@ test.describe("service types", () => {
             artifact,
             version: "1.0.0",
         });
-        await page.waitForLoadState("networkidle");
     });
 
     test("the user's own pending types aren't offered", async ({
@@ -374,7 +378,6 @@ test.describe("service types", () => {
             }),
         ).toHaveCount(0);
         await page.keyboard.press("Escape");
-        await page.waitForLoadState("networkidle");
     });
 
     test("the tiles show group, artifact and version line by line", async ({

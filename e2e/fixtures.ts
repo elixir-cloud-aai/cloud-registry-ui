@@ -8,6 +8,7 @@ import {
     type Browser,
     test as base,
     expect,
+    type Locator,
     type Page,
     type Request,
     type Response,
@@ -52,6 +53,52 @@ function isApprovalsRead(response: Response) {
         response.url() === `${registry}/approvals` &&
         !!response.request().headers().authorization
     );
+}
+
+/**
+ * Match the responses of the reads of a path of the registry (GET, with or
+ * without the token, whatever the query)
+ * @param path Path below the API's base URL
+ * @returns Whether a response is one of them
+ */
+function isRead(path: string) {
+    return (response: Response) => {
+        const { origin, pathname } = new URL(response.url());
+        return (
+            response.request().method() === "GET" &&
+            `${origin}${pathname}` === `${registry}${path}`
+        );
+    };
+}
+
+/**
+ * The reads that a service's page (`/dashboard/services/view/<id>`) starts
+ * last: the service's verification and sync, once the service is read,
+ * with the token also once the pending entries are read (see
+ * `getServiceWithApproval()`)
+ * @param id ID of the service
+ * @returns Matchers for `waitForReads()`
+ */
+function serviceReads(id: string) {
+    return [
+        isRead(`/services/${id}/verification`),
+        isRead(`/services/${id}/sync`),
+    ];
+}
+
+/**
+ * The reads that a service's edit form (`/dashboard/services/update/<id>`)
+ * starts last: those of its page (`serviceReads()`), and the second read
+ * of the pending entries, as the form reads them for the types too
+ * @param id ID of the service
+ * @returns Matchers for `waitForReads()`
+ */
+function editFormReads(id: string) {
+    let approvals = 0;
+    return [
+        ...serviceReads(id),
+        (response: Response) => isApprovalsRead(response) && ++approvals === 2,
+    ];
 }
 
 /**
@@ -107,6 +154,21 @@ async function waitForReads(
     }
     await Promise.all(reads.map(readFinished));
     return responses;
+}
+
+/**
+ * Open a page and wait until its reads have finished (see `waitForReads()`)
+ * @param page Page
+ * @param path Path of the page
+ * @param last What the responses to wait for match, e.g. `isApprovalsRead`
+ * @returns The responses, in the order of `last`
+ */
+async function openPage(
+    page: Page,
+    path: string,
+    last: ((response: Response) => boolean)[],
+) {
+    return await waitForReads(page, () => page.goto(path), last);
 }
 
 /**
@@ -251,10 +313,17 @@ function watchPage(page: Page, appURL: string) {
 const test = base.extend<Fixtures>({
     // for every test, also those that don't use the list; tests that cause
     // problems on purpose check and clear it
+    // the reads still running when the test ends are waited for, so that
+    // their problems count too
     problems: [
         async ({ page, baseURL }, use) => {
             const problems = watchPage(page, baseURL as string);
+            const reads: Request[] = [];
+            page.on("request", (request) => {
+                if (request.url().startsWith(registry)) reads.push(request);
+            });
             await use(problems);
+            await Promise.all(reads.map(readFinished));
             expect(problems).toEqual([]);
         },
         { auto: true },
@@ -339,16 +408,13 @@ async function addTesType(browser: Browser) {
 /**
  * Open the create form: the modal "Register Service" of the Services page.
  * The page is only opened if another one is shown: the login ends on it,
- * and opening it again would cut off its requests, which the app logs as
- * errors
+ * once its reads have finished (and so do the other ways to it here)
  * @param page Page of a logged-in user
  * @returns The modal
  */
 async function openCreateForm(page: Page) {
-    if (new URL(page.url()).pathname !== "/dashboard/services") {
-        await page.goto("/dashboard/services");
-        await page.waitForLoadState("networkidle");
-    }
+    if (new URL(page.url()).pathname !== "/dashboard/services")
+        await openPage(page, "/dashboard/services", [isApprovalsRead]);
     await page.getByRole("button", { name: "Register Service" }).click();
     const dialog = page.getByRole("dialog", { name: "Register Service" });
     await expect(dialog).toBeVisible();
@@ -382,6 +448,27 @@ async function fillCreateForm(
     await page
         .getByRole("option", { name: `${group} · ${artifact} · ${version}` })
         .click();
+}
+
+/**
+ * Open the list of a select of the app (Radix UI's `Select`, e.g. "Service
+ * Type" in the edit form), and wait until its options can be clicked. The
+ * list ignores the release of the press that opened it: from the press on,
+ * it takes the next release of the pointer within 10 px of the press for
+ * it. It starts watching for that only once it is shown, which under load
+ * may be after the press was released already; an option clicked before
+ * the list has seen the pointer move would then be ignored. Once the list
+ * has moved the focus to the chosen option (or to itself), after it was
+ * placed, it watches the pointer, and the click on an option moves it there
+ * @param combobox The select
+ */
+async function openList(combobox: Locator) {
+    await combobox.click();
+    await combobox
+        .page()
+        .waitForFunction(
+            () => !!document.activeElement?.closest("[role=listbox]"),
+        );
 }
 
 /**
@@ -492,16 +579,21 @@ export {
     addTesType,
     api,
     changeServiceInfo,
+    editFormReads,
     expect,
     failWithConflict,
     fillCreateForm,
     isApprovalsRead,
+    isRead,
     login,
     newService,
     openCreateForm,
+    openList,
+    openPage,
     publishRules,
     registerService,
     registry,
+    serviceReads,
     serviceWithInfo,
     sessionCookie,
     test,

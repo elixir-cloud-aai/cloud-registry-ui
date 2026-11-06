@@ -5,9 +5,11 @@ import {
     changeServiceInfo,
     expect,
     login,
+    openPage,
     publishRules,
     registerService,
     registry,
+    serviceReads,
     serviceWithInfo,
     test,
     tokenOf,
@@ -345,11 +347,14 @@ test.describe("syncing services", () => {
         await publishRules(page, {
             serviceInfoSync: { enabled: false, intervalHours: 24 },
         });
-        await page.goto(`/dashboard/services/view/${service.id}`);
+        // leaving during the page's reads would log them as failed
+        await openPage(
+            page,
+            `/dashboard/services/view/${service.id}`,
+            serviceReads(service.id),
+        );
         await expect(page.getByText("Service Details")).toBeVisible();
         await expect(page.getByText("Sync with service info")).toHaveCount(0);
-        // leaving during the page's reads would log them as failed
-        await page.waitForLoadState("networkidle");
         await page.goto("/dashboard/services");
         await expect(
             page.getByRole("button", { name: "Show synced services only" }),

@@ -4,6 +4,8 @@ import {
     api,
     expect,
     fillCreateForm,
+    isApprovalsRead,
+    isRead,
     login,
     newService,
     openCreateForm,
@@ -11,6 +13,7 @@ import {
     registry,
     test,
     uniqueId,
+    waitForReads,
 } from "./fixtures";
 
 const pendingNote =
@@ -222,12 +225,15 @@ test.describe("registering services", () => {
         await form.getByRole("button", { name: "Close", exact: true }).click();
         await expect(form).toBeHidden();
 
-        // the mode is switched outside the form
-        await page.getByRole("button", { name: "User mode" }).click();
+        // the mode is switched outside the form, which loads the page again
+        await waitForReads(
+            page,
+            () => page.getByRole("button", { name: "User mode" }).click(),
+            [isApprovalsRead],
+        );
         await expect(
             page.getByRole("button", { name: "Admin mode" }),
         ).toBeVisible();
-        await page.waitForLoadState("networkidle");
         await openCreateForm(page);
         const service = newService("Chosen ID");
         const id = `e2e-${uniqueId()}`;
@@ -385,8 +391,13 @@ test.describe("registering services", () => {
     });
 
     test("links to the create page open the form", async ({ page }) => {
-        // guests are asked to log in, and come back to the form
-        await page.goto("/dashboard/services/create");
+        // guests are asked to log in, and come back to the form; the reads
+        // of the list are waited for, as the login leaves the page
+        await waitForReads(
+            page,
+            () => page.goto("/dashboard/services/create"),
+            [isRead("/services")],
+        );
         await page.waitForURL(/\/dashboard\/services$/);
         const form = page.getByRole("dialog", { name: "Register Service" });
         await expect(
@@ -398,7 +409,6 @@ test.describe("registering services", () => {
             "href",
             "/auth/login?next=%2Fdashboard%2Fservices%2Fcreate",
         );
-        await page.waitForLoadState("networkidle");
 
         await login(page, "owner");
         await page.goto("/dashboard/services/create");
