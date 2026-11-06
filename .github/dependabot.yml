@@ -42,11 +42,11 @@ updates:
     groups:
       docs-dependencies:
         patterns: ["*"]
-  # Actions in the workflows and in the local actions (`.github/actions/`),
-  # including the pins of the shared actions of `elixir-cloud-aai/.github`
-  # (to the commits of its releases, `@<commit> # vX.Y.Z`)
+  # Actions in the workflows, including the pins of the shared actions of
+  # `elixir-cloud-aai/.github` (to the commits of its releases,
+  # `@<commit> # vX.Y.Z`)
   - package-ecosystem: github-actions
-    directories: ["/", "/.github/actions/*"]
+    directory: /
     schedule:
       interval: monthly
     target-branch: dev

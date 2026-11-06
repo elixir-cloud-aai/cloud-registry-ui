@@ -1,7 +1,7 @@
 # Scan the image of the latest release weekly for known vulnerabilities with
-# Trivy (`.github/actions/scan-image`), as the `scan` job of `ci.yml` scans
-# the images of pull requests and pushes, so that vulnerabilities found after
-# a release are reported: the findings that have a fix are uploaded to code
+# Trivy (shared action `elixir-cloud-aai/.github/actions/scan-image`), as
+# the `scan` job of `ci.yml` scans the images of pull requests and pushes,
+# so that vulnerabilities found after a release are reported: the findings that have a fix are uploaded to code
 # scanning, a full report (findings without a fix included) is uploaded as
 # the workflow artifact `trivy-report-release-image` (JSON and table), and
 # the workflow fails on critical and high vulnerabilities that have a fix
@@ -73,7 +73,7 @@ jobs:
                   echo "image=${IMAGE_NAME}:${tag#v}" >> "$GITHUB_OUTPUT"
             - name: Scan image
               if: ${{ steps.release.outputs.image != '' }}
-              uses: ./.github/actions/scan-image
+              uses: elixir-cloud-aai/.github/actions/scan-image@743e82d290a53768454999e413756a924e383259 # v1.0.0
               with:
                   image: ${{ steps.release.outputs.image }}
                   category: release-image
