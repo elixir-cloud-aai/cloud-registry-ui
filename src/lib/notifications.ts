@@ -151,7 +151,6 @@ function timeAgo(since: string | undefined, now = Date.now()) {
 }
 
 export {
-    type NotificationView,
     noRecentSync,
     notificationCount,
     notificationView,

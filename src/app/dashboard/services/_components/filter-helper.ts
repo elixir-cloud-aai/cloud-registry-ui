@@ -95,7 +95,7 @@ export function myServices(me: Pick<Me, "services"> | null) {
 }
 
 /** What the toggles filter by, by service ID */
-export type ServiceSets = {
+type ServiceSets = {
     verifications: Map<string, ServiceVerification>;
     pending: Set<string>;
     /** The user's services (`myServices()`) */

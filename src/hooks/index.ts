@@ -3,7 +3,6 @@ import { useCloudRegistry } from "./use-cloud-registry";
 import { useFitText } from "./use-fit-text";
 import { useLatestRequest } from "./use-latest-request";
 import { useMe } from "./use-me";
-import { useIsMobile } from "./use-mobile";
 import { usePagination } from "./use-pagination";
 import { useRegistrationRules } from "./use-registration-rules";
 import { useServiceSync } from "./use-service-sync";
@@ -14,7 +13,6 @@ export {
     useAdminMode,
     useCloudRegistry,
     useFitText,
-    useIsMobile,
     useLatestRequest,
     useMe,
     usePagination,
