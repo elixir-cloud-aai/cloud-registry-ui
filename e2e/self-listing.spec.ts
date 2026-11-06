@@ -41,19 +41,44 @@ async function openListing(page: Page) {
 }
 
 /**
- * Open a page by the sidebar, without loading the app again
+ * Open a page by the sidebar, without loading the app again, as an admin:
+ * the pages with lists also read the pending entries then
  * @param page Page
  * @param link Name of the link
  * @param list Path below the API's base URL that the page reads
  * @returns The answer of the registry to the page's request
  */
 async function openByLink(page: Page, link: string, list: string) {
+    // the page's reads of the registry (the list, the pending entries, the
+    // user and the rules)
+    const reads: Request[] = [];
+    const record = (request: Request) => {
+        if (request.url().startsWith(registry)) reads.push(request);
+    };
+    page.on("request", record);
     const response = page.waitForResponse(`${registry}${list}`);
+    // the admin's read of the pending entries, which may start only after
+    // the list's answer: first the app may have to find out whether the
+    // registry has them (`hasApprovals`)
+    const approvals = page.waitForResponse(
+        (val) =>
+            val.url() === `${registry}/approvals` &&
+            !!val.request().headers().authorization,
+    );
     await page.getByRole("link", { name: link, exact: true }).first().click();
-    const answer = await (await response).json();
-    // Firefox fails the page's other requests if the test moves on meanwhile,
-    // and the app logs them as errors
-    await page.waitForLoadState("networkidle");
+    const [answer] = await Promise.all([
+        response.then((val) => val.json()),
+        approvals,
+    ]);
+    page.off("request", record);
+    // Firefox fails the page's other reads if the test leaves the page
+    // meanwhile (with a `TypeError`, not an `AbortError`), and the app logs
+    // them as errors. Not `waitForLoadState("networkidle")`: the link changes
+    // the page without loading a document, whose network was idle before,
+    // so it would return at once
+    await Promise.all(
+        reads.map(async (val) => (await val.response())?.finished()),
+    );
     return answer;
 }
 
