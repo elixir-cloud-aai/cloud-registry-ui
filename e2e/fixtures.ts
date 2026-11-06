@@ -55,6 +55,20 @@ function isApprovalsRead(response: Response) {
 }
 
 /**
+ * Wait until a read has finished: its response has arrived in full, or it
+ * failed. A response of a test's route (`page.route()`, which has no
+ * server address) only needs to have arrived, as the route hands over the
+ * whole body at once: Chromium reports it as finished only once the page
+ * reads the body, which the app doesn't do for every response (e.g. for a
+ * 503 of the service info in `hasApprovals()`)
+ * @param request The read
+ */
+async function readFinished(request: Request) {
+    const response = await request.response();
+    if (response && (await response.serverAddr())) await response.finished();
+}
+
+/**
  * Do something that makes the page read from the registry, and wait until
  * those reads have finished: first for the given responses, which show
  * that the page has started all of them, then for every read that started
@@ -91,9 +105,7 @@ async function waitForReads(
     } finally {
         page.off("request", record);
     }
-    await Promise.all(
-        reads.map(async (val) => (await val.response())?.finished()),
-    );
+    await Promise.all(reads.map(readFinished));
     return responses;
 }
 
