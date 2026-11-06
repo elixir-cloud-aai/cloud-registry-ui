@@ -183,12 +183,14 @@ check: agree on it in a pull request that says why.
 ## Image scan
 
 The `scan` job of CI scans the Docker image built by the `image` job with
-[Trivy](https://trivy.dev/) (`.github/actions/scan-image`), with the flags
-of the release scan: it fails on critical and high vulnerabilities that
-have a fix, and uploads them to code scanning. The workflow `Scan`
-(`.github/workflows/scan.yml`) scans the image of the latest release every
-Monday in the same way, with a full report as a workflow artifact. Fix a
-finding by updating the base image of the `Dockerfile` (the Bun image), or
+[Trivy](https://trivy.dev/) (the shared action
+[`scan-image`](https://github.com/elixir-cloud-aai/.github/tree/main/actions/scan-image)
+of `elixir-cloud-aai/.github`, pinned to the commit of a release), with
+the flags of the release scan: it fails on critical and high
+vulnerabilities that have a fix, and uploads them to code scanning. The
+workflow `Scan` (`.github/workflows/scan.yml`) scans the image of the
+latest release every Monday in the same way, with a full report as a
+workflow artifact. Fix a finding by updating the base image of the `Dockerfile` (the Bun image), or
 accept it in `.trivyignore.yaml`, with a reason and an expiry date. To scan
 locally as CI does:
 

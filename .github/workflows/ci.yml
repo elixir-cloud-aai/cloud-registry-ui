@@ -255,15 +255,15 @@ jobs:
                   retention-days: 7
                   if-no-files-found: error
 
-    # Scans the image of `image` with Trivy (`.github/actions/scan-image`),
-    # with the flags of the release scan (`release.yml`), in a job of its own
-    # without credentials, so that a vulnerability with a fix shows up before
-    # a release, not in it. The findings that have a fix are uploaded to code
-    # scanning (not for pull requests from forks, whose token can't write
-    # them), and the job fails on critical and high vulnerabilities that have
-    # a fix. Accepted findings are listed, with a reason and an expiry date,
-    # in `.trivyignore.yaml`. The image of the latest release is scanned
-    # weekly (`scan.yml`)
+    # Scans the image of `image` with Trivy (shared action
+    # `elixir-cloud-aai/.github/actions/scan-image`), with the flags of the
+    # release scan (`release.yml`), in a job of its own without credentials,
+    # so that a vulnerability with a fix shows up before a release, not in it.
+    # The findings that have a fix are uploaded to code scanning (not for pull
+    # requests from forks, whose token can't write them), and the job fails on
+    # critical and high vulnerabilities that have a fix. Accepted findings are
+    # listed, with a reason and an expiry date, in `.trivyignore.yaml`. The
+    # image of the latest release is scanned weekly (`scan.yml`)
     scan:
         name: Scan image
         needs: image
@@ -285,7 +285,7 @@ jobs:
             - name: Load the image
               run: docker load -i "${RUNNER_TEMP}/image.tar"
             - name: Scan image
-              uses: ./.github/actions/scan-image
+              uses: elixir-cloud-aai/.github/actions/scan-image@743e82d290a53768454999e413756a924e383259 # v1.0.0
               with:
                   image: cloud-registry-ui:ci
                   category: image
