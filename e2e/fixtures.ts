@@ -8,6 +8,8 @@ import {
     type Browser,
     test as base,
     expect,
+    type Frame,
+    type Locator,
     type Page,
     type Request,
     type Response,
@@ -55,30 +57,141 @@ function isApprovalsRead(response: Response) {
 }
 
 /**
- * Wait until a read has finished: its response has arrived in full, or it
- * failed. A response of a test's route (`page.route()`, which has no
- * server address) only needs to have arrived, as the route hands over the
- * whole body at once: Chromium reports it as finished only once the page
- * reads the body, which the app doesn't do for every response (e.g. for a
- * 503 of the service info in `hasApprovals()`)
- * @param request The read
+ * Match the responses of the reads of a path of the registry (GET, with or
+ * without the token, whatever the query)
+ * @param path Path below the API's base URL, exactly as the app requests
+ * it (e.g. no trailing slash)
+ * @returns Matcher of the responses
  */
-async function readFinished(request: Request) {
-    const response = await request.response();
-    if (response && (await response.serverAddr())) await response.finished();
+function isRead(path: string) {
+    return (response: Response) => {
+        const { origin, pathname } = new URL(response.url());
+        return (
+            response.request().method() === "GET" &&
+            `${origin}${pathname}` === `${registry}${path}`
+        );
+    };
+}
+
+/**
+ * The reads that a service's page (`/dashboard/services/view/<id>`) starts
+ * last: the service's verification and sync, once the service is read,
+ * with the token also once the pending entries are read (see
+ * `getServiceWithApproval()`)
+ * @param id ID of the service
+ * @returns Matchers for `waitForReads()`
+ */
+function serviceReads(id: string) {
+    return [
+        isRead(`/services/${id}/verification`),
+        isRead(`/services/${id}/sync`),
+    ];
+}
+
+/**
+ * The reads that a service's edit form (`/dashboard/services/update/<id>`)
+ * starts last: those of its page (`serviceReads()`), and the second read
+ * of the pending entries, as the form reads them for the types too. For
+ * one wait only, as the matchers count the reads
+ * @param id ID of the service
+ * @returns Matchers for `waitForReads()`
+ */
+function editFormReads(id: string) {
+    let approvals = 0;
+    return [
+        ...serviceReads(id),
+        (response: Response) => isApprovalsRead(response) && ++approvals === 2,
+    ];
+}
+
+/**
+ * Keep track of the reads of the registry that a page starts, until they
+ * have ended: their responses have arrived in full, or they failed. A
+ * response of a test's route (`page.route()`, which has no server address)
+ * only needs to have arrived, as the route hands over the whole body at
+ * once: Chromium reports it as finished only once the page reads the body,
+ * which the app doesn't do for every response (e.g. for a 503 of the
+ * service info in `hasApprovals()`). Not `response.finished()`, which
+ * never settles for a response whose body is cut off, e.g. when the app
+ * aborts the read. Reads of a document that the page left for another
+ * site end then, as browsers may report nothing more about them
+ * @param page Page
+ * @returns `reads`: the reads so far; `stop()`: stop recording reads;
+ * `ended()`: wait until the reads have ended, including those that
+ * start while it waits, then stop recording
+ */
+function trackReads(page: Page) {
+    const reads: Request[] = [];
+    const ends = new Map<Request, Promise<void>>();
+    const pending = new Map<Request, () => void>();
+    const end = (request: Request) => {
+        pending.get(request)?.();
+        pending.delete(request);
+    };
+    const record = (request: Request) => {
+        if (!request.url().startsWith(registry)) return;
+        reads.push(request);
+        ends.set(
+            request,
+            new Promise<void>((resolve) => pending.set(request, resolve)),
+        );
+        request
+            .response()
+            .then(async (response) => {
+                if (response && !(await response.serverAddr())) end(request);
+            })
+            .catch(() => end(request));
+    };
+    let origin = URL.canParse(page.url()) ? new URL(page.url()).origin : "";
+    const navigated = (frame: Frame) => {
+        if (frame !== page.mainFrame()) return;
+        const now = new URL(frame.url()).origin;
+        if (now !== origin)
+            for (const request of [...pending.keys()]) end(request);
+        origin = now;
+    };
+    const endAll = () => {
+        for (const request of [...pending.keys()]) end(request);
+    };
+    page.on("request", record);
+    page.on("requestfinished", end);
+    page.on("requestfailed", end);
+    page.on("framenavigated", navigated);
+    page.on("close", endAll);
+    return {
+        reads,
+        stop: () => page.off("request", record),
+        ended: async () => {
+            // reads that end may start others: wait for those, too
+            let count: number;
+            do {
+                count = reads.length;
+                await Promise.all(reads.map((val) => ends.get(val)));
+            } while (reads.length !== count);
+            page.off("request", record);
+            if (pending.size === 0) {
+                page.off("requestfinished", end);
+                page.off("requestfailed", end);
+                page.off("framenavigated", navigated);
+                page.off("close", endAll);
+            }
+        },
+    };
 }
 
 /**
  * Do something that makes the page read from the registry, and wait until
- * those reads have finished: first for the given responses, which show
- * that the page has started all of them, then for every read that started
- * meanwhile. Firefox fails reads that are still running when the test
- * leaves the page (with a `TypeError`, not an `AbortError`), and so may
- * Chromium, and the app logs them as errors. Not
- * `waitForLoadState("networkidle")`: a page may start its reads more than
- * 500 ms after its scripts have loaded, and a link changes the page without
- * loading a document, whose network was idle before; either way, the wait
- * returns before the reads have started
+ * those reads have ended (see `trackReads()`): first for the given
+ * responses to reads that started meanwhile, which show that the page has
+ * started all of them, then for every read that started meanwhile. Firefox
+ * fails reads that are still running when the test leaves the page (with
+ * a `TypeError`, not an `AbortError`), and so may Chromium, and the app
+ * logs them as errors. Not `waitForLoadState("networkidle")`: a page may
+ * start its reads more than 500 ms after its scripts have loaded, and a
+ * link changes the page without loading a document, whose network was
+ * idle before; either way, the wait returns before the reads have started.
+ * The reads of what the page did before must have ended (e.g. after a
+ * save), as reads that it starts during the action would match, too
  * @param page Page
  * @param action What starts the reads, e.g. a click
  * @param last What the responses to wait for match: the reads that the
@@ -90,23 +203,42 @@ async function waitForReads(
     action: () => Promise<unknown>,
     last: ((response: Response) => boolean)[],
 ) {
-    const reads: Request[] = [];
-    const record = (request: Request) => {
-        if (request.url().startsWith(registry)) reads.push(request);
-    };
-    page.on("request", record);
+    const tracked = trackReads(page);
+    // not the responses to reads of the page before, which may still run
+    const started = (response: Response) =>
+        tracked.reads.includes(response.request());
     let responses: Response[];
     try {
-        const waits = Promise.all(last.map((val) => page.waitForResponse(val)));
+        const waits = Promise.all(
+            last.map((val) =>
+                page.waitForResponse((res) => started(res) && val(res)),
+            ),
+        );
         // awaited below, unless the action fails
         waits.catch(() => undefined);
         await action();
         responses = await waits;
-    } finally {
-        page.off("request", record);
+    } catch (error) {
+        tracked.stop();
+        throw error;
     }
-    await Promise.all(reads.map(readFinished));
+    await tracked.ended();
     return responses;
+}
+
+/**
+ * Open a page and wait until its reads have finished (see `waitForReads()`)
+ * @param page Page
+ * @param path Path of the page
+ * @param last What the responses to wait for match, e.g. `isApprovalsRead`
+ * @returns The responses, in the order of `last`
+ */
+async function openPage(
+    page: Page,
+    path: string,
+    last: ((response: Response) => boolean)[],
+) {
+    return await waitForReads(page, () => page.goto(path), last);
 }
 
 /**
@@ -340,15 +472,13 @@ async function addTesType(browser: Browser) {
  * Open the create form: the modal "Register Service" of the Services page.
  * The page is only opened if another one is shown: the login ends on it,
  * and opening it again would cut off its requests, which the app logs as
- * errors
+ * errors; when it is opened here, its reads are waited for
  * @param page Page of a logged-in user
  * @returns The modal
  */
 async function openCreateForm(page: Page) {
-    if (new URL(page.url()).pathname !== "/dashboard/services") {
-        await page.goto("/dashboard/services");
-        await page.waitForLoadState("networkidle");
-    }
+    if (new URL(page.url()).pathname !== "/dashboard/services")
+        await openPage(page, "/dashboard/services", [isApprovalsRead]);
     await page.getByRole("button", { name: "Register Service" }).click();
     const dialog = page.getByRole("dialog", { name: "Register Service" });
     await expect(dialog).toBeVisible();
@@ -382,6 +512,27 @@ async function fillCreateForm(
     await page
         .getByRole("option", { name: `${group} · ${artifact} · ${version}` })
         .click();
+}
+
+/**
+ * Open the list of a select of the app (Radix UI's `Select`, e.g. "Service
+ * Type" in the edit form) and wait until its options take clicks: once it
+ * has moved the focus into the list, after placing it
+ * @param combobox The select
+ */
+async function openList(combobox: Locator) {
+    // by the keyboard: a list opened by a press of the pointer ignores the
+    // next release of the pointer within 10 px of the press, and starts
+    // watching for it only once it is shown, which under load may come
+    // after the press was released; a click on an option could then be
+    // taken for the end of that press, and ignored
+    await combobox.focus();
+    await combobox.press("Enter");
+    await combobox
+        .page()
+        .waitForFunction(
+            () => !!document.activeElement?.closest("[role=listbox]"),
+        );
 }
 
 /**
@@ -492,16 +643,21 @@ export {
     addTesType,
     api,
     changeServiceInfo,
+    editFormReads,
     expect,
     failWithConflict,
     fillCreateForm,
     isApprovalsRead,
+    isRead,
     login,
     newService,
     openCreateForm,
+    openList,
+    openPage,
     publishRules,
     registerService,
     registry,
+    serviceReads,
     serviceWithInfo,
     sessionCookie,
     test,

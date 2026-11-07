@@ -2,11 +2,16 @@ import type { Browser, Locator, Page } from "@playwright/test";
 import {
     api,
     expect,
+    isApprovalsRead,
+    isRead,
     login,
     newService,
+    openPage,
+    serviceReads,
     test,
     tokenOf,
     uniqueId,
+    waitForReads,
 } from "./fixtures";
 
 /**
@@ -127,12 +132,22 @@ test.describe("service details", () => {
                 const service = await registerPending(browser);
                 await login(page, "admin", { adminMode: true });
 
-                await page.goto("/dashboard/services");
+                await openPage(page, "/dashboard/services", [isApprovalsRead]);
                 await page.getByLabel("Search services").fill(service.name);
-                // the name's cell also holds the pending badge
-                await page
-                    .getByRole("cell", { name: service.id, exact: true })
-                    .click();
+                // the name's cell also holds the pending badge; the details
+                // read the service's sync: requests cut off by leaving the
+                // page fail, and the app logs them
+                await waitForReads(
+                    page,
+                    () =>
+                        page
+                            .getByRole("cell", {
+                                name: service.id,
+                                exact: true,
+                            })
+                            .click(),
+                    [isRead(`/services/${service.id}/sync`)],
+                );
                 const dialog = page.getByRole("dialog");
                 await expect(
                     dialog.getByRole("heading", { name: "Service Details" }),
@@ -152,12 +167,12 @@ test.describe("service details", () => {
                 expect(await overflowing(confirm)).toEqual([]);
                 await confirm.getByRole("button", { name: "Cancel" }).click();
                 await page.keyboard.press("Escape");
-                // requests cut off by leaving the page fail, and the app
-                // logs them
-                await page.waitForLoadState("networkidle");
 
-                await page.goto(`/dashboard/services/view/${service.id}`);
-                await page.waitForLoadState("networkidle");
+                await openPage(
+                    page,
+                    `/dashboard/services/view/${service.id}`,
+                    serviceReads(service.id),
+                );
                 const card = page.locator("[data-slot=card]");
                 await expect(card).toContainText("Service Details");
                 await expectFits(page, card);

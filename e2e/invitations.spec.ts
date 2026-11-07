@@ -991,8 +991,6 @@ test.describe("invitations", () => {
         await expect(
             page.getByRole("dialog").getByRole("link", { name: "2" }),
         ).toBeVisible();
-        // the app logs requests still running when the page closes as errors
-        await page.waitForLoadState("networkidle");
     });
 
     test("an invitation accepted meanwhile moves between the tabs", async ({

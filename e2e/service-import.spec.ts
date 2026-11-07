@@ -5,6 +5,7 @@ import {
     changeServiceInfo,
     expect,
     fillCreateForm,
+    isApprovalsRead,
     login,
     newService,
     openCreateForm,
@@ -12,6 +13,7 @@ import {
     registry,
     serviceWithInfo,
     test,
+    waitForReads,
 } from "./fixtures";
 
 const syncBox = /Keep this service in sync with its service info/;
@@ -400,8 +402,7 @@ test.describe("importing service info", () => {
         await publishRules(page, {
             serviceInfoSync: { enabled: false, intervalHours: 24 },
         });
-        await page.reload();
-        await page.waitForLoadState("networkidle");
+        await waitForReads(page, () => page.reload(), [isApprovalsRead]);
         form = await openCreateForm(page);
         // imports don't depend on it
         await expect(form.getByText("Import from service info")).toBeVisible();

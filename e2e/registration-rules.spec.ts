@@ -2,10 +2,12 @@ import type { Page } from "@playwright/test";
 import {
     api,
     expect,
+    isRead,
     login,
     registerService,
     registry,
     test,
+    waitForReads,
 } from "./fixtures";
 
 /**
@@ -48,7 +50,13 @@ test.describe("registration rules", () => {
 
         const url = service.url.replace("https:", "http:");
         await page.locator("input[name=url]").fill(url);
-        await page.getByRole("button", { name: "Submit" }).click();
+        // the form reads the service again, with the service info through
+        // the test's route, whose fetch would fail on the closed page
+        await waitForReads(
+            page,
+            () => page.getByRole("button", { name: "Submit" }).click(),
+            [isRead(`/services/${service.id}`)],
+        );
         await expect
             .poll(
                 async () =>
@@ -56,7 +64,6 @@ test.describe("registration rules", () => {
                         .body?.url,
             )
             .toBe(url);
-        await page.waitForLoadState("networkidle");
     });
 
     test("the edit form takes any environment and checks schemes", async ({
@@ -105,7 +112,13 @@ test.describe("registration rules", () => {
         // the registry of the stack allows http
         const url = service.url.replace("https:", "http:");
         await page.locator("input[name=url]").fill(url);
-        await page.getByRole("button", { name: "Submit" }).click();
+        // the form reads the service again, with the service info and the
+        // pending entries, whose failures would come after the check
+        await waitForReads(
+            page,
+            () => page.getByRole("button", { name: "Submit" }).click(),
+            [isRead(`/services/${service.id}`)],
+        );
         await expect
             .poll(
                 async () =>
@@ -113,7 +126,6 @@ test.describe("registration rules", () => {
                         .body?.url,
             )
             .toBe(url);
-        await page.waitForLoadState("networkidle");
         // the failed reads of the service info, which the page reports
         expect(
             problems.filter(

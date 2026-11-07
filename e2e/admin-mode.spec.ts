@@ -1,21 +1,26 @@
 import type { Locator, Page } from "@playwright/test";
 import {
     expect,
+    isApprovalsRead,
+    isRead,
     login,
+    openPage,
     registerService,
     registry,
+    serviceReads,
     test,
     users,
+    waitForReads,
 } from "./fixtures";
 
 /**
- * Open a service's page, once the app knows the user's roles
+ * Open a service's page, once its reads have finished, those for the
+ * user's roles included
  * @param page Page, logged in
  * @param id ID of the service
  */
 async function openService(page: Page, id: string) {
-    await page.goto(`/dashboard/services/view/${id}`);
-    await page.waitForLoadState("networkidle");
+    await openPage(page, `/dashboard/services/view/${id}`, serviceReads(id));
 }
 
 /**
@@ -85,7 +90,13 @@ test.describe("admin mode", () => {
 
         await expect.poll(() => hasRedBackground(userMode)).toBe(false);
 
-        await userMode.click();
+        // the switch loads the page again, whose reads the reload below
+        // would cut off
+        await waitForReads(
+            page,
+            () => userMode.click(),
+            serviceReads(service.id),
+        );
         await expect(adminMode).toBeVisible();
         await expect(adminMode).toHaveAttribute("aria-pressed", "true");
         await expect(verify).toBeVisible();
@@ -93,8 +104,9 @@ test.describe("admin mode", () => {
         // the switch is the only sign of admin mode: light red
         await expect.poll(() => hasRedBackground(adminMode)).toBe(true);
 
-        // kept on reloads
-        await page.reload();
+        // kept on reloads; the switch below loads the page again, which
+        // would cut off its reads
+        await waitForReads(page, () => page.reload(), serviceReads(service.id));
         await expect(adminMode).toBeVisible();
         await expect(verify).toBeVisible();
 
@@ -116,8 +128,7 @@ test.describe("admin mode", () => {
                     "View and manage all service types",
                 ],
             ]) {
-                await page.goto(path);
-                await page.waitForLoadState("networkidle");
+                await openPage(page, path, [isApprovalsRead]);
                 // the whole subtitle, without a prefix
                 await expect(
                     page.getByText(subtitle, { exact: true }),
@@ -271,8 +282,7 @@ test.describe("admin mode", () => {
             );
             await page.setViewportSize({ width, height: 800 });
             await login(page, "admin", { adminMode: true });
-            await page.goto("/dashboard/services");
-            await page.waitForLoadState("networkidle");
+            await openPage(page, "/dashboard/services", [isApprovalsRead]);
             await page.getByLabel("Search services").fill(service.name);
             await expect(page.getByText(service.name)).toBeVisible();
 
@@ -296,16 +306,19 @@ test.describe("admin mode", () => {
     }
 
     test("other users and guests see no switch", async ({ page }) => {
-        await page.goto("/dashboard/services");
-        await page.waitForLoadState("networkidle");
+        await openPage(page, "/dashboard/services", [isRead("/services")]);
         await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
         await expect(
             page.getByRole("button", { name: /User mode|Admin mode/ }),
         ).toHaveCount(0);
 
         await login(page, "owner");
-        await page.goto("/dashboard/services");
-        await page.waitForLoadState("networkidle");
+        await openPage(page, "/dashboard/services", [isApprovalsRead]);
+        // `openPage()` waited for the reads of the user's roles, which the
+        // subtitle shows, too
+        await expect(
+            page.getByText("View our registered services and manage your own"),
+        ).toBeVisible();
         await expect(
             page.getByRole("button", { name: /User mode|Admin mode/ }),
         ).toHaveCount(0);

@@ -96,6 +96,19 @@ test changes. CI fails a test that passes only on its retry, as such flaky
 tests hide bugs; requests that are logged as errors when a page is left
 are a common cause (see [Loaders](#loaders)).
 
+Before a test leaves a page whose reads of the registry may still run,
+e.g. by `page.goto()`, a reload or a logout, it waits until they have
+ended: `waitForReads()` of `e2e/fixtures.ts` around what starts them (or
+`openPage()` for `page.goto()`), with matchers of the responses to the
+reads that the page starts last (see the function's comment), e.g.
+`isApprovalsRead` for the lists of users who are logged in,
+`serviceReads()` for a service's page, `editFormReads()` for its edit
+form, and `isRead(path)` for the reads of any other path (e.g.
+`isRead("/services")` for the list of guests). Not
+`waitForLoadState("networkidle")`, which may return before the app has
+started its reads. Selects of the app are opened with `openList()`, which
+waits until their options take clicks.
+
 `E2E_BASE_URL` points the tests to an app that runs already, e.g.
 `http://localhost:3100`, instead of building and starting one; it must
 have the settings of the tests (`playwright.config.ts`). The image runs

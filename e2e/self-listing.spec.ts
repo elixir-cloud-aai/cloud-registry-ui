@@ -3,9 +3,12 @@ import {
     api,
     expect,
     isApprovalsRead,
+    isRead,
     login,
     newService,
+    openPage,
     registry,
+    serviceReads,
     test,
     tokenOf,
     waitForReads,
@@ -133,10 +136,13 @@ test.describe("listing of the registry", () => {
 
         // listed after a reload, and the link opens the entry
         await page.goto("/dashboard/service-info");
-        await region.getByRole("link", { name: info.id }).click();
+        await waitForReads(
+            page,
+            () => region.getByRole("link", { name: info.id }).click(),
+            serviceReads(info.id),
+        );
         await page.waitForURL(`**/dashboard/services/view/${info.id}`);
         await expect(page.getByText(info.name).first()).toBeVisible();
-        await page.waitForLoadState("networkidle");
 
         await page.goto("/dashboard/service-info");
         await region
@@ -173,9 +179,12 @@ test.describe("listing of the registry", () => {
          * @param val Page
          */
         const expectNone = async (val: Page) => {
-            await val.goto("/dashboard/service-info");
+            // the page's reads, that of the user's roles included, which
+            // the listing's read would follow
+            await openPage(val, "/dashboard/service-info", [
+                isRead("/service-info"),
+            ]);
             await expect(val.getByText("Registry Version")).toBeVisible();
-            await val.waitForLoadState("networkidle");
             await expect(
                 val.getByRole("region", { name: "Service Listing" }),
             ).toHaveCount(0);

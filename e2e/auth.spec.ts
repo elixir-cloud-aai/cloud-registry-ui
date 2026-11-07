@@ -1,4 +1,12 @@
-import { expect, login, sessionCookie, test, users } from "./fixtures";
+import {
+    expect,
+    isApprovalsRead,
+    login,
+    openPage,
+    sessionCookie,
+    test,
+    users,
+} from "./fixtures";
 
 const sessionCookies = Object.values(sessionCookie);
 
@@ -85,7 +93,8 @@ test.describe("login", () => {
                     sameSite: "Lax" as const,
                 })),
         );
-        await page.goto("/dashboard");
+        // the Services page, whose reads the logout below would cut off
+        await openPage(page, "/dashboard", [isApprovalsRead]);
         const menu = page.getByRole("button", { name: users.owner.sub });
         await expect(menu).toContainText(users.owner.name);
 
