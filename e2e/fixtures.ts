@@ -117,7 +117,8 @@ function editFormReads(id: string) {
  * site end then, as browsers may report nothing more about them
  * @param page Page
  * @returns `reads`: the reads so far; `stop()`: stop recording reads;
- * `ended()`: wait until the reads recorded so far have ended
+ * `ended()`: wait until the reads have ended, including those that
+ * start while it waits, then stop recording
  */
 function trackReads(page: Page) {
     const reads: Request[] = [];
@@ -161,7 +162,13 @@ function trackReads(page: Page) {
         reads,
         stop: () => page.off("request", record),
         ended: async () => {
-            await Promise.all(reads.map((val) => ends.get(val)));
+            // reads that end may start others: wait for those, too
+            let count: number;
+            do {
+                count = reads.length;
+                await Promise.all(reads.map((val) => ends.get(val)));
+            } while (reads.length !== count);
+            page.off("request", record);
             if (pending.size === 0) {
                 page.off("requestfinished", end);
                 page.off("requestfailed", end);
@@ -211,8 +218,9 @@ async function waitForReads(
         waits.catch(() => undefined);
         await action();
         responses = await waits;
-    } finally {
+    } catch (error) {
         tracked.stop();
+        throw error;
     }
     await tracked.ended();
     return responses;
