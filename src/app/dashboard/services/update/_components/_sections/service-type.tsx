@@ -88,15 +88,18 @@ function ServiceTypeSection({
                                 >
                                     <SelectValue placeholder="Select a service type" />
                                 </SelectTrigger>
-                                {/* below the field, from the top of the
-                                list: aligned on the chosen type, a long list
-                                would scroll the first entry out of view */}
-                                <SelectContent position="popper">
+                                <SelectContent>
                                     {allowNewType && (
                                         // first and set apart, so that long
-                                        // lists don't hide it
+                                        // lists don't hide it: it stays at
+                                        // the top while the list scrolls, as
+                                        // the list opens scrolled to the
+                                        // chosen type
                                         <>
-                                            <SelectItem value={newTypeChoice}>
+                                            <SelectItem
+                                                value={newTypeChoice}
+                                                className="sticky top-0 z-10 bg-popover"
+                                            >
                                                 <PlusIcon />
                                                 Add new service type
                                             </SelectItem>

@@ -360,9 +360,9 @@ test.describe("service types", () => {
         // types before the service's own, which the list shows first
         await page.route(`${registry}/services/types`, async (route) => {
             const response = await route.fetch();
-            const more = Array.from({ length: 40 }, (_, idx) => ({
+            const more = Array.from({ length: 100 }, (_, idx) => ({
                 group: "org.example",
-                artifact: `long-${String(idx).padStart(2, "0")}`,
+                artifact: `long-${String(idx).padStart(3, "0")}`,
                 version: "1.0.0",
             }));
             await route.fulfill({
