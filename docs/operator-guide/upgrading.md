@@ -36,8 +36,9 @@ change the roles of another user, so stop them first.
 In short, to upgrade from 1.0.0-rc1:
 
 1. Before the upgrade, check the login settings (see **Login** below): the
-   `issuer` of every provider in `LOGIN_PROVIDERS` is an `https` URL, and
-   the app's login page (`/auth/login` at the origin of
+   `issuer` of every provider in `LOGIN_PROVIDERS` and `LOGIN_REDIRECT_URI`
+   are `https` URLs (`http` only for `localhost`, `*.localhost` and loopback
+   addresses), and the app's login page (`/auth/login` at the origin of
    `LOGIN_REDIRECT_URI`) is registered as a post-logout redirect URI with
    each provider that has an `end_session_endpoint`.
 2. Stop the app, or scale it to 0 replicas, and upgrade the registry to
@@ -45,8 +46,8 @@ In short, to upgrade from 1.0.0-rc1:
    guide](https://cloud-registry.readthedocs.io/en/latest/upgrading/#from-100rc1)
    describes.
 3. Start the app with the image `elixircloud/cloud-registry-ui:1.0.0-rc2`
-   (see [Verifying images](deployment.md#verifying-images)). No setting must
-   change. Two are new (see [Access dialog](configuration.md#access-dialog)):
+   (see [Verifying images](deployment.md#verifying-images)); users who were
+   logged in log in once more. No setting must change. Two are new (see [Access dialog](configuration.md#access-dialog)):
    `NEXT_PUBLIC_ACCESS_PAGE_SIZE` (now 5 entries per page instead of 8) and
    `NEXT_PUBLIC_INVITATION_LABEL_REQUIRED` (invitations now need a label;
    set it to `false` to keep labels optional).
