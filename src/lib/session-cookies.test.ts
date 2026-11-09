@@ -29,15 +29,15 @@ describe("sessionCookie", () => {
     const read = (cookies: Record<string, string>) =>
         sessionCookie("access_token", (name) => cookies[name]);
 
-    it("reads the __Host- name first, then the old one, in production", () => {
+    it("reads only the __Host- name in production", () => {
         vi.stubEnv("NODE_ENV", "production");
         expect(
             read({ "__Host-access_token": "new", access_token: "old" }),
         ).toBe("new");
-        expect(read({ access_token: "old" })).toBe("old");
-        expect(read({ "__Host-access_token": "", access_token: "old" })).toBe(
-            "old",
-        );
+        expect(read({ access_token: "old" })).toBeUndefined();
+        expect(
+            read({ "__Host-access_token": "", access_token: "old" }),
+        ).toBeUndefined();
         expect(read({})).toBeUndefined();
     });
 

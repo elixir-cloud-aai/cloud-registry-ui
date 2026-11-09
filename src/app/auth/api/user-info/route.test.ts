@@ -74,19 +74,15 @@ describe("GET /auth/api/user-info", () => {
         );
     });
 
-    it("reads sessions of earlier versions in production", async () => {
+    it("takes sessions of earlier versions as logged out in production", async () => {
         vi.stubEnv("NODE_ENV", "production");
         setUp({ access_token: "old", login_provider: "mock" });
-        const get = answer({ sub: "alice" });
-        expect((await userInfo()).status).toBe(200);
-        expect(get).toHaveBeenCalledWith(
-            discovery.userinfo_endpoint,
-            expect.objectContaining({
-                headers: expect.objectContaining({
-                    Authorization: "Bearer old",
-                }),
-            }),
-        );
+        const get = vi.spyOn(axios, "get");
+        expect(await userInfo()).toEqual({
+            status: 401,
+            body: { error: true, user: null },
+        });
+        expect(get).not.toHaveBeenCalled();
     });
 
     it.each([
