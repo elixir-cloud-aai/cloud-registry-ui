@@ -121,8 +121,9 @@ versions):
 
 1. Shortly before the release, open a release-prep pull request into `dev`:
    add the curated release notes as `docs/releases/<version>.md` and to the
-   "Releases" section of `mkdocs.yml`, set the version in `package.json` and in `CITATION.cff`
-   (`version`; add or update `date-released`), and update the authors in
+   "Releases" section of `mkdocs.yml`, set the version in `package.json`
+   and in `CITATION.cff` (`version`; add or update `date-released`), and
+   update the authors in
    `CITATION.cff`: everyone who committed to the repository, listed by the
    number of lines they committed, then by the number of their commits.
    Each version, also each pre-release (e.g., `X.Y.Z-rc1`), needs its own
@@ -138,7 +139,8 @@ versions):
    numbers, e.g., `(#12, #34)`. Links must be absolute (e.g., to
    `https://cloud-registry-ui.readthedocs.io/en/latest/`), as they must also
    work on GitHub; no `## Commits` section and no `**Full Changelog**` line,
-   which the workflow adds. The shared action
+   which the workflow adds (the notes of 1.0.0-rc1 predate this and still
+   have relative links: don't copy them). The shared action
    [`publish-release`](https://github.com/elixir-cloud-aai/.github/tree/main/actions/publish-release)
    describes the format and its checks.
 2. Wait until CI has passed for the push to `dev` of the commit that the
@@ -174,8 +176,11 @@ versions):
        # The files of the commit, not of the working tree
        [[ "$(git show "${sha}:package.json" | jq -r .version)" == "${version}" ]] || { echo "Wrong version in package.json"; exit 1; }
        [[ "$(git show "${sha}:CITATION.cff" | yq -r .version)" == "${version}" ]] || { echo "Wrong version in CITATION.cff"; exit 1; }
-       # The format of the notes is checked by the release workflow
-       git cat-file -e "${sha}:docs/releases/${version}.md" || { echo "No release notes docs/releases/${version}.md"; exit 1; }
+       # The notes of the commit, with the checker of the action that
+       # `release.yml` pins (as the `docs` job of `ci.yml` does)
+       notes="$(mktemp -d)" && git show "${sha}:docs/releases/${version}.md" > "${notes}/notes.md" &&
+           curl -fsSL "https://raw.githubusercontent.com/elixir-cloud-aai/.github/31f22fccc1f3c597ed7c1d1f75b2f85522155348/actions/publish-release/publish.py" -o "${notes}/publish.py" &&
+           python3 -I "${notes}/publish.py" check "${notes}/notes.md" || { echo "Release notes docs/releases/${version}.md missing or not in the format"; exit 1; }
        # Also drafts, which the release workflow can't see before it fails on them
        release="$(gh release view "v${version}" --repo elixir-cloud-aai/cloud-registry-ui 2>&1)" && { echo "A release or draft of v${version} exists: delete a draft"; exit 1; }
        [[ "${release}" == *"release not found"* ]] || { echo "Cannot check the releases: ${release}"; exit 1; }
@@ -217,7 +222,8 @@ versions):
    generated notes under `## Commits` (without their `## What's Changed`
    header, with "New Contributors"), and GitHub's `**Full Changelog**` line
    last; versions below 1.0.0 and `-alpha`, `-beta` and `-rc` versions are
-   pre-releases. Releases are not edited afterwards: fix mistakes in the
+   pre-releases. The release is created with its final notes, and with
+   immutable releases (see below) it can't be edited: fix mistakes in the
    notes of the next release. If a job fails, use "Re-run failed jobs", not
    "Re-run all jobs": once the image is tagged, a new attempt of all jobs
    stops at the existing tag and can't finish the release, and once the

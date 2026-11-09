@@ -391,7 +391,11 @@ jobs:
     # Fails on a draft of the tag, and on a published release unless an
     # earlier attempt of this job created it (then it passes without
     # changes). One at a time, so that the latest release is decided in
-    # order; a cancelled pending run is re-run like a failed one
+    # order; a cancelled pending run is re-run like a failed one. The latest
+    # GitHub release (the action, by version among published releases) and
+    # the image's `latest` tag (`release-image`, by version among the tags on
+    # `main`) are decided separately, by the same rule: the highest stable
+    # version
     publish:
         name: Publish release
         needs: [prepare, release-image]
