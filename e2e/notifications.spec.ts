@@ -255,13 +255,23 @@ test.describe("notifications", () => {
         problems,
     }) => {
         let reads = 0;
-        await page.route(`${registry}/notifications`, (route) => {
+        let answered = 0;
+        await page.route(`${registry}/notifications`, async (route) => {
             reads++;
             // e.g. a policy of the registry without the rules for them
-            return route.fulfill({ status: 403, json: { status: 403 } });
+            await route.fulfill({ status: 403, json: { status: 403 } });
+            answered++;
+        });
+        let warned = false;
+        page.on("console", (msg) => {
+            if (msg.type() === "warning" && msg.text().includes("refuses"))
+                warned = true;
         });
         await login(page, "other");
-        await expect.poll(() => reads).toBeGreaterThan(0);
+        // once the refusal is handled, so that a read under way can't hide
+        // another one
+        await expect.poll(() => answered).toBeGreaterThan(0);
+        await expect.poll(() => warned).toBe(true);
         await expect(
             page.getByRole("button", { name: /^Notifications/ }),
         ).toHaveCount(0);

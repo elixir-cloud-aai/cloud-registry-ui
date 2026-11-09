@@ -155,8 +155,13 @@ function NotificationBell() {
         stopped.current = false;
         reading.current = false;
         const now = sessionCookie("access_token", getCookie);
-        // names depend on who reads them
-        if (now !== token.current) setNames(new Map());
+        // the list and names belong to who read them, and whether reading
+        // works too
+        if (now !== token.current) {
+            loaded.current = false;
+            setNotifications(undefined);
+            setNames(new Map());
+        }
         token.current = now;
         read();
         const refresh = () => {
