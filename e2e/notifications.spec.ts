@@ -250,6 +250,28 @@ test.describe("notifications", () => {
         problems.splice(0);
     });
 
+    test("refused notifications show no bell, and aren't asked again", async ({
+        page,
+        problems,
+    }) => {
+        let reads = 0;
+        await page.route(`${registry}/notifications`, (route) => {
+            reads++;
+            // e.g. a policy of the registry without the rules for them
+            return route.fulfill({ status: 403, json: { status: 403 } });
+        });
+        await login(page, "other");
+        await expect.poll(() => reads).toBeGreaterThan(0);
+        await expect(
+            page.getByRole("button", { name: /^Notifications/ }),
+        ).toHaveCount(0);
+        const before = reads;
+        await readAgain(page);
+        await page.waitForTimeout(500);
+        expect(reads).toBe(before);
+        problems.splice(0);
+    });
+
     test("a refused login removes the list, and stops reading", async ({
         page,
         problems,
