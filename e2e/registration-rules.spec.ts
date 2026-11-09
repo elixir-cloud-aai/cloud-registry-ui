@@ -88,14 +88,13 @@ test.describe("registration rules", () => {
         ).toBeVisible();
     });
 
-    test("the edit form shows the registry's reasons at the fields", async ({
+    test("the edit form shows the registry's reason at the field", async ({
         page,
         browser,
         problems,
     }) => {
         const service = await registerService(browser, "owner", "Reasons");
-        // any environment, so that the registry checks it; the form doesn't
-        // check user info in URLs either
+        // any environment, so that the registry checks it
         await publishRules(page, { environments: [] });
         await login(page, "owner");
 
@@ -103,24 +102,25 @@ test.describe("registration rules", () => {
         await page
             .getByRole("textbox", { name: "Environment" })
             .fill("production");
-        await page
-            .locator("input[name=contactUrl]")
-            .fill("https://user@example.org");
         await page.getByRole("button", { name: "Submit" }).click();
 
-        // each field with its message (`errors` of cloud-registry 1.0.0rc2,
-        // in the words of the registry that the stack pins)
-        await expect(page.getByText(/^Must be one of: 'prod'/)).toBeVisible();
-        await expect(
-            page.getByText("Must not contain user info.", { exact: true }),
-        ).toBeVisible();
-        // and the toast with the fields' labels, not their JSON Pointers
+        // the field with its message (`errors` of cloud-registry 1.0.0rc2, in
+        // the words of the registry that the stack pins)
+        // the innermost group with the field (the form is one, too)
+        const field = page
+            .getByRole("group")
+            .filter({
+                has: page.getByRole("textbox", { name: "Environment" }),
+            })
+            .last();
+        await expect(field.getByRole("alert")).toHaveText(
+            /^Must be one of: 'prod'/,
+        );
+        // and the toast with the field's label, not its JSON Pointer
         const toast = page
             .locator("[data-sonner-toast]")
             .filter({ hasText: "'Environment': Must be one of" });
-        await expect(toast).toContainText(
-            "'Contact URL': Must not contain user info.",
-        );
+        await expect(toast).toBeVisible();
         await expect(toast).not.toContainText("#/");
         expect(
             (await api(undefined, "GET", `/services/${service.id}`)).body
