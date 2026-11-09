@@ -120,14 +120,27 @@ forward to commits on `dev` that are released, and release tags are on
 versions):
 
 1. Shortly before the release, open a release-prep pull request into `dev`:
-   add the release notes as `docs/releases/<version>.md` (intro and grouped
-   sections, as in earlier notes) and to the "Releases" section of
-   `mkdocs.yml`, set the version in `package.json` and in `CITATION.cff`
+   add the curated release notes as `docs/releases/<version>.md` and to the
+   "Releases" section of `mkdocs.yml`, set the version in `package.json` and in `CITATION.cff`
    (`version`; add or update `date-released`), and update the authors in
    `CITATION.cff`: everyone who committed to the repository, listed by the
    number of lines they committed, then by the number of their commits.
    Each version, also each pre-release (e.g., `X.Y.Z-rc1`), needs its own
    such change. Merge it.
+
+   The release workflow publishes the notes as the start of the GitHub
+   release, so they follow the organization's format, which its first job
+   checks: an intro paragraph saying what the release brings, with a link to
+   the upgrade notes if operators must act, then the sections
+   `## Breaking changes`, `## Features`, `## Security`, `## Fixes`,
+   `## Documentation` and `## Maintenance` (in this order, empty ones left
+   out), holding bullets only, each ending with its issue and pull request
+   numbers, e.g., `(#12, #34)`. Links must be absolute (e.g., to
+   `https://cloud-registry-ui.readthedocs.io/en/latest/`), as they must also
+   work on GitHub; no `## Commits` section and no `**Full Changelog**` line,
+   which the workflow adds. The shared action
+   [`publish-release`](https://github.com/elixir-cloud-aai/.github/tree/main/actions/publish-release)
+   describes the format and its checks.
 2. Wait until CI has passed for the push to `dev` of the commit that the
    merge created on `dev` (`<sha>`, not the head of the pull request): the
    release workflow requires a successful CI run for a push of the tagged
@@ -161,6 +174,11 @@ versions):
        # The files of the commit, not of the working tree
        [[ "$(git show "${sha}:package.json" | jq -r .version)" == "${version}" ]] || { echo "Wrong version in package.json"; exit 1; }
        [[ "$(git show "${sha}:CITATION.cff" | yq -r .version)" == "${version}" ]] || { echo "Wrong version in CITATION.cff"; exit 1; }
+       # The format of the notes is checked by the release workflow
+       git cat-file -e "${sha}:docs/releases/${version}.md" || { echo "No release notes docs/releases/${version}.md"; exit 1; }
+       # Also drafts, which the release workflow can't see before it fails on them
+       release="$(gh release view "v${version}" --repo elixir-cloud-aai/cloud-registry-ui 2>&1)" && { echo "A release or draft of v${version} exists: delete a draft"; exit 1; }
+       [[ "${release}" == *"release not found"* ]] || { echo "Cannot check the releases: ${release}"; exit 1; }
        runs="$(gh api "repos/elixir-cloud-aai/cloud-registry-ui/actions/workflows/ci.yml/runs?head_sha=${sha}&branch=dev&event=push&status=success&per_page=1" --jq .total_count)"
        (( runs >= 1 )) || { echo "No successful CI run for the push of ${sha} to dev"; exit 1; }
        git merge-base --is-ancestor origin/main "${sha}" || { echo "main can't be fast-forwarded to ${sha}"; exit 1; }
@@ -193,12 +211,22 @@ versions):
    you pushed. It checks that GitHub verified the tag's signature, that its
    commit is on `main`, the versions and the CI run; pushes, scans, signs
    and tags the image `elixircloud/cloud-registry-ui:X.Y.Z` (or
-   `<DOCKERHUB_ORG>/cloud-registry-ui:X.Y.Z`), and publishes the GitHub
-   release with the generated notes; add the curated sections to the notes
-   afterwards. If a job fails, use "Re-run failed jobs", not "Re-run all
-   jobs": once the image is tagged, a new attempt of all jobs stops at the
-   existing tag and can't finish the release. If `prepare` fails because CI
-   hasn't finished for the commit, re-run the workflow once it passed.
+   `<DOCKERHUB_ORG>/cloud-registry-ui:X.Y.Z`) (`Release image`), and then,
+   without another approval, creates the GitHub release (`Publish
+   release`): the curated notes of the tagged commit, then GitHub's
+   generated notes under `## Commits` (without their `## What's Changed`
+   header, with "New Contributors"), and GitHub's `**Full Changelog**` line
+   last; versions below 1.0.0 and `-alpha`, `-beta` and `-rc` versions are
+   pre-releases. Releases are not edited afterwards: fix mistakes in the
+   notes of the next release. If a job fails, use "Re-run failed jobs", not
+   "Re-run all jobs": once the image is tagged, a new attempt of all jobs
+   stops at the existing tag and can't finish the release, and once the
+   GitHub release exists, `prepare` fails; a re-run of `Publish release`
+   passes without changes if an earlier attempt created the release after
+   all. `prepare` can't see draft releases and `Publish release` fails on
+   them, so delete any draft of the tag before you push the tag. If
+   `prepare` fails because CI hasn't finished for the commit, re-run the
+   workflow once it passed.
 
 The repository needs, once: an environment `release` with a required
 reviewer, deployments limited to `v*` tags, and the Docker Hub secrets
