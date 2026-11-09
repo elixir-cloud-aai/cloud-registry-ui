@@ -35,9 +35,12 @@ const loginProvidersSchema = z
 
 const loginSettingsSchema = z.object({
     providers: loginProvidersSchema,
-    redirectUri: z.url({
-        error: "Set to the URL of /auth/api/callback, e.g. https://registry.example.org/auth/api/callback",
-    }),
+    // over TLS, as the authorization code comes back to it
+    redirectUri: z
+        .url({
+            error: "Set to the URL of /auth/api/callback, e.g. https://registry.example.org/auth/api/callback",
+        })
+        .refine(isSecureUrl, "Use an https URL (http only for localhost)"),
 });
 
 type LoginProvider = z.infer<typeof loginProviderSchema>;
