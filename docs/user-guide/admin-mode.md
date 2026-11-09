@@ -66,7 +66,8 @@ registry like any other service:
 them.
 
 The registry builds its entry from its own service info and never syncs it, so
-the entry's details say so instead of offering **Turn sync on**.
+in admin mode, the entry's details say so instead of offering **Turn sync on**.
+In user mode, they show it like any other service that isn't synced.
 
 The registry builds the entry from its service info and its public URL. The
 entry has no owner, doesn't count for any user's limit of services, and is
