@@ -14,7 +14,7 @@ import {
 } from "./session-cookies";
 
 /**
- * Read a cookie of the session, also by its old name
+ * Read a cookie of the session by its current name (see `sessionCookie()`)
  * @param name Plain name
  * @returns The value, or undefined if it isn't set
  */

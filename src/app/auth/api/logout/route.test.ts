@@ -83,7 +83,7 @@ describe("POST /auth/api/logout", () => {
         expect(jar.size).toBe(0);
     });
 
-    it("deletes sessions of the old names only in production, at the app", async () => {
+    it("logs out at the app only, deleting the cookies, for sessions of the old names in production", async () => {
         vi.stubEnv("NODE_ENV", "production");
         setUp(session);
         const get = vi.spyOn(axios, "get");

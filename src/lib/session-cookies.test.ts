@@ -7,7 +7,7 @@ import {
 } from "./session-cookies";
 
 describe("cookie names", () => {
-    it("have the prefix __Host- in production, and the old names too", () => {
+    it("have the prefix __Host- in production, and list the old names for deletion", () => {
         vi.stubEnv("NODE_ENV", "production");
         expect(secureCookies()).toBe(true);
         expect(cookieName("access_token")).toBe("__Host-access_token");
