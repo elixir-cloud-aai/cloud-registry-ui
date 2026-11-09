@@ -170,6 +170,26 @@ test.describe("listing of the registry", () => {
         ).not.toContain(info.type.artifact);
     });
 
+    test("the registry's own entry offers no sync", async ({
+        page,
+        browser,
+    }) => {
+        const info = await serviceInfo();
+        await api(await tokenOf(browser, "admin"), "PUT", path);
+        await login(page, "admin", { adminMode: true });
+        await waitForReads(
+            page,
+            () => page.goto(`/dashboard/services/view/${info.id}`),
+            serviceReads(info.id),
+        );
+        await expect(
+            page.getByText("This is the registry's own entry"),
+        ).toBeVisible();
+        await expect(
+            page.getByRole("button", { name: "Turn sync on" }),
+        ).toHaveCount(0);
+    });
+
     test("the button and the request are for admin mode only", async ({
         page,
         browser,

@@ -1,6 +1,6 @@
 "use client";
 import { RefreshCwIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
     AlertDialog,
@@ -13,11 +13,11 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { useRegistrationRules } from "@/hooks";
+import { useMe, useRegistrationRules } from "@/hooks";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import type { ServiceSync } from "@/lib/cloud-registry.types";
 import { mutationError } from "@/lib/errors";
-import { hasStatus } from "@/lib/permissions";
+import { canChangeSelfListing, hasStatus } from "@/lib/permissions";
 import {
     formatSyncTime,
     syncFailedReason,
@@ -46,6 +46,39 @@ type Props = {
     onRefresh: () => void;
 };
 
+/**
+ * Whether a service is the registry's own entry, built from its own service
+ * info, which the registry never syncs (it refuses with 409). Only
+ * admins can read the listing; for others, and if it can't be read, it is
+ * taken as another service
+ * @param serviceId Service identifier
+ * @param provider Client of the registry
+ * @param enabled Whether to read the listing
+ * @returns Whether it is the registry's own entry
+ */
+function useIsOwnEntry(
+    serviceId: string,
+    provider: AuthenticatedCloudRegistryProvider | null,
+    enabled: boolean,
+) {
+    const [own, setOwn] = useState(false);
+    useEffect(() => {
+        setOwn(false);
+        if (!enabled || !provider) return;
+        const controller = new AbortController();
+        provider
+            .getSelfListing({ signal: controller.signal })
+            .then((listing) => {
+                if (!controller.signal.aborted)
+                    setOwn(listing.listed && listing.serviceId === serviceId);
+            })
+            // the controls stay; the registry refuses them for its own entry
+            .catch(() => {});
+        return () => controller.abort();
+    }, [serviceId, provider, enabled]);
+    return own;
+}
+
 /** The sync of a service with its service info, in its details: its state, why
  * it is out of sync, and the controls for those who may use them. Also explains
  * the labels, which say nothing about trust */
@@ -60,6 +93,12 @@ function ServiceSyncSection({
     onRefresh,
 }: Props) {
     const { rules, loading } = useRegistrationRules();
+    const { me } = useMe();
+    const ownEntry = useIsOwnEntry(
+        serviceId,
+        provider,
+        canManage && canChangeSelfListing(me),
+    );
     const [busy, setBusy] = useState(false);
     const [confirmOn, setConfirmOn] = useState(false);
     const rule = rules.serviceInfoSync;
@@ -133,7 +172,13 @@ function ServiceSyncSection({
                             page can't say whether it is synced.
                         </p>
                     )}
-                    {!sync && loaded && !failed && (
+                    {!sync && loaded && !failed && ownEntry && (
+                        <p className="text-sm text-muted-foreground">
+                            This is the registry's own entry, built from its own
+                            service info, which the registry doesn't sync.
+                        </p>
+                    )}
+                    {!sync && loaded && !failed && !ownEntry && (
                         <p className="text-sm text-muted-foreground">
                             This service isn't synced, so its entry may have
                             drifted from what the service says about itself.
@@ -176,7 +221,7 @@ function ServiceSyncSection({
                         service can change at any time, so decide yourself whom
                         you trust.
                     </p>
-                    {canManage && loaded && !failed && (
+                    {canManage && loaded && !failed && !(ownEntry && !sync) && (
                         <div className="flex flex-wrap gap-2">
                             {sync ? (
                                 <>
