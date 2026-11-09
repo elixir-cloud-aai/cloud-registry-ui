@@ -5,6 +5,7 @@ import {
     duplicateToast,
     errorMessage,
     fieldErrors,
+    invalidFields,
     isDuplicate,
     isInvitationAccepted,
     isInvitationsLimit,
@@ -86,6 +87,31 @@ describe("errorMessage", () => {
             "Failed",
         );
         expect(errorMessage("x", "Failed")).toBe("Failed");
+    });
+});
+
+describe("invalidFields", () => {
+    it("keeps the well-formed entries of a list", () => {
+        expect(
+            invalidFields([
+                { detail: "A.", pointer: "#/url", code: "c", extra: 1 },
+                { detail: "B.", parameter: "page" },
+                { detail: "C." },
+                { pointer: "#/url" },
+                { detail: 5, pointer: "#/url" },
+                null,
+                "x",
+            ]),
+        ).toEqual([
+            { detail: "A.", pointer: "#/url", code: "c" },
+            { detail: "B.", parameter: "page" },
+        ]);
+        expect(invalidFields([])).toEqual([]);
+    });
+
+    it("is undefined without a list", () => {
+        expect(invalidFields({})).toBeUndefined();
+        expect(invalidFields(undefined)).toBeUndefined();
     });
 });
 

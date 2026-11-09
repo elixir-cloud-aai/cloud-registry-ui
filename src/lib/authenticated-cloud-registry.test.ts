@@ -617,7 +617,7 @@ describe("requests", () => {
         );
     });
 
-    it("keeps no invalid fields that aren't a list", async () => {
+    it("drops invalid fields that aren't a list", async () => {
         const provider = new AuthenticatedCloudRegistryProvider(base, "t");
         fetchMock.mockResolvedValueOnce(json({ detail: "d", errors: {} }, 400));
         const err = await provider.createService({} as never).catch((e) => e);

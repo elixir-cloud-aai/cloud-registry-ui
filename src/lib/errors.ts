@@ -245,9 +245,9 @@ function fieldErrors<T extends string>(
     if (found.size)
         return Array.from(found, ([field, message]) => ({ field, message }));
     const detail = errorDetail(err);
-    const field =
-        detail === undefined ? undefined : detailField(detail, fields);
-    return field === undefined || detail === undefined
+    if (detail === undefined) return [];
+    const field = detailField(detail, fields);
+    return field === undefined
         ? []
         : [{ field, message: withFieldLabels(detail) }];
 }
