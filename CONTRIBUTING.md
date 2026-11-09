@@ -222,9 +222,8 @@ versions):
    generated notes under `## Commits` (without their `## What's Changed`
    header, with "New Contributors"), and GitHub's `**Full Changelog**` line
    last; versions below 1.0.0 and `-alpha`, `-beta` and `-rc` versions are
-   pre-releases. The release is created with its final notes, and with
-   immutable releases (see below) it can't be edited: fix mistakes in the
-   notes of the next release. If a job fails, use "Re-run failed jobs", not
+   pre-releases. Releases aren't edited after publishing (by convention):
+   fix mistakes in the notes of the next release. If a job fails, use "Re-run failed jobs", not
    "Re-run all jobs": once the image is tagged, a new attempt of all jobs
    stops at the existing tag and can't finish the release, and once the
    GitHub release exists, `prepare` fails; a re-run of `Publish release`
