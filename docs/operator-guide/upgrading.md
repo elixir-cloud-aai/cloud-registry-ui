@@ -22,8 +22,8 @@ again.
 
 ## 1.0.0-rc2
 
-**Upgrade the registry together with the app: this version needs a registry
-newer than cloud-registry 1.0.0rc1, and has no fallback for older ones.** The
+**Upgrade the registry together with the app: this version needs
+cloud-registry 1.0.0rc2, and has no fallback for older ones.** The
 registry moved the paths of users' roles to
 `/services/{serviceId}/permissions/users/{userId}`, and the app calls only
 these. Don't run this version with cloud-registry 1.0.0rc1: the registry
@@ -32,6 +32,26 @@ answers `200 OK`, but grants the role to a user `users/bob` instead of `bob`
 Earlier versions of the app can't change roles of users with the new registry,
 which no longer finds the old paths; if user IDs start with `users/`, they even
 change the roles of another user, so stop them first.
+
+In short, to upgrade from 1.0.0-rc1:
+
+1. Before the upgrade, check the login settings (see **Login** below): the
+   `issuer` of every provider in `LOGIN_PROVIDERS` is an `https` URL, and
+   the app's login page (`/auth/login` at the origin of
+   `LOGIN_REDIRECT_URI`) is registered as a post-logout redirect URI with
+   each provider that has an `end_session_endpoint`.
+2. Stop the app, or scale it to 0 replicas, and upgrade the registry to
+   cloud-registry 1.0.0rc2 with a fresh database, as the [registry's upgrade
+   guide](https://cloud-registry.readthedocs.io/en/latest/upgrading/#from-100rc1)
+   describes.
+3. Start the app with the image `elixircloud/cloud-registry-ui:1.0.0-rc2`
+   (see [Verifying images](deployment.md#verifying-images)). No setting must
+   change. Two are new (see [Access dialog](configuration.md#access-dialog)):
+   `NEXT_PUBLIC_ACCESS_PAGE_SIZE` (now 5 entries per page instead of 8) and
+   `NEXT_PUBLIC_INVITATION_LABEL_REQUIRED` (invitations now need a label;
+   set it to `false` to keep labels optional).
+
+The rest of this section explains why and what changes.
 
 So no order of apps and registry pods is safe during a rolling update. Follow
 the [registry's upgrade guide](https://cloud-registry.readthedocs.io/en/latest/upgrading/#from-100rc1):
@@ -63,7 +83,7 @@ requires one by default**. To keep it optional, set
 `NEXT_PUBLIC_INVITATION_LABEL_REQUIRED=false` (see [Access
 dialog](configuration.md#access-dialog)). Expired invitations stay listed,
 marked as expired, with **New link**, removal and **Remove expired**. Both
-need a registry newer than cloud-registry 1.0.0rc1. If the app meets 1.0.0rc1
+need cloud-registry 1.0.0rc2. If the app meets 1.0.0rc1
 during an upgrade, it creates links without the label and says so, and doesn't
 list expired invitations, as that registry doesn't; this is no reason to run
 that pairing, which gives roles to the wrong user, as described above.

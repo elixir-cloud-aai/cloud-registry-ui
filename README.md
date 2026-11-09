@@ -22,8 +22,8 @@ you by [ELIXIR On-Cloud](https://elixir-on.cloud/). Anyone can browse and
 search the services of the registry (unless it requires login); users logged
 in with an OpenID Connect provider, such as LS Login, register and edit their
 services and share them with their team, also by invitation links, and admins
-verify services and approve new service types (this version needs a registry
-newer than Cloud Registry 1.0.0rc1, see [Compatibility][docs-compatibility]).
+verify services and approve new service types (this version needs
+Cloud Registry 1.0.0rc2 or later, see [Compatibility][docs-compatibility]).
 The app is generic: deploy it
 for your own registry with its Docker image, with your logos, titles and login
 providers.
@@ -44,7 +44,7 @@ deployment to the table in [`README.md`](README.md).
 ## Quick start
 
 UI versions follow the registry in major and minor version, except that
-1.0.0-rc2 needs a registry newer than Cloud Registry 1.0.0rc1 (see
+1.0.0-rc2 needs Cloud Registry 1.0.0rc2, not 1.0.0rc1 (see
 [Compatibility][docs-compatibility]). Write the settings to a file outside
 the repository, e.g. `~/cloud-registry-ui/settings.env`, with at least
 `NEXT_PUBLIC_CLOUD_REGISTRY_URL`, `LOGIN_PROVIDERS` and `LOGIN_REDIRECT_URI`

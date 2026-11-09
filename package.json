@@ -1,6 +1,6 @@
 {
     "name": "elixir-cloud-registry-frontend",
-    "version": "1.0.0-rc1",
+    "version": "1.0.0-rc2",
     "private": true,
     "packageManager": "bun@1.4.4",
     "scripts": {
