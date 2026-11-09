@@ -1,6 +1,6 @@
 "use client";
 import { RefreshCwIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
     AlertDialog,
@@ -13,11 +13,11 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { useMe, useRegistrationRules } from "@/hooks";
+import { useOwnEntry, useRegistrationRules } from "@/hooks";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import type { ServiceSync } from "@/lib/cloud-registry.types";
 import { mutationError } from "@/lib/errors";
-import { canChangeSelfListing, hasStatus } from "@/lib/permissions";
+import { hasStatus } from "@/lib/permissions";
 import {
     formatSyncTime,
     syncFailedReason,
@@ -37,6 +37,9 @@ type Props = {
     failed: boolean;
     /** Whether the user may turn sync on or off, and sync now */
     canManage: boolean;
+    /** Whether the user may read the listing of the registry (admins in
+     * admin mode), which tells whether this is the registry's own entry */
+    mayReadListing: boolean;
     provider: AuthenticatedCloudRegistryProvider | null;
     /** Take the state that the registry returned; the service's values may
      * have changed, too */
@@ -45,39 +48,6 @@ type Props = {
      * worked in the registry if only its answer got lost */
     onRefresh: () => void;
 };
-
-/**
- * Whether a service is the registry's own entry, built from its own service
- * info, which the registry never syncs (it refuses with 409). Only
- * admins can read the listing; for others, and if it can't be read, it is
- * taken as another service
- * @param serviceId Service identifier
- * @param provider Client of the registry
- * @param enabled Whether to read the listing
- * @returns Whether it is the registry's own entry
- */
-function useIsOwnEntry(
-    serviceId: string,
-    provider: AuthenticatedCloudRegistryProvider | null,
-    enabled: boolean,
-) {
-    const [own, setOwn] = useState(false);
-    useEffect(() => {
-        setOwn(false);
-        if (!enabled || !provider) return;
-        const controller = new AbortController();
-        provider
-            .getSelfListing({ signal: controller.signal })
-            .then((listing) => {
-                if (!controller.signal.aborted)
-                    setOwn(listing.listed && listing.serviceId === serviceId);
-            })
-            // the controls stay; the registry refuses them for its own entry
-            .catch(() => {});
-        return () => controller.abort();
-    }, [serviceId, provider, enabled]);
-    return own;
-}
 
 /** The sync of a service with its service info, in its details: its state, why
  * it is out of sync, and the controls for those who may use them. Also explains
@@ -88,20 +58,26 @@ function ServiceSyncSection({
     loaded,
     failed,
     canManage,
+    mayReadListing,
     provider,
     onSyncChange,
     onRefresh,
 }: Props) {
     const { rules, loading } = useRegistrationRules();
-    const { me } = useMe();
-    const ownEntry = useIsOwnEntry(
+    const rule = rules.serviceInfoSync;
+    // the registry never syncs its own entry: asked only where it would
+    // offer to turn sync on
+    const { ownEntry, loading: entryLoading } = useOwnEntry(
         serviceId,
-        provider,
-        canManage && canChangeSelfListing(me),
+        canManage &&
+            mayReadListing &&
+            loaded &&
+            !failed &&
+            !sync &&
+            !!rule?.enabled,
     );
     const [busy, setBusy] = useState(false);
     const [confirmOn, setConfirmOn] = useState(false);
-    const rule = rules.serviceInfoSync;
 
     // a sync shows also if the rules can't be read
     if (loading || (!rule?.enabled && !sync)) return null;
@@ -172,18 +148,27 @@ function ServiceSyncSection({
                             page can't say whether it is synced.
                         </p>
                     )}
-                    {!sync && loaded && !failed && ownEntry && (
-                        <p className="text-sm text-muted-foreground">
-                            This is the registry's own entry, built from its own
-                            service info, which the registry doesn't sync.
-                        </p>
-                    )}
-                    {!sync && loaded && !failed && !ownEntry && (
-                        <p className="text-sm text-muted-foreground">
-                            This service isn't synced, so its entry may have
-                            drifted from what the service says about itself.
-                        </p>
-                    )}
+                    {!sync &&
+                        loaded &&
+                        !failed &&
+                        !entryLoading &&
+                        ownEntry && (
+                            <p className="text-sm text-muted-foreground">
+                                This is the registry's own entry, built from its
+                                own service info, which the registry doesn't
+                                sync.
+                            </p>
+                        )}
+                    {!sync &&
+                        loaded &&
+                        !failed &&
+                        !entryLoading &&
+                        !ownEntry && (
+                            <p className="text-sm text-muted-foreground">
+                                This service isn't synced, so its entry may have
+                                drifted from what the service says about itself.
+                            </p>
+                        )}
                     {sync && (
                         <>
                             <p className="text-sm text-muted-foreground">
@@ -221,39 +206,43 @@ function ServiceSyncSection({
                         service can change at any time, so decide yourself whom
                         you trust.
                     </p>
-                    {canManage && loaded && !failed && !(ownEntry && !sync) && (
-                        <div className="flex flex-wrap gap-2">
-                            {sync ? (
-                                <>
+                    {canManage &&
+                        loaded &&
+                        !failed &&
+                        !entryLoading &&
+                        !(ownEntry && !sync) && (
+                            <div className="flex flex-wrap gap-2">
+                                {sync ? (
+                                    <>
+                                        <Button
+                                            size="sm"
+                                            variant={"outline"}
+                                            disabled={busy}
+                                            onClick={handleSyncNow}
+                                        >
+                                            Sync now
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant={"outline"}
+                                            disabled={busy}
+                                            onClick={handleTurnOff}
+                                        >
+                                            Turn sync off
+                                        </Button>
+                                    </>
+                                ) : (
                                     <Button
                                         size="sm"
                                         variant={"outline"}
                                         disabled={busy}
-                                        onClick={handleSyncNow}
+                                        onClick={() => setConfirmOn(true)}
                                     >
-                                        Sync now
+                                        Turn sync on
                                     </Button>
-                                    <Button
-                                        size="sm"
-                                        variant={"outline"}
-                                        disabled={busy}
-                                        onClick={handleTurnOff}
-                                    >
-                                        Turn sync off
-                                    </Button>
-                                </>
-                            ) : (
-                                <Button
-                                    size="sm"
-                                    variant={"outline"}
-                                    disabled={busy}
-                                    onClick={() => setConfirmOn(true)}
-                                >
-                                    Turn sync on
-                                </Button>
-                            )}
-                        </div>
-                    )}
+                                )}
+                            </div>
+                        )}
                 </div>
             </SectionCard>
             <AlertDialog open={confirmOn} onOpenChange={setConfirmOn}>

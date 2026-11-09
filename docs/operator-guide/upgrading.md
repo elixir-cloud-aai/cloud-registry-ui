@@ -95,12 +95,13 @@ the registry.
 attention (see [Notifications](../user-guide/notifications.md)). This takes no settings;
 a registry without notifications, or one that refuses them (`403`), shows no bell.
 
-**Missing bell, sync labels or import with cloud-registry 1.0.0rc2:** if the
-registry runs with its own access policy (e.g. in a config overlay), the policy
-probably lacks the rules that 1.0.0rc2 added for these endpoints
+**No bell or sync labels, or a refused import, with cloud-registry 1.0.0rc2:**
+if the registry runs with its own access policy (e.g. in a config overlay), the
+policy probably lacks the rules that 1.0.0rc2 added for these endpoints
 (`/notifications`, the syncs of services, `/services/import`). The registry then
-refuses them, and the app leaves out what it can't read (the bell's refusal is
-logged as a warning in the browser's console). Update the policy as the
+refuses them: the app shows no bell (and logs a warning in the browser's
+console) and no sync labels, and the import fails with an error. Update the
+policy as the
 [registry's upgrade guide](https://cloud-registry.readthedocs.io/en/latest/upgrading/#from-100rc1)
 describes.
 
