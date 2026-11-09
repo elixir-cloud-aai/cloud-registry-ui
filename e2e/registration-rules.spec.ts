@@ -88,6 +88,52 @@ test.describe("registration rules", () => {
         ).toBeVisible();
     });
 
+    test("the edit form shows the registry's reasons at the fields", async ({
+        page,
+        browser,
+        problems,
+    }) => {
+        const service = await registerService(browser, "owner", "Reasons");
+        // any environment, so that the registry checks it; the form doesn't
+        // check user info in URLs either
+        await publishRules(page, { environments: [] });
+        await login(page, "owner");
+
+        await page.goto(`/dashboard/services/update/${service.id}`);
+        await page
+            .getByRole("textbox", { name: "Environment" })
+            .fill("production");
+        await page
+            .locator("input[name=contactUrl]")
+            .fill("https://user@example.org");
+        await page.getByRole("button", { name: "Submit" }).click();
+
+        // each field with its message (`errors` of cloud-registry 1.0.0rc2)
+        await expect(page.getByText(/^Must be one of: 'prod'/)).toBeVisible();
+        await expect(
+            page.getByText("Must not contain user info.", { exact: true }),
+        ).toBeVisible();
+        // and the toast with the fields' labels, not their JSON Pointers
+        const toast = page
+            .locator("[data-sonner-toast]")
+            .filter({ hasText: "'Environment': Must be one of" });
+        await expect(toast).toContainText(
+            "'Contact URL': Must not contain user info.",
+        );
+        await expect(toast).not.toContainText("#/");
+        expect(
+            (await api(undefined, "GET", `/services/${service.id}`)).body
+                ?.environment,
+        ).toBe(service.environment);
+
+        await page.unrouteAll({ behavior: "ignoreErrors" });
+        // the registry's refusal, which the browser logs
+        expect(
+            problems.filter((val) => !val.includes("status of 400")),
+        ).toEqual([]);
+        problems.length = 0;
+    });
+
     test("without the rules, the edit form says so and leaves the checks to the registry", async ({
         page,
         browser,

@@ -11,6 +11,7 @@ import type {
     AppNotification,
     Approvals,
     CloudRegistryProviderOptions,
+    FieldError,
     GroupName,
     GroupPermission,
     Invitation,
@@ -98,6 +99,35 @@ function requestTimedOut(method: HttpMethod) {
 function retryAfterSeconds(value: string | null) {
     const seconds = value && /^\d+$/.test(value.trim()) ? Number(value) : 0;
     return seconds > 0 && Number.isFinite(seconds) ? seconds : undefined;
+}
+
+/**
+ * The invalid fields of a failed request (`errors` of the registry's `400`
+ * responses, as of cloud-registry 1.0.0rc2)
+ * @param value Member `errors` of the response's body
+ * @returns The well-formed ones, with a message and a location; undefined
+ * without a list
+ */
+function fieldErrorsOf(value: unknown): FieldError[] | undefined {
+    if (!Array.isArray(value)) return undefined;
+    return value.flatMap((item): FieldError[] => {
+        if (item === null || typeof item !== "object") return [];
+        const { detail, pointer, parameter, code } = item as Record<
+            string,
+            unknown
+        >;
+        if (typeof detail !== "string") return [];
+        if (typeof pointer !== "string" && typeof parameter !== "string")
+            return [];
+        return [
+            {
+                detail,
+                ...(typeof pointer === "string" ? { pointer } : {}),
+                ...(typeof parameter === "string" ? { parameter } : {}),
+                ...(typeof code === "string" ? { code } : {}),
+            },
+        ];
+    });
 }
 
 class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
@@ -290,6 +320,7 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
             }
 
             // Keep the status, e.g. to tell 401 from 403, and the problem details.
+            const errors = fieldErrorsOf(body.errors);
             throw Object.assign(new Error(message), {
                 status: response.status,
                 title: body.title,
@@ -299,6 +330,7 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
                 retryAfter: retryAfterSeconds(
                     response.headers.get("Retry-After"),
                 ),
+                ...(errors ? { errors } : {}),
             });
         }
 

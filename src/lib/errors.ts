@@ -17,6 +17,7 @@ const fieldLabels: Record<string, string> = {
     "type.artifact": "Type Artifact",
     "type.version": "Type Version",
     version: "Service Version",
+    type: "Service Type",
     environment: "Environment",
     description: "Description",
     contactUrl: "Contact URL",
@@ -33,8 +34,42 @@ const fieldPaths = [
     /( - )'([\w.]+)'()$/,
 ];
 
+// JSON Pointers into the request's body, as cloud-registry 1.0.0rc2 names
+// fields in its detail: "'#/<a>/<b>': <message>", joined by "; "
+const fieldPointers = /'(#[^']*)'/g;
+
+/**
+ * Get the path of a field from a JSON Pointer into the request's body
+ * @param pointer E.g. `#/organization/url`
+ * @returns E.g. `organization.url`; undefined for the body itself and
+ * pointers that aren't valid
+ */
+function pointerPath(pointer: string) {
+    if (!pointer.startsWith("#/")) return undefined;
+    let decoded: string;
+    try {
+        // a URI fragment (RFC 6901, section 6)
+        decoded = decodeURIComponent(pointer.slice(2));
+    } catch {
+        return undefined;
+    }
+    return decoded
+        .split("/")
+        .map((segment) => segment.replaceAll("~1", "/").replaceAll("~0", "~"))
+        .join(".");
+}
+
 /** Name the fields in a registry message by their form labels */
 function withFieldLabels(message: string) {
+    const labelled = message.replace(
+        fieldPointers,
+        (match, pointer: string) => {
+            const path = pointerPath(pointer);
+            return path !== undefined && Object.hasOwn(fieldLabels, path)
+                ? `'${fieldLabels[path]}'`
+                : match;
+        },
+    );
     return fieldPaths.reduce(
         (val, pattern) =>
             val.replace(
@@ -44,7 +79,7 @@ function withFieldLabels(message: string) {
                         ? `${before}'${fieldLabels[path]}'${after}`
                         : match,
             ),
-        message,
+        labelled,
     );
 }
 
@@ -116,17 +151,80 @@ function retryAfterText(err: unknown) {
 }
 
 /**
- * Get the form field that the registry's detail for a failed request names
+ * Get the form's field at a path, or the first one of an object
+ * @param path Path of the field, e.g. `type` or `organization.url`
+ * @param fields Paths of the form's fields
+ * @returns The field, if the form has it
+ */
+function formField<T extends string>(path: string, fields: readonly T[]) {
+    return (
+        fields.find((field) => field === path) ??
+        fields.find((field) => field.startsWith(`${path}.`))
+    );
+}
+
+/**
+ * Get the form field that a registry's detail names, for registries that
+ * don't list the invalid fields (before cloud-registry 1.0.0rc2)
+ * @param detail The registry's detail
+ * @param fields Paths of the form's fields
+ * @returns The first field that the detail names, if any
+ */
+function detailField<T extends string>(detail: string, fields: readonly T[]) {
+    const paths = [
+        ...fieldPaths.map((pattern) => detail.match(pattern)?.[2]),
+        ...Array.from(detail.matchAll(fieldPointers), (match) =>
+            pointerPath(match[1]),
+        ),
+    ];
+    return paths.find((path): path is T => fields.includes(path as T));
+}
+
+/**
+ * Get the form's fields that the registry rejected, each with its message:
+ * from the invalid fields that the registry lists (`errors`, as of
+ * cloud-registry 1.0.0rc2), else the field that its detail names, with the
+ * detail
  * @param err Error of the request
  * @param fields Paths of the form's fields
- * @returns The field's path, if the detail names one of the fields
+ * @returns The fields and their messages, the first message of each field;
+ * fields that the form doesn't have, and parameters, are left out (the
+ * detail names them)
+ */
+function fieldErrors<T extends string>(
+    err: unknown,
+    fields: readonly T[],
+): { field: T; message: string }[] {
+    const invalid =
+        err instanceof Error && "errors" in err && Array.isArray(err.errors)
+            ? (err.errors as unknown[])
+            : undefined;
+    if (invalid === undefined) {
+        const detail = errorDetail(err);
+        if (detail === undefined) return [];
+        const field = detailField(detail, fields);
+        return field ? [{ field, message: withFieldLabels(detail) }] : [];
+    }
+    const found = new Map<T, string>();
+    for (const item of invalid) {
+        if (item === null || typeof item !== "object") continue;
+        const { detail, pointer } = item as Record<string, unknown>;
+        if (typeof detail !== "string" || typeof pointer !== "string") continue;
+        const path = pointerPath(pointer);
+        const field = path === undefined ? undefined : formField(path, fields);
+        if (field !== undefined && !found.has(field)) found.set(field, detail);
+    }
+    return Array.from(found, ([field, message]) => ({ field, message }));
+}
+
+/**
+ * Get the first form field that the registry rejected (cf. `fieldErrors()`)
+ * @param err Error of the request
+ * @param fields Paths of the form's fields
+ * @returns The field's path, if the registry rejected one of the fields
  */
 function errorField<T extends string>(err: unknown, fields: readonly T[]) {
-    const detail = errorDetail(err);
-    if (detail === undefined) return undefined;
-    return fieldPaths
-        .map((pattern) => detail.match(pattern)?.[2])
-        .find((path): path is T => fields.includes(path as T));
+    return fieldErrors(err, fields)[0]?.field;
 }
 
 /** Get the registry's detail for a failed request, else the fallback */
@@ -366,6 +464,7 @@ export {
     errorDetail,
     errorField,
     errorMessage,
+    fieldErrors,
     isDuplicate,
     isInvitationAccepted,
     isInvitationsLimit,

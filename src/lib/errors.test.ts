@@ -5,6 +5,7 @@ import {
     duplicateToast,
     errorField,
     errorMessage,
+    fieldErrors,
     isDuplicate,
     isInvitationAccepted,
     isInvitationsLimit,
@@ -43,6 +44,22 @@ describe("withFieldLabels", () => {
         expect(withFieldLabels(message)).toBe(labelled);
     });
 
+    it("labels the JSON Pointers of cloud-registry 1.0.0rc2", () => {
+        expect(
+            withFieldLabels(
+                "'#/url': Must use one of these schemes: 'https'.; '#/organization/url': Must not contain user info.; '#/environment': Must be one of: 'prod'.",
+            ),
+        ).toBe(
+            "'Service URL': Must use one of these schemes: 'https'.; 'Organization URL': Must not contain user info.; 'Environment': Must be one of: 'prod'.",
+        );
+        expect(withFieldLabels("'#/type': Not registered.")).toBe(
+            "'Service Type': Not registered.",
+        );
+        expect(withFieldLabels("'#/secret': Bad.; '#': Bad.")).toBe(
+            "'#/secret': Bad.; '#': Bad.",
+        );
+    });
+
     it("keeps unknown fields and other text", () => {
         expect(withFieldLabels("'secret' must be set")).toBe(
             "'secret' must be set",
@@ -73,6 +90,113 @@ describe("errorField and errorMessage", () => {
             "Failed",
         );
         expect(errorMessage("x", "Failed")).toBe("Failed");
+    });
+});
+
+describe("fieldErrors", () => {
+    const fields = [
+        "url",
+        "organization.url",
+        "type.group",
+        "type.artifact",
+        "environment",
+        "a/b",
+    ] as const;
+
+    it("puts each invalid field's message at its field", () => {
+        const err = failure(400, {
+            detail: "'#/url': Must use https.; '#/environment': Must be one of: 'prod'.",
+            errors: [
+                { detail: "Must use https.", pointer: "#/url" },
+                { detail: "Must be one of: 'prod'.", pointer: "#/environment" },
+                { detail: "No user info.", pointer: "#/organization/url" },
+            ],
+        });
+        expect(fieldErrors(err, fields)).toEqual([
+            { field: "url", message: "Must use https." },
+            { field: "environment", message: "Must be one of: 'prod'." },
+            { field: "organization.url", message: "No user info." },
+        ]);
+    });
+
+    it("puts errors of an object at its first field", () => {
+        const err = failure(400, {
+            errors: [{ detail: "Not registered.", pointer: "#/type" }],
+        });
+        expect(fieldErrors(err, fields)).toEqual([
+            { field: "type.group", message: "Not registered." },
+        ]);
+    });
+
+    it("decodes pointers", () => {
+        const err = failure(400, {
+            errors: [{ detail: "Bad.", pointer: "#/a~1b" }],
+        });
+        expect(fieldErrors(err, fields)).toEqual([
+            { field: "a/b", message: "Bad." },
+        ]);
+        expect(
+            fieldErrors(
+                failure(400, {
+                    errors: [{ detail: "Bad.", pointer: "#/%75rl" }],
+                }),
+                fields,
+            ),
+        ).toEqual([{ field: "url", message: "Bad." }]);
+    });
+
+    it("keeps the first message of a field, and skips other fields", () => {
+        const err = failure(400, {
+            errors: [
+                { detail: "First.", pointer: "#/url" },
+                { detail: "Second.", pointer: "#/url" },
+                { detail: "Other.", pointer: "#/secret" },
+                { detail: "Parameter.", parameter: "url" },
+                { detail: "Root.", pointer: "#" },
+                { detail: "Bad.", pointer: "#/%" },
+                { pointer: "#/environment" },
+                null,
+                "#/url",
+            ],
+        });
+        expect(fieldErrors(err, fields)).toEqual([
+            { field: "url", message: "First." },
+        ]);
+    });
+
+    it("finds the field in the detail of registries without errors", () => {
+        expect(
+            fieldErrors(
+                failure(400, {
+                    detail: "'environment' must be one of: 'prod'",
+                }),
+                fields,
+            ),
+        ).toEqual([
+            {
+                field: "environment",
+                message: "'Environment' must be one of: 'prod'",
+            },
+        ]);
+        expect(
+            fieldErrors(
+                failure(400, { detail: "'#/url': Must use https." }),
+                fields,
+            ),
+        ).toEqual([
+            { field: "url", message: "'Service URL': Must use https." },
+        ]);
+        expect(fieldErrors(failure(400, { detail: "Other." }), fields)).toEqual(
+            [],
+        );
+        expect(fieldErrors(new Error("x"), fields)).toEqual([]);
+    });
+
+    it("is what errorField names", () => {
+        const err = failure(400, {
+            errors: [{ detail: "Bad.", pointer: "#/environment" }],
+        });
+        expect(errorField(err, fields)).toBe("environment");
     });
 });
 
