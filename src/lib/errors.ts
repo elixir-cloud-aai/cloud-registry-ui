@@ -1,4 +1,5 @@
 import type { ExternalToast } from "sonner";
+import type { FieldError } from "./cloud-registry.types";
 import {
     hasStatus,
     isConflict,
@@ -17,6 +18,7 @@ const fieldLabels: Record<string, string> = {
     "type.artifact": "Type Artifact",
     "type.version": "Type Version",
     version: "Service Version",
+    organization: "Organization",
     type: "Service Type",
     environment: "Environment",
     description: "Description",
@@ -35,8 +37,39 @@ const fieldPaths = [
 ];
 
 // JSON Pointers into the request's body, as cloud-registry 1.0.0rc2 names
-// fields in its detail: "'#/<a>/<b>': <message>", joined by "; "
+// fields in its detail: "'#/<a>/<b>': <message>", joined by "; "; global,
+// for `replace()` and `matchAll()` only (`test()` and `exec()` would keep
+// their position)
 const fieldPointers = /'(#[^']*)'/g;
+
+/**
+ * Get the invalid fields of a failed request (`errors` of the registry's
+ * `400` responses, as of cloud-registry 1.0.0rc2)
+ * @param value Member `errors` of the response's body
+ * @returns The well-formed ones, with a message and a location; undefined
+ * without a list
+ */
+function invalidFields(value: unknown): FieldError[] | undefined {
+    if (!Array.isArray(value)) return undefined;
+    return value.flatMap((item): FieldError[] => {
+        if (item === null || typeof item !== "object") return [];
+        const { detail, pointer, parameter, code } = item as Record<
+            string,
+            unknown
+        >;
+        if (typeof detail !== "string") return [];
+        if (typeof pointer !== "string" && typeof parameter !== "string")
+            return [];
+        return [
+            {
+                detail,
+                ...(typeof pointer === "string" ? { pointer } : {}),
+                ...(typeof parameter === "string" ? { parameter } : {}),
+                ...(typeof code === "string" ? { code } : {}),
+            },
+        ];
+    });
+}
 
 /**
  * Get the path of a field from a JSON Pointer into the request's body
@@ -177,14 +210,18 @@ function detailField<T extends string>(detail: string, fields: readonly T[]) {
             pointerPath(match[1]),
         ),
     ];
-    return paths.find((path): path is T => fields.includes(path as T));
+    return paths
+        .map((path) =>
+            path === undefined ? undefined : formField(path, fields),
+        )
+        .find((field) => field !== undefined);
 }
 
 /**
  * Get the form's fields that the registry rejected, each with its message:
  * from the invalid fields that the registry lists (`errors`, as of
- * cloud-registry 1.0.0rc2), else the field that its detail names, with the
- * detail
+ * cloud-registry 1.0.0rc2); if it lists none of the form's fields, or no
+ * list (older registries), the field that its detail names, with the detail
  * @param err Error of the request
  * @param fields Paths of the form's fields
  * @returns The fields and their messages, the first message of each field;
@@ -196,35 +233,23 @@ function fieldErrors<T extends string>(
     fields: readonly T[],
 ): { field: T; message: string }[] {
     const invalid =
-        err instanceof Error && "errors" in err && Array.isArray(err.errors)
-            ? (err.errors as unknown[])
+        err instanceof Error && "errors" in err
+            ? invalidFields(err.errors)
             : undefined;
-    if (invalid === undefined) {
-        const detail = errorDetail(err);
-        if (detail === undefined) return [];
-        const field = detailField(detail, fields);
-        return field ? [{ field, message: withFieldLabels(detail) }] : [];
-    }
     const found = new Map<T, string>();
-    for (const item of invalid) {
-        if (item === null || typeof item !== "object") continue;
-        const { detail, pointer } = item as Record<string, unknown>;
-        if (typeof detail !== "string" || typeof pointer !== "string") continue;
-        const path = pointerPath(pointer);
+    for (const { detail, pointer } of invalid ?? []) {
+        const path = pointer === undefined ? undefined : pointerPath(pointer);
         const field = path === undefined ? undefined : formField(path, fields);
         if (field !== undefined && !found.has(field)) found.set(field, detail);
     }
-    return Array.from(found, ([field, message]) => ({ field, message }));
-}
-
-/**
- * Get the first form field that the registry rejected (cf. `fieldErrors()`)
- * @param err Error of the request
- * @param fields Paths of the form's fields
- * @returns The field's path, if the registry rejected one of the fields
- */
-function errorField<T extends string>(err: unknown, fields: readonly T[]) {
-    return fieldErrors(err, fields)[0]?.field;
+    if (found.size)
+        return Array.from(found, ([field, message]) => ({ field, message }));
+    const detail = errorDetail(err);
+    const field =
+        detail === undefined ? undefined : detailField(detail, fields);
+    return field === undefined || detail === undefined
+        ? []
+        : [{ field, message: withFieldLabels(detail) }];
 }
 
 /** Get the registry's detail for a failed request, else the fallback */
@@ -462,9 +487,9 @@ export {
     duplicateMessage,
     duplicateToast,
     errorDetail,
-    errorField,
     errorMessage,
     fieldErrors,
+    invalidFields,
     isDuplicate,
     isInvitationAccepted,
     isInvitationsLimit,

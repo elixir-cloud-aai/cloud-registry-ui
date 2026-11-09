@@ -615,6 +615,10 @@ describe("requests", () => {
         await expect(provider.createService({} as never)).rejects.toMatchObject(
             { status: 400, detail: "d", errors },
         );
+    });
+
+    it("keeps no invalid fields that aren't a list", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
         fetchMock.mockResolvedValueOnce(json({ detail: "d", errors: {} }, 400));
         const err = await provider.createService({} as never).catch((e) => e);
         expect(err).not.toHaveProperty("errors");

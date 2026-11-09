@@ -3,7 +3,6 @@ import { failure } from "@/test/errors";
 import {
     duplicateMessage,
     duplicateToast,
-    errorField,
     errorMessage,
     fieldErrors,
     isDuplicate,
@@ -55,6 +54,9 @@ describe("withFieldLabels", () => {
         expect(withFieldLabels("'#/type': Not registered.")).toBe(
             "'Service Type': Not registered.",
         );
+        expect(withFieldLabels("'#/organization': Is required.")).toBe(
+            "'Organization': Is required.",
+        );
         expect(withFieldLabels("'#/secret': Bad.; '#': Bad.")).toBe(
             "'#/secret': Bad.; '#': Bad.",
         );
@@ -71,15 +73,9 @@ describe("withFieldLabels", () => {
     });
 });
 
-describe("errorField and errorMessage", () => {
+describe("errorMessage", () => {
     const err = failure(400, {
         detail: "'environment' must be one of: 'prod'",
-    });
-
-    it("finds the named field among the form's", () => {
-        expect(errorField(err, ["name", "environment"])).toBe("environment");
-        expect(errorField(err, ["name"])).toBeUndefined();
-        expect(errorField(new Error("x"), ["name"])).toBeUndefined();
     });
 
     it("uses the detail with labels, else the fallback", () => {
@@ -192,11 +188,40 @@ describe("fieldErrors", () => {
         expect(fieldErrors(new Error("x"), fields)).toEqual([]);
     });
 
-    it("is what errorField names", () => {
+    it("falls back to the detail if the list has none of the form's fields", () => {
+        expect(
+            fieldErrors(
+                failure(400, {
+                    detail: "'environment' must be one of: 'prod'",
+                    errors: [],
+                }),
+                fields,
+            ),
+        ).toEqual([
+            {
+                field: "environment",
+                message: "'Environment' must be one of: 'prod'",
+            },
+        ]);
+        expect(
+            fieldErrors(
+                failure(400, {
+                    detail: "'#/type': Not registered.",
+                    errors: [{ detail: "Unknown.", parameter: "page" }],
+                }),
+                fields,
+            ),
+        ).toEqual([
+            { field: "type.group", message: "'Service Type': Not registered." },
+        ]);
+        expect(fieldErrors(failure(400, { errors: [] }), fields)).toEqual([]);
+    });
+
+    it("leaves out the fields that the form doesn't have", () => {
         const err = failure(400, {
-            errors: [{ detail: "Bad.", pointer: "#/environment" }],
+            detail: "'environment' must be one of: 'prod'",
         });
-        expect(errorField(err, fields)).toBe("environment");
+        expect(fieldErrors(err, ["name"])).toEqual([]);
     });
 });
 

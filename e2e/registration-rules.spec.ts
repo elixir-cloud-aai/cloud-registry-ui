@@ -108,7 +108,8 @@ test.describe("registration rules", () => {
             .fill("https://user@example.org");
         await page.getByRole("button", { name: "Submit" }).click();
 
-        // each field with its message (`errors` of cloud-registry 1.0.0rc2)
+        // each field with its message (`errors` of cloud-registry 1.0.0rc2,
+        // in the words of the registry that the stack pins)
         await expect(page.getByText(/^Must be one of: 'prod'/)).toBeVisible();
         await expect(
             page.getByText("Must not contain user info.", { exact: true }),
