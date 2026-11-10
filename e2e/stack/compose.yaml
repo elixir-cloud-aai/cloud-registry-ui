@@ -67,19 +67,12 @@ services:
             retries: 30
 
     registry:
-        # cloud-registry from `dev` at aba0f9a (with the invalid fields of
-        # cloud-registry#378), as the paths of users' roles,
-        # labels, the listing of expired invitations, the listing of the
-        # registry itself, the camelCase names of its API, the removal of the
-        # invitations of users whose roles are revoked, and the import and sync
-        # of service info aren't released yet (cloud-registry#337, #334, #335,
-        # #349, #353, #355, #358-#361); back to the release once there is
-        # one that has them (the app also uses GET /approvals and conflict
-        # codes of 0.5.0, renames and admin mode of 0.6.0, invitations and the
-        # services limit of 1.0.0rc1);
-        # pinned by digest for repeatable runs (the image of aba0f9a has no
-        # `sha-` tag, as its CI run was cut short)
-        image: ${E2E_REGISTRY_IMAGE:-docker.io/elixircloud/cloud-registry@sha256:362c8a4409c580c897b6942b585d95dedec9bc5d4b79b5082ca4e22fde9114bd}
+        # cloud-registry 1.0.0rc2, the release the app needs (camelCase names
+        # of its API, the paths of users' roles, labels, expired invitations,
+        # the listing of the registry itself, import and sync of service info,
+        # notifications, the invalid fields of cloud-registry#378);
+        # pinned by digest for repeatable runs
+        image: ${E2E_REGISTRY_IMAGE:-docker.io/elixircloud/cloud-registry:1.0.0rc2@sha256:8630fe58d0c85d48f33822d8ac99c4518f370f91b126f9b8f2146d17f312e20d}
         depends_on:
             mongodb:
                 condition: service_healthy

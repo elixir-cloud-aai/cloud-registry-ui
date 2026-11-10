@@ -27,7 +27,7 @@ whom to ask.
 ## Managing access
 
 Owners of a service, and admins, can see and change who has which role on
-it. This needs a registry newer than cloud-registry 1.0.0rc1 (see
+it. This needs cloud-registry 1.0.0rc2 or later (see
 [Compatibility](../operator-guide/index.md#compatibility)); 0.6.0 and 1.0.0rc1
 give roles to the wrong user:
 
@@ -137,8 +137,8 @@ Notes:
   the old invitation and its link as they are. Revoke open invitations or
   wait until invitations expire. The expiry and the limit are settings of
   the registry (see [Compatibility](../operator-guide/index.md#compatibility)).
-- **A registry that is too old:** this version of the app needs a registry
-  newer than cloud-registry 1.0.0rc1 (see
+- **A registry that is too old:** this version of the app needs
+  cloud-registry 1.0.0rc2 or later (see
   [Compatibility](../operator-guide/index.md#compatibility)). Don't change the
   roles of users and ask your registry's admins to upgrade it if the dialog
   says so: if a grant reports that the role went to another user; if it

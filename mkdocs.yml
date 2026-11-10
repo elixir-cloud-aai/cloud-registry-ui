@@ -84,4 +84,5 @@ nav:
       - Upgrading: operator-guide/upgrading.md
   - Development: development.md
   - Releases:
+      - "1.0.0-rc2": releases/1.0.0-rc2.md
       - "1.0.0-rc1": releases/1.0.0-rc1.md
