@@ -88,6 +88,53 @@ test.describe("registration rules", () => {
         ).toBeVisible();
     });
 
+    test("the edit form shows the registry's reason at the field", async ({
+        page,
+        browser,
+        problems,
+    }) => {
+        const service = await registerService(browser, "owner", "Reasons");
+        // any environment, so that the registry checks it
+        await publishRules(page, { environments: [] });
+        await login(page, "owner");
+
+        await page.goto(`/dashboard/services/update/${service.id}`);
+        await page
+            .getByRole("textbox", { name: "Environment" })
+            .fill("production");
+        await page.getByRole("button", { name: "Submit" }).click();
+
+        // the field with its message (`errors` of cloud-registry 1.0.0rc2, in
+        // the words of the registry that the stack pins)
+        // the innermost group with the field (the form is one, too)
+        const field = page
+            .getByRole("group")
+            .filter({
+                has: page.getByRole("textbox", { name: "Environment" }),
+            })
+            .last();
+        await expect(field.getByRole("alert")).toHaveText(
+            /^Must be one of: 'prod'/,
+        );
+        // and the toast with the field's label, not its JSON Pointer
+        const toast = page
+            .locator("[data-sonner-toast]")
+            .filter({ hasText: "'Environment': Must be one of" });
+        await expect(toast).toBeVisible();
+        await expect(toast).not.toContainText("#/");
+        expect(
+            (await api(undefined, "GET", `/services/${service.id}`)).body
+                ?.environment,
+        ).toBe(service.environment);
+
+        await page.unrouteAll({ behavior: "ignoreErrors" });
+        // the registry's refusal, which the browser logs
+        expect(
+            problems.filter((val) => !val.includes("status of 400")),
+        ).toEqual([]);
+        problems.length = 0;
+    });
+
     test("without the rules, the edit form says so and leaves the checks to the registry", async ({
         page,
         browser,

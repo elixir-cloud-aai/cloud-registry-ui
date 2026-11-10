@@ -50,7 +50,9 @@ on the service also get a [notification](notifications.md).
 ## Turning sync on and off
 
 Owners and maintainers of a service, and admins in [admin mode](admin-mode.md), have
-these buttons in its details:
+these buttons in its details (except for the registry's own entry, see [Listing the
+registry itself](admin-mode.md#listing-the-registry-itself), which the registry never
+syncs):
 
 - **Turn sync on**, after a confirmation: the registry fetches the service info from the
   service's URL followed by `/service-info`, and replaces the entry's values with it,

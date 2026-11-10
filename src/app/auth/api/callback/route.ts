@@ -191,8 +191,8 @@ export async function GET(request: NextRequest) {
     // the session ends with the access token, which the registry rejects
     // afterwards
     const maxAge = Math.min(tokens.expires_in ?? maxSessionAge, maxSessionAge);
-    // a session of an earlier version, by the old names, mustn't outlive
-    // this one
+    // also the cookies of the old names, of earlier versions, which the app
+    // no longer reads: none is left behind
     await deleteLoginCookies(sessionCookies);
     // read by the browser, which sends it to the registry
     await setLoginCookie("access_token", tokens.access_token, { maxAge });

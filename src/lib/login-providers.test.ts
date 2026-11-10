@@ -54,6 +54,18 @@ describe("loginSettings", () => {
         expect(loginSettings().providers[0].issuer).toBe(issuer);
     });
 
+    it.each([
+        "http://localhost:3000/auth/api/callback",
+        "http://app.localhost:3000/auth/api/callback",
+        "http://127.0.0.1:3000/auth/api/callback",
+    ])(
+        "accepts an http redirect URI on the local machine (%s)",
+        async (uri) => {
+            const { loginSettings } = await load({ LOGIN_REDIRECT_URI: uri });
+            expect(loginSettings().redirectUri).toBe(uri);
+        },
+    );
+
     it("needs an ID to choose among several providers", async () => {
         const { loginProvider } = await load({
             LOGIN_PROVIDERS: JSON.stringify([
@@ -106,6 +118,16 @@ describe("loginSettings", () => {
             /https URL/,
         ],
         ["no redirect URI", { LOGIN_REDIRECT_URI: undefined }, /callback/],
+        [
+            "an http redirect URI",
+            { LOGIN_REDIRECT_URI: "http://app.example.org/auth/api/callback" },
+            /Use an https URL \(http only for localhost\)\n.*redirectUri/,
+        ],
+        [
+            "a redirect URI of another scheme",
+            { LOGIN_REDIRECT_URI: "ftp://app.example.org/auth/api/callback" },
+            /https URL/,
+        ],
         [
             "old variables only",
             {

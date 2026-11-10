@@ -186,7 +186,10 @@ Some changes have consequences:
 
 If the new URL and type are those of another registered service, the
 registry refuses the change as a duplicate, and the message shows that
-service.
+service. If it refuses other entries, e.g. an environment that it doesn't
+allow, the form shows the reason at each of these fields, and the message
+lists them. Registries older than cloud-registry 1.0.0rc2 name at most one
+field.
 
 ## Deleting a service
 

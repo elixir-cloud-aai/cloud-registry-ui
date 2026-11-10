@@ -1,5 +1,6 @@
 import type { Browser, Page, Request } from "@playwright/test";
 import {
+    addTesType,
     api,
     expect,
     isApprovalsRead,
@@ -168,6 +169,55 @@ test.describe("listing of the registry", () => {
         expect(
             types(await openByLink(page, "Service Types", "/services/types")),
         ).not.toContain(info.type.artifact);
+    });
+
+    test("the registry's own entry offers no sync", async ({
+        page,
+        browser,
+    }) => {
+        const info = await serviceInfo();
+        await api(await tokenOf(browser, "admin"), "PUT", path);
+        await login(page, "admin", { adminMode: true });
+        await waitForReads(
+            page,
+            () => page.goto(`/dashboard/services/view/${info.id}`),
+            serviceReads(info.id),
+        );
+        await expect(
+            page.getByText("This is the registry's own entry"),
+        ).toBeVisible();
+        await expect(
+            page.getByRole("button", { name: "Turn sync on" }),
+        ).toHaveCount(0);
+    });
+
+    test("other services offer sync while the registry is listed", async ({
+        page,
+        browser,
+    }) => {
+        await addTesType(browser);
+        const token = await tokenOf(browser, "admin");
+        await api(token, "PUT", path);
+        const created = await api(
+            token,
+            "POST",
+            "/services",
+            newService("Not the registry"),
+        );
+        expect(created.status).toBe(201);
+        const id = String(created.body);
+        await login(page, "admin", { adminMode: true });
+        await waitForReads(
+            page,
+            () => page.goto(`/dashboard/services/view/${id}`),
+            serviceReads(id),
+        );
+        await expect(
+            page.getByRole("button", { name: "Turn sync on" }),
+        ).toBeVisible();
+        await expect(
+            page.getByText("This is the registry's own entry"),
+        ).toHaveCount(0);
     });
 
     test("the button and the request are for admin mode only", async ({

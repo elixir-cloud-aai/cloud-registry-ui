@@ -586,6 +586,44 @@ describe("requests", () => {
         );
     });
 
+    it("keeps the invalid fields of failures, and only well-formed ones", async () => {
+        const errors = [
+            { detail: "Must use https.", pointer: "#/url", code: "c" },
+            {
+                detail: "Unknown.",
+                parameter: "page",
+                code: "unknown-parameter",
+            },
+            { detail: "No code.", pointer: "#/name" },
+        ];
+        fetchMock.mockResolvedValueOnce(
+            json(
+                {
+                    detail: "d",
+                    errors: [
+                        ...errors,
+                        "x",
+                        null,
+                        { detail: "Nowhere.", pointer: 5 },
+                        { pointer: "#/url" },
+                    ],
+                },
+                400,
+            ),
+        );
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        await expect(provider.createService({} as never)).rejects.toMatchObject(
+            { status: 400, detail: "d", errors },
+        );
+    });
+
+    it("drops invalid fields that aren't a list", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValueOnce(json({ detail: "d", errors: {} }, 400));
+        const err = await provider.createService({} as never).catch((e) => e);
+        expect(err).not.toHaveProperty("errors");
+    });
+
     it("words failures without details", async () => {
         const provider = new AuthenticatedCloudRegistryProvider(base, "t");
         fetchMock.mockResolvedValueOnce(json({ message: "Oops" }, 500));

@@ -19,7 +19,7 @@ import {
     restoreNotification,
     timeAgo,
 } from "@/lib/notifications";
-import { hasStatus, isUnauthorized } from "@/lib/permissions";
+import { hasStatus, isForbidden, isUnauthorized } from "@/lib/permissions";
 import { sessionCookie } from "@/lib/session-cookies";
 
 // how often to read the notifications while the page is visible
@@ -76,7 +76,8 @@ function NotificationItem({
 
 /** The bell in the top bar, for logged-in users: what needs their attention,
  * with a red number if anything does. Registries without notifications (older
- * than cloud-registry 1.0.0rc2) show no bell */
+ * than cloud-registry 1.0.0rc2), and those that refuse them (403), show no
+ * bell */
 function NotificationBell() {
     const { cloudRegistryProvider, isLoggedIn } = useCloudRegistry();
     const [notifications, setNotifications] = useState<AppNotification[]>();
@@ -135,6 +136,14 @@ function NotificationBell() {
                 } else if (hasStatus(err, 404) && !loaded.current) {
                     // a registry without notifications
                     stopped.current = true;
+                } else if (isForbidden(err) && !loaded.current) {
+                    // e.g. a policy of the registry without the rules for
+                    // notifications: asking again won't help, so once
+                    stopped.current = true;
+                    console.warn(
+                        "The registry refuses notifications (403), so there is no bell; its policy may lack the rules for them:",
+                        err,
+                    );
                 } else console.error("Failed to load notifications:", err);
             })
             .finally(() => {
@@ -146,8 +155,13 @@ function NotificationBell() {
         stopped.current = false;
         reading.current = false;
         const now = sessionCookie("access_token", getCookie);
-        // names depend on who reads them
-        if (now !== token.current) setNames(new Map());
+        // the list and names belong to who read them, and whether reading
+        // works too
+        if (now !== token.current) {
+            loaded.current = false;
+            setNotifications(undefined);
+            setNames(new Map());
+        }
         token.current = now;
         read();
         const refresh = () => {

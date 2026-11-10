@@ -30,6 +30,7 @@ import type {
     VerificationRegister,
     VerifiedServices,
 } from "./cloud-registry.types";
+import { invalidFields } from "./errors";
 import { hasStatus } from "./permissions";
 import { registrationRules } from "./registration-rules";
 
@@ -290,6 +291,7 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
             }
 
             // Keep the status, e.g. to tell 401 from 403, and the problem details.
+            const errors = invalidFields(body.errors);
             throw Object.assign(new Error(message), {
                 status: response.status,
                 title: body.title,
@@ -299,6 +301,7 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
                 retryAfter: retryAfterSeconds(
                     response.headers.get("Retry-After"),
                 ),
+                ...(errors ? { errors } : {}),
             });
         }
 

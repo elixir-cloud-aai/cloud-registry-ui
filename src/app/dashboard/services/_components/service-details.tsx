@@ -22,6 +22,7 @@ import type { Me, Verification } from "@/lib/cloud-registry.types";
 import { isVerificationMismatch, mutationError } from "@/lib/errors";
 import {
     canApproveServiceType,
+    canChangeSelfListing,
     canDeleteService,
     canEditService,
     canManageAccess,
@@ -228,6 +229,7 @@ function ServiceDetails({
                 loaded={syncLoaded}
                 failed={syncFailed}
                 canManage={canEdit}
+                mayReadListing={canChangeSelfListing(me)}
                 provider={cloudRegistryProvider}
                 onSyncChange={(state) => {
                     setSync(state);

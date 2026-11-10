@@ -3,6 +3,7 @@ import { useCloudRegistry } from "./use-cloud-registry";
 import { useFitText } from "./use-fit-text";
 import { useLatestRequest } from "./use-latest-request";
 import { useMe } from "./use-me";
+import { useOwnEntry } from "./use-own-entry";
 import { usePagination } from "./use-pagination";
 import { useRegistrationRules } from "./use-registration-rules";
 import { useServiceSync } from "./use-service-sync";
@@ -15,6 +16,7 @@ export {
     useFitText,
     useLatestRequest,
     useMe,
+    useOwnEntry,
     usePagination,
     useRegistrationRules,
     useServiceSync,
