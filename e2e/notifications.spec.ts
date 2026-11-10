@@ -97,13 +97,17 @@ test.describe("notifications", () => {
         await page.getByRole("button", { name: `Dismiss: ${title}` }).click();
         await expect(page.getByText(title)).toHaveCount(0);
 
-        // gone also in the registry
-        const left = await api(token, "GET", "/notifications");
-        expect(
-            left.body.some(
-                (val: { serviceId?: string }) => val.serviceId === service.id,
-            ),
-        ).toBe(false);
+        // gone also in the registry, once the dismissal's DELETE is done
+        // (the list hides it before the answer)
+        await expect
+            .poll(async () => {
+                const left = await api(token, "GET", "/notifications");
+                return left.body.some(
+                    (val: { serviceId?: string }) =>
+                        val.serviceId === service.id,
+                );
+            })
+            .toBe(false);
     });
 
     test("nothing to show has no number", async ({ page }) => {

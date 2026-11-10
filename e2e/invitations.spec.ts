@@ -220,6 +220,13 @@ async function createInvitations(
 }
 
 test.describe("invitations", () => {
+    // Routes whose callbacks still run when a test ends (e.g. a
+    // `route.fetch()` of a read that the page no longer waits for) would
+    // fail it as the page closes
+    test.afterEach(async ({ page }) => {
+        await page.unrouteAll({ behavior: "ignoreErrors" });
+    });
+
     test("owners invite users by link, who accept it once", async ({
         page,
         browser,
