@@ -220,6 +220,13 @@ async function createInvitations(
 }
 
 test.describe("invitations", () => {
+    // Routes whose callbacks still run when a test ends (e.g. a
+    // `route.fetch()` of a read that the page no longer waits for) would
+    // fail it as the page closes
+    test.afterEach(async ({ page }) => {
+        await page.unrouteAll({ behavior: "ignoreErrors" });
+    });
+
     test("owners invite users by link, who accept it once", async ({
         page,
         browser,
@@ -451,7 +458,11 @@ test.describe("invitations", () => {
             ),
         ).toBeVisible();
         await expect(copyButtons(page)).toHaveCount(0);
-        // the failures on purpose
+        // the failures on purpose; the list may be loaded once more after the
+        // removal, so let later loads reach the registry and wait for the
+        // last failed one before clearing them
+        await page.unroute(`${registry}${path}/invitations`);
+        await page.waitForLoadState("networkidle");
         expect(problems.filter((val) => !val.includes("500"))).toEqual([]);
         problems.length = 0;
     });

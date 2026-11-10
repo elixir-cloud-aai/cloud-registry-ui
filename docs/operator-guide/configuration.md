@@ -23,6 +23,7 @@ The settings are read when the app starts (`bun run start`, `docker run`, `bun r
 Missing or invalid settings stop the app with a message that names the setting:
 
 - They stop `bun run start`, `docker run` and `bun run dev`; `bun run build` and `docker build` don't need them.
+- The registry URL, the issuers of the login providers and `LOGIN_REDIRECT_URI` must be `https` URLs (`http` only for `localhost`, `*.localhost` and loopback addresses, e.g. for development).
 - On Vercel, which deploys what it builds, they also stop the build (`vercel build`, or the build on Vercel's servers), so set them for every environment that builds, Preview included. `vercel pull` can't read sensitive variables: for those, such as `LOGIN_PROVIDERS` with the client secret, `vercel build` only checks that they are set, and checks the others as usual.
 
 The defaults are given in each section. The login settings are described

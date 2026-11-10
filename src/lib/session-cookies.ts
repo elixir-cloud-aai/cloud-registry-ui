@@ -7,7 +7,7 @@
  * `http`, where such cookies can't be set, and use the plain names.
  */
 
-/** @description cookies of a session, which the old names may still hold */
+/** @description cookies of a session */
 const sessionCookies = ["access_token", "id_token", "login_provider"] as const;
 
 type SessionCookie = (typeof sessionCookies)[number];
@@ -34,10 +34,9 @@ function cookieName(name: string) {
 
 /**
  * Get the names that a cookie of the login may have: its name, and its
- * plain name, which 1.0.0-rc1 and earlier set in production too. Sessions
- * of those versions are read by the plain name until the next release, so
- * that they survive the upgrade (TODO: read only `cookieName()` then).
- * Logging out and new logins delete both.
+ * plain name, which 1.0.0-rc1 and earlier set in production too. Only the
+ * current name is read (sessions of those versions end with the upgrade);
+ * logging out and new logins delete both, so that no old cookie is left
  * @param name Plain name
  * @returns The names, the current one first
  */
@@ -47,20 +46,18 @@ function cookieNames(name: string) {
 }
 
 /**
- * Read a cookie of the session, also by its old name (see `cookieNames()`)
+ * Read a cookie of the session, by its current name only (see
+ * `cookieName()`): in production, a cookie of the plain name may have been
+ * set by a site on a sibling subdomain
  * @param name Plain name
  * @param get Reads a cookie by name, e.g. `getCookie` of `cookies-next`
- * @returns The value of the first of its names that is set
+ * @returns The value, if it is set and not empty
  */
 function sessionCookie(
     name: SessionCookie,
     get: (name: string) => string | undefined,
 ) {
-    for (const val of cookieNames(name)) {
-        const value = get(val);
-        if (value) return value;
-    }
-    return undefined;
+    return get(cookieName(name)) || undefined;
 }
 
 export type { SessionCookie };

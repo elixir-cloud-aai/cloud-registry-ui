@@ -83,6 +83,17 @@ describe("POST /auth/api/logout", () => {
         expect(jar.size).toBe(0);
     });
 
+    it("logs out at the app only, deleting the cookies, for sessions of the old names in production", async () => {
+        vi.stubEnv("NODE_ENV", "production");
+        setUp(session);
+        const get = vi.spyOn(axios, "get");
+        expect(await logout({ origin: appOrigin })).toBe(
+            `${appOrigin}/auth/login`,
+        );
+        expect(get).not.toHaveBeenCalled();
+        expect(jar.size).toBe(0);
+    });
+
     it("ends sessions of earlier versions at the only provider", async () => {
         setUp({ ...session, login_provider: undefined });
         expect(await logout({ origin: appOrigin })).toBe(providerLogout);

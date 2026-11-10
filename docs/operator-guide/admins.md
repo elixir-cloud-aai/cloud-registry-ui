@@ -52,6 +52,11 @@ guide). The app has no settings for it. In admin mode only, it calls `GET`,
 1.0.0rc2 and later), so the registry must allow these methods from the app's
 origin (FOCA's `security.cors`; its default allows them).
 
+The registry never syncs this entry with service info, so its page in the app
+says so instead of offering **Turn sync on** (which the registry would refuse).
+To tell, the details of a service that isn't synced also read `GET
+/service-info/listing` in admin mode, where they would offer to turn sync on.
+
 The registry builds the entry from its settings, so these decide whether it can
 be listed, and how:
 

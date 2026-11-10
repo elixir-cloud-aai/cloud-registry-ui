@@ -92,8 +92,11 @@ docker compose -f e2e/stack/compose.yaml down
 ```
 
 `npm run test:e2e` reuses an app already running on port 3100; stop it to
-test changes. CI fails a test that passes only on its retry, as such flaky
-tests hide bugs; requests that are logged as errors when a page is left
+test changes. CI splits the tests by browser and into two shards
+(`--project`, `--shard`), in four jobs with a stack each, so that they take
+a few minutes; to run one of them locally, pass the same options, e.g.
+`npm run test:e2e -- --project firefox --shard 2/2`. CI fails a test that
+passes only on its retry, as such flaky tests hide bugs; requests that are logged as errors when a page is left
 are a common cause (see [Loaders](#loaders)).
 
 Before a test leaves a page whose reads of the registry may still run,

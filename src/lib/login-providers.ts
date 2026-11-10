@@ -6,6 +6,9 @@ import axios from "axios";
 import { z } from "zod";
 import { isSecureUrl } from "./secure-urls";
 
+/** @description message for URLs that `isSecureUrl` refuses */
+const secureUrlMessage = "Use an https URL (http only for localhost)";
+
 const loginProviderSchema = z.object({
     id: z.string().regex(/^[a-z0-9-]+$/, "Use a-z, 0-9 and - only"),
     name: z.string().min(1),
@@ -14,7 +17,7 @@ const loginProviderSchema = z.object({
     // over TLS, as the client secret goes to its endpoints
     issuer: z
         .url()
-        .refine(isSecureUrl, "Use an https URL (http only for localhost)")
+        .refine(isSecureUrl, secureUrlMessage)
         .transform((val) => val.replace(/\/$/, "")),
     clientId: z.string().min(1),
     clientSecret: z.string().min(1),
@@ -35,9 +38,12 @@ const loginProvidersSchema = z
 
 const loginSettingsSchema = z.object({
     providers: loginProvidersSchema,
-    redirectUri: z.url({
-        error: "Set to the URL of /auth/api/callback, e.g. https://registry.example.org/auth/api/callback",
-    }),
+    // over TLS, as the authorization code comes back to it
+    redirectUri: z
+        .url({
+            error: "Set to the URL of /auth/api/callback, e.g. https://registry.example.org/auth/api/callback",
+        })
+        .refine(isSecureUrl, secureUrlMessage),
 });
 
 type LoginProvider = z.infer<typeof loginProviderSchema>;

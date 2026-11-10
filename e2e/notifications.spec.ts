@@ -97,13 +97,17 @@ test.describe("notifications", () => {
         await page.getByRole("button", { name: `Dismiss: ${title}` }).click();
         await expect(page.getByText(title)).toHaveCount(0);
 
-        // gone also in the registry
-        const left = await api(token, "GET", "/notifications");
-        expect(
-            left.body.some(
-                (val: { serviceId?: string }) => val.serviceId === service.id,
-            ),
-        ).toBe(false);
+        // gone also in the registry, once the dismissal's DELETE is done
+        // (the list hides it before the answer)
+        await expect
+            .poll(async () => {
+                const left = await api(token, "GET", "/notifications");
+                return left.body.some(
+                    (val: { serviceId?: string }) =>
+                        val.serviceId === service.id,
+                );
+            })
+            .toBe(false);
     });
 
     test("nothing to show has no number", async ({ page }) => {
@@ -243,6 +247,38 @@ test.describe("notifications", () => {
         // the bell reads again neither while the read runs nor once it has
         // failed
         await expect.poll(() => reads).toBeGreaterThan(0);
+        const before = reads;
+        await readAgain(page);
+        await page.waitForTimeout(500);
+        expect(reads).toBe(before);
+        problems.splice(0);
+    });
+
+    test("refused notifications show no bell, and aren't asked again", async ({
+        page,
+        problems,
+    }) => {
+        let reads = 0;
+        let answered = 0;
+        await page.route(`${registry}/notifications`, async (route) => {
+            reads++;
+            // e.g. a policy of the registry without the rules for them
+            await route.fulfill({ status: 403, json: { status: 403 } });
+            answered++;
+        });
+        let warned = false;
+        page.on("console", (msg) => {
+            if (msg.type() === "warning" && msg.text().includes("refuses"))
+                warned = true;
+        });
+        await login(page, "other");
+        // once the refusal is handled, so that a read under way can't hide
+        // another one
+        await expect.poll(() => answered).toBeGreaterThan(0);
+        await expect.poll(() => warned).toBe(true);
+        await expect(
+            page.getByRole("button", { name: /^Notifications/ }),
+        ).toHaveCount(0);
         const before = reads;
         await readAgain(page);
         await page.waitForTimeout(500);

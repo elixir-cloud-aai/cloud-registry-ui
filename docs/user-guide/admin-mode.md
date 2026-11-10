@@ -65,6 +65,10 @@ registry like any other service:
 **Services** and **Service Types** show the change the next time you open
 them.
 
+The registry builds its entry from its own service info and never syncs it, so
+in admin mode, the entry's details say so instead of offering **Turn sync on**.
+In user mode, they show it like any other service that isn't synced.
+
 The registry builds the entry from its service info and its public URL. The
 entry has no owner, doesn't count for any user's limit of services, and is
 verified. While the registry is listed, it brings the entry up to date whenever
