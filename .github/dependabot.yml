@@ -2,7 +2,9 @@ version: 2
 # Every entry targets `dev` (`target-branch`), which takes all pull
 # requests whatever the default branch is (`main` only moves forward to
 # releases); commit messages start with `build(deps)` (Conventional
-# Commits). Security updates always target the default branch
+# Commits), and pull requests have the organization's label
+# `type: dependencies` (not Dependabot's own labels). Security updates
+# always target the default branch
 updates:
   # Dependencies in `package.json` and the lock (`bun.lock`), updated
   # together
@@ -11,6 +13,7 @@ updates:
     schedule:
       interval: monthly
     target-branch: dev
+    labels: ["type: dependencies"]
     commit-message:
       prefix: build
       include: scope
@@ -36,6 +39,7 @@ updates:
     schedule:
       interval: monthly
     target-branch: dev
+    labels: ["type: dependencies"]
     commit-message:
       prefix: build
       include: scope
@@ -50,6 +54,7 @@ updates:
     schedule:
       interval: monthly
     target-branch: dev
+    labels: ["type: dependencies"]
     commit-message:
       prefix: build
       include: scope
@@ -64,6 +69,7 @@ updates:
     schedule:
       interval: monthly
     target-branch: dev
+    labels: ["type: dependencies"]
     commit-message:
       prefix: build
       include: scope
