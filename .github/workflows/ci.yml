@@ -420,6 +420,29 @@ jobs:
               run: pip install -r docs/requirements.txt
             - name: Build documentation
               run: mkdocs build --strict
+            # The release workflow publishes the curated notes as they are and
+            # checks their format only after the tag is pushed: check them
+            # here, with the checker of the action that `release.yml` pins
+            # (keep the commit in sync), so that a release-prep pull request
+            # fails instead. The notes of the version in `package.json` must
+            # exist, so that a pull request that sets a new version brings
+            # them. 1.0.0-rc1 predates the check (relative links)
+            - name: Check release notes
+              env:
+                  CHECKER: https://raw.githubusercontent.com/elixir-cloud-aai/.github/31f22fccc1f3c597ed7c1d1f75b2f85522155348/actions/publish-release/publish.py
+              run: |
+                  version="$(jq -r .version package.json)"
+                  if [[ ! -f "docs/releases/${version}.md" ]]; then
+                      echo "::error file=package.json::No release notes docs/releases/${version}.md for version ${version}"
+                      exit 1
+                  fi
+                  curl -fsSL "${CHECKER}" -o "${RUNNER_TEMP}/publish.py"
+                  for notes in docs/releases/*.md; do
+                      if [[ "${notes}" == docs/releases/1.0.0-rc1.md ]]; then
+                          continue
+                      fi
+                      python3 -I "${RUNNER_TEMP}/publish.py" check "${notes}"
+                  done
 
     # The shared gate action of elixir-cloud-aai/.github fails on failed,
     # cancelled and skipped jobs (only `title` may be skipped here, on pushes

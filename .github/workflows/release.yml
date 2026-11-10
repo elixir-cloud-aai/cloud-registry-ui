@@ -1,20 +1,27 @@
 # Release when a version tag (`vX.Y.Z`, or `vX.Y.Z-alphaN`, `vX.Y.Z-betaN`,
 # `vX.Y.Z-rcN` for pre-releases) is pushed: check the tag, the versions in
-# `package.json` and `CITATION.cff`, and that CI passed for its commit
+# `package.json` and `CITATION.cff`, the curated release notes
+# (`docs/releases/<version>.md`), and that CI passed for its commit
 # (`prepare`); build and push the Docker image (with SBOM and provenance
 # attestations) by digest, untagged (`push`); scan exactly that digest for
 # vulnerabilities in a job of its own, without the release credentials and
 # signing identity (`scan`); and only then attest its build provenance, sign
-# it (Sigstore keyless signing), tag it, and create the GitHub release with
-# GitHub's generated notes (`publish`; see "Verifying images" in
-# `docs/operator-guide/deployment.md`). `push` and `publish` each need
-# approval in the `release` environment (required reviewer, Docker Hub
-# secrets `DOCKERHUB_LOGIN` and `DOCKERHUB_TOKEN`). Re-running all jobs
-# builds, scans, signs and tags a new digest, but stops before building if the version tag exists (released
+# it (Sigstore keyless signing) and tag it (`release-image`; see "Verifying
+# images" in `docs/operator-guide/deployment.md`). Last, create the GitHub
+# release with the curated notes followed by GitHub's generated notes
+# (`publish`, shared action `elixir-cloud-aai/.github/actions/publish-release`).
+# `push` and `release-image` each need approval in the `release` environment
+# (required reviewer, Docker Hub secrets `DOCKERHUB_LOGIN` and
+# `DOCKERHUB_TOKEN`). Re-running all jobs builds, scans, signs and tags a new
+# digest, but stops before building if the version tag exists (released
 # images don't change); re-running failed jobs reuses the digest already
-# pushed. Once `publish` has tagged the image, re-run only the failed jobs:
-# a new attempt of all jobs stops at the existing tag and supersedes the
-# attempt whose failed jobs could finish the release. The image has no
+# pushed. Once `release-image` has tagged the image, re-run only the failed
+# jobs: a new attempt of all jobs stops at the existing tag and supersedes
+# the attempt whose failed jobs could finish the release. `prepare` fails if
+# a published release of the tag exists already (it can't see drafts);
+# `publish` fails on a draft of the tag, and on a published release unless
+# an earlier attempt created it (same curated notes, title and pre-release
+# flag), so re-run only the failed jobs. The image has no
 # settings: they are passed when it starts, so one image serves any
 # deployment. UI versions follow the registry in major and minor version
 # (see "Compatibility" in `docs/operator-guide/index.md`). Until 1.0.0,
@@ -121,6 +128,17 @@ jobs:
                       echo "::error::Versions don't match the tag: package.json '${package}', CITATION.cff '${citation}', tag '${VERSION}'"
                       exit 1
                   fi
+            # The GitHub release (`publish`) starts with the curated notes of
+            # the tagged commit, so they must exist and be in the
+            # organization's format before anything is published; also checks
+            # that the tag points to the release commit and that no published
+            # release of it exists
+            - name: Check release notes
+              uses: elixir-cloud-aai/.github/actions/publish-release@31f22fccc1f3c597ed7c1d1f75b2f85522155348 # v1.1.0
+              with:
+                  notes: docs/releases/${{ steps.version.outputs.version }}.md
+                  commit: ${{ steps.version.outputs.sha }}
+                  check-only: "true"
             # The checks above don't run the tests: require a successful run of
             # the CI workflow for a push of the release commit to `dev` (before
             # `main` moved to it; not to other branches, e.g. `ai`); runs for pull
@@ -141,9 +159,9 @@ jobs:
 
     # Builds the image of the release commit once and pushes it by digest only
     # (untagged, with SBOM and provenance attestations), for `scan` to scan and
-    # `publish` to sign and tag. Digests of runs that fail (or fail the scan)
-    # are never signed or tagged, but stay on Docker Hub, untagged (pullable
-    # by digest only)
+    # `release-image` to sign and tag. Digests of runs that fail (or fail the
+    # scan) are never signed or tagged, but stay on Docker Hub, untagged
+    # (pullable by digest only)
     push:
         name: Push release image
         needs: prepare
@@ -165,8 +183,8 @@ jobs:
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
             # OCI labels with the version, commit and source; `tags` only sets
-            # the version label (the image is tagged by digest in `publish`,
-            # after the scan)
+            # the version label (the image is tagged by digest in
+            # `release-image`, after the scan)
             - name: Generate image labels
               id: meta
               uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
@@ -215,9 +233,10 @@ jobs:
     # Scans exactly the pushed digest (`<image>@<digest>`; public, so pulling
     # it needs no login) with Trivy (shared action
     # `elixir-cloud-aai/.github/actions/scan-image`; fails on fixable
-    # critical and high vulnerabilities). Kept apart from `push` and
-    # `publish`, so that Trivy never runs next to the Docker Hub credentials,
-    # the `contents: write` token and the signing identity
+    # critical and high vulnerabilities). Kept apart from `push`,
+    # `release-image` and `publish`, so that Trivy never runs next to the
+    # Docker Hub credentials, the `contents: write` token and the signing
+    # identity
     scan:
         name: Scan release image
         needs: [prepare, push]
@@ -246,30 +265,27 @@ jobs:
                   category: release
                   upload: "false"
 
-    publish:
-        name: Publish release
+    # Attests, signs and tags the scanned digest
+    release-image:
+        name: Release image
         needs: [prepare, push, scan]
         runs-on: ubuntu-latest
         timeout-minutes: 30
-        environment:
-            name: release
-            url: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}
+        environment: release
         permissions:
-            contents: write # create the GitHub release
+            contents: read
             id-token: write # Sigstore signing certificates
             attestations: write # GitHub artifact attestations
         env:
             VERSION: ${{ needs.prepare.outputs.version }}
             DIGEST: ${{ needs.push.outputs.digest }}
         steps:
-            # The commit checked by `prepare`, with all tags, to find the
-            # previous release
+            # The commit checked by `prepare`
             - name: Check out repository
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
               with:
                   persist-credentials: false
                   ref: ${{ needs.prepare.outputs.sha }}
-                  fetch-depth: 0
             - name: Check image digest
               run: |
                   if [[ ! "${DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]]; then
@@ -364,79 +380,40 @@ jobs:
                           exit 1
                       fi
                   done
-            # A draft first, published last, so that immutable releases (a
-            # repository setting) can still get their notes; re-runs finish
-            # the draft of an earlier attempt and leave a published release as
-            # it is. GitHub's generated notes list the merged pull requests
-            # since the previous published release by version in the history
-            # of the release commit, on an earlier commit (tags without a
-            # release, e.g. of a failed run, don't count; for stable releases,
-            # neither do pre-releases, e.g. their release candidates; without
-            # one, GitHub picks the start, e.g. all changes for the first
-            # release); the maintainers check them and add the curated
-            # sections afterwards (the notes of published releases stay
-            # editable). GitHub never marks pre-releases as the latest release
+
+    # Creates the GitHub release of the tag once the image is released: the
+    # curated notes of the tagged commit (`docs/releases/<version>.md`), then
+    # GitHub's generated notes under `## Commits`, with the
+    # `**Full Changelog**` line last; a pre-release for versions below 1.0.0
+    # and `-alpha`, `-beta` and `-rc` versions, and the latest release by
+    # version otherwise. No environment: it needs no secrets, only
+    # `contents: write`. The tag must still point to the release commit.
+    # Fails on a draft of the tag, and on a published release unless an
+    # earlier attempt of this job created it (then it passes without
+    # changes). One at a time, so that the latest release is decided in
+    # order; a cancelled pending run is re-run like a failed one. The latest
+    # GitHub release (the action, by version among published releases) and
+    # the image's `latest` tag (`release-image`, by version among the tags on
+    # `main`) are decided separately, by the same rule: the highest stable
+    # version
+    publish:
+        name: Publish release
+        needs: [prepare, release-image]
+        runs-on: ubuntu-latest
+        timeout-minutes: 10
+        concurrency:
+            group: ${{ github.workflow }}-publish-release
+            cancel-in-progress: false
+        permissions:
+            contents: write # create the release
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+              with:
+                  persist-credentials: false
+                  ref: ${{ needs.prepare.outputs.sha }}
             - name: Create release
-              env:
-                  GH_TOKEN: ${{ github.token }}
-                  GH_REPO: ${{ github.repository }}
-                  TAG: ${{ github.ref_name }}
-                  LATEST: ${{ steps.latest.outputs.latest }}
-                  PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
-              run: |
-                  if [[ "${PRERELEASE}" == "true" ]]; then
-                      LATEST=false
-                  fi
-                  # only "not found" means no release: other errors stop the
-                  # run, so that a re-run never creates a second draft
-                  status=0
-                  state="$(gh release view "${TAG}" --json isDraft --jq 'if .isDraft then "draft" else "published" end' 2>&1)" || status=$?
-                  if [[ "${status}" != 0 ]]; then
-                      if [[ "${state}" != *"release not found"* ]]; then
-                          echo "::error::Cannot check whether release ${TAG} exists: ${state}"
-                          exit 1
-                      fi
-                      state=none
-                  fi
-                  if [[ ! "${state}" =~ ^(draft|published|none)$ ]]; then
-                      echo "::error::Unexpected state of release ${TAG}: ${state}"
-                      exit 1
-                  fi
-                  if [[ "${state}" == "published" ]]; then
-                      echo "Release ${TAG} is already published: left as it is"
-                      exit 0
-                  fi
-                  if [[ "${state}" == "none" ]]; then
-                      published="$(gh release list --limit 1000 --exclude-drafts \
-                          --json tagName --jq '.[].tagName')"
-                      previous=""
-                      head="$(git rev-parse HEAD)"
-                      while read -r tag; do
-                          if [[ "${TAG}" != *-* && "${tag}" == *-* ]]; then
-                              continue
-                          fi
-                          if [[ "$(git rev-parse "${tag}^{commit}")" == "${head}" ]]; then
-                              continue
-                          fi
-                          if grep -qxF -- "${tag}" <<< "${published}"; then
-                              previous="${tag}"
-                              break
-                          fi
-                      done < <(git -c versionsort.suffix=-alpha -c versionsort.suffix=-beta \
-                          -c versionsort.suffix=-rc tag -l 'v*' --merged HEAD --sort=-v:refname)
-                      args=(-f "tag_name=${TAG}")
-                      if [[ -n "${previous}" ]]; then
-                          args+=(-f "previous_tag_name=${previous}")
-                      fi
-                      notes="$(mktemp)"
-                      gh api "repos/${GH_REPO}/releases/generate-notes" "${args[@]}" \
-                          --jq .body > "${notes}"
-                      gh release create "${TAG}" \
-                          --draft \
-                          --verify-tag \
-                          --title "${TAG}" \
-                          --notes-file "${notes}" \
-                          --prerelease="${PRERELEASE}"
-                  fi
-                  gh release edit "${TAG}" --title "${TAG}" \
-                      --prerelease="${PRERELEASE}" --latest="${LATEST}" --draft=false
+              uses: elixir-cloud-aai/.github/actions/publish-release@31f22fccc1f3c597ed7c1d1f75b2f85522155348 # v1.1.0
+              with:
+                  notes: docs/releases/${{ needs.prepare.outputs.version }}.md
+                  commit: ${{ needs.prepare.outputs.sha }}
