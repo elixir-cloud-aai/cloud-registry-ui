@@ -33,4 +33,5 @@ A dismissed notification comes back if the problem ended and came back, or if it
 changed. Dismissing doesn't fix anything: a service stays out of sync, and its label
 stays, until the cause is gone.
 
-Registries older than 1.0.0rc2 have no notifications, and the app then shows no bell.
+Registries older than 1.0.0rc2 have no notifications, and the app then shows no bell; so
+do registries whose access policy refuses them (ask the registry's admins).

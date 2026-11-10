@@ -94,7 +94,17 @@ the registry.
 
 **Notifications:** logged-in users have a bell in the top bar, with what needs their
 attention (see [Notifications](../user-guide/notifications.md)). This takes no settings;
-a registry without notifications shows no bell.
+a registry without notifications, or one that refuses them (`403`), shows no bell.
+
+**No bell or sync labels, or a refused import, with cloud-registry 1.0.0rc2:**
+if the registry runs with its own access policy (e.g. in a config overlay), the
+policy probably lacks the rules that 1.0.0rc2 added for these endpoints
+(`/notifications`, the syncs of services, `/services/import`). The registry then
+refuses them: the app shows no bell (and logs a warning in the browser's
+console) and no sync labels, and the import fails with an error. Update the
+policy as the
+[registry's upgrade guide](https://cloud-registry.readthedocs.io/en/latest/upgrading/#from-100rc1)
+describes.
 
 **Login:** the login is hardened (see [Login](login.md)). Check these
 points before the upgrade:
