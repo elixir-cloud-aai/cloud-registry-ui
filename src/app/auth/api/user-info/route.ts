@@ -22,7 +22,9 @@ export async function GET() {
     const providerId = await readSessionCookie("login_provider");
 
     try {
-        // sessions without the cookie, e.g. older ones, use the only
+        // sessions without the cookie (in production, none since the
+        // __Host- names; on development servers, those of versions before
+        // login providers) use the only
         // provider; with several providers, and for providers that were
         // removed, they are logged out, which is expected after such
         // changes: no error. Their cookies stay, as a late answer could
