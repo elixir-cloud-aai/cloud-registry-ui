@@ -253,14 +253,31 @@ export interface SelfListing {
     serviceId?: ServiceId;
 }
 
+/**
+ * A field of a request that the registry rejects (`errors` of its `400`
+ * responses, as of cloud-registry 1.0.0rc2: FOCA's invalid requests).
+ */
+export interface FieldError {
+    /** Why, without the rejected value. */
+    detail: string;
+    /** JSON Pointer into the request's body, e.g. `#/organization/url`. */
+    pointer?: string;
+    /** Name of a path or query parameter, instead of `pointer`. */
+    parameter?: string;
+    /** Stable code, e.g. `scheme-not-allowed`. */
+    code?: string;
+}
+
 /** API error response. */
 export interface ApiError {
     title?: string;
     detail?: string;
     message?: string;
-    /** Kind of a conflict (409). */
+    /** Kind of a conflict (409), or `invalid-request` with `errors`. */
     code?: string;
     serviceId?: string;
+    /** The invalid fields of a `400`, unchecked (cf. `FieldError`). */
+    errors?: unknown;
 }
 
 /** Provider configuration. */

@@ -13,8 +13,7 @@ import type { ServiceType, Verification } from "@/lib/cloud-registry.types";
 import {
     duplicateMessage,
     duplicateToast,
-    errorField,
-    errorMessage,
+    fieldErrors,
     isDuplicate,
     isSyncUrlLocked,
     mutationError,
@@ -147,19 +146,18 @@ function ServiceUpdationForm({
             await promise;
             return data;
         } catch (err) {
-            // toast.promise shows the error; a duplicate or a field the
-            // registry rejected is also shown on the field
-            const duplicate = isDuplicate(err);
+            // toast.promise shows the error; a duplicate and the fields the
+            // registry rejected are also shown on the fields
             if (isSyncUrlLocked(err)) {
                 showFieldError("url", syncUrlLockedMessage);
                 return undefined;
             }
-            const field = duplicate ? "url" : errorField(err, formFields);
-            if (field)
-                showFieldError(
-                    field,
-                    duplicate ? duplicateMessage : errorMessage(err, ""),
-                );
+            if (isDuplicate(err)) {
+                showFieldError("url", duplicateMessage);
+                return undefined;
+            }
+            for (const { field, message } of fieldErrors(err, formFields))
+                showFieldError(field, message);
             return undefined;
         }
     };

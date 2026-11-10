@@ -67,7 +67,8 @@ services:
             retries: 30
 
     registry:
-        # cloud-registry from `dev` at 1d988ad, as the paths of users' roles,
+        # cloud-registry from `dev` at aba0f9a (with the invalid fields of
+        # cloud-registry#378), as the paths of users' roles,
         # labels, the listing of expired invitations, the listing of the
         # registry itself, the camelCase names of its API, the removal of the
         # invitations of users whose roles are revoked, and the import and sync
@@ -76,8 +77,9 @@ services:
         # one that has them (the app also uses GET /approvals and conflict
         # codes of 0.5.0, renames and admin mode of 0.6.0, invitations and the
         # services limit of 1.0.0rc1);
-        # pinned by digest for repeatable runs
-        image: ${E2E_REGISTRY_IMAGE:-docker.io/elixircloud/cloud-registry:sha-1d988adaa9734173b55ee931e6c4d0ed8ea6bccb@sha256:7bf7f0fff5e92643bcf4a8c566f7fddef291906ed52e368230759f0778818d57}
+        # pinned by digest for repeatable runs (the image of aba0f9a has no
+        # `sha-` tag, as its CI run was cut short)
+        image: ${E2E_REGISTRY_IMAGE:-docker.io/elixircloud/cloud-registry@sha256:362c8a4409c580c897b6942b585d95dedec9bc5d4b79b5082ca4e22fde9114bd}
         depends_on:
             mongodb:
                 condition: service_healthy
