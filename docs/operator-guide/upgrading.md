@@ -16,7 +16,8 @@
 The app keeps no data of its own: everything is stored in the registry, so
 the app can be replaced at any time, except when you upgrade to or from
 1.0.0-rc2 (see [below](#100-rc2)). Users who are logged in keep their
-session (it is kept in cookies), unless the release notes say otherwise.
+session (it is kept in cookies), unless the release notes say otherwise:
+the upgrade to 1.0.0-rc2 logs them out, and they log in once more.
 Logins that are in progress during the update may fail; users then log in
 again.
 
@@ -116,24 +117,21 @@ points before the upgrade:
   [Sessions and logout](login.md#sessions-and-logout)); otherwise, the
   provider may show an error after logging out.
 - **Cookie names:** the session's cookies now have the prefix `__Host-`
-  (e.g. `__Host-access_token`), which only the app's own origin can set.
-  Users who are logged in stay logged in: the app still reads the session
-  from the old names (`access_token`, `id_token`, `login_provider`), and
-  logging out or a new login deletes them. The next release stops reading
-  them, so users of sessions from before this upgrade log in again then.
-  Until then, sites on other subdomains of the app's domain can still set
-  these names for the whole domain, which logging out can't delete. A
-  login in progress during the upgrade fails, and the user logs in again.
-  During a rolling update, instances of the earlier version don't read the
-  new names: users who log in on a new instance seem logged out on an old
-  one until the update is complete.
-  Serve the app on a domain of its own (see [Sessions and
+  (e.g. `__Host-access_token`), which only the app's own origin can set,
+  and the app reads only these names. **Users who are logged in when you
+  upgrade are logged out and log in once more** (sessions of 1.0.0-rc1
+  last at most 12 hours anyway), and so are those of earlier versions. The
+  next login deletes the cookies of the old names (`access_token`,
+  `id_token`, `login_provider`); otherwise, they expire unread. A login in progress during the upgrade fails, and the
+  user logs in again. During a rolling update, instances of the earlier
+  version don't read the new names: users who log in on a new instance
+  seem logged out on an old one until the update is complete. Serve the
+  app on a domain of its own (see [Sessions and
   logout](login.md#sessions-and-logout)).
-- **Sessions without a provider:** sessions from versions before login
-  providers (without the provider's cookie) belong to the only provider.
-  Once there are several providers, the app can't tell their provider and
-  takes them as logged out, without logging an error: those users log in
-  again.
+- **`https` for the redirect URI:** `LOGIN_REDIRECT_URI` must be an
+  `https` URL too (`http` only for `localhost`, `*.localhost` and loopback
+  addresses), as the provider sends the authorization code there; the app
+  refuses to start with others.
 
 **Listing the registry itself:** in admin mode, the service info page can list
 the registry among its own services (see [Listing the registry

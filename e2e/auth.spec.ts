@@ -1,6 +1,6 @@
 import {
     expect,
-    isApprovalsRead,
+    isRead,
     login,
     openPage,
     sessionCookie,
@@ -72,7 +72,7 @@ test.describe("login", () => {
         ).toBe(false);
     });
 
-    test("keeps sessions of the old cookie names", async ({
+    test("takes sessions of the old cookie names as logged out", async ({
         page,
         context,
     }) => {
@@ -93,15 +93,15 @@ test.describe("login", () => {
                     sameSite: "Lax" as const,
                 })),
         );
-        // the Services page, whose reads the logout below would cut off
-        await openPage(page, "/dashboard", [isApprovalsRead]);
-        const menu = page.getByRole("button", { name: users.owner.sub });
-        await expect(menu).toContainText(users.owner.name);
+        // only the __Host- names are read: the user logs in once more
+        await openPage(page, "/dashboard/services", [isRead("/services")]);
+        await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
+        await expect(
+            page.getByRole("button", { name: users.owner.sub }),
+        ).toHaveCount(0);
 
-        // logging out deletes them
-        await menu.click();
-        await page.getByRole("menuitem", { name: "Log out" }).click();
-        await page.waitForURL(/\/auth\/login/);
+        // and the new login deletes them
+        await login(page, "owner");
         const names = (await context.cookies()).map((val) => val.name);
         for (const name of ["access_token", "id_token", "login_provider"])
             expect(names).not.toContain(name);
