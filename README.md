@@ -70,7 +70,9 @@ sidebar of the repository formats it as APA or BibTeX.
 
 ## Contributing
 
-Contributions are welcome! See [`CONTRIBUTING.md`](CONTRIBUTING.md) and
+Contributions are welcome! See the organization's [contributing
+guide](https://github.com/elixir-cloud-aai/.github/blob/main/CONTRIBUTING.md)
+and, for the setup, checks and releases of this repository,
 [Development][docs-development] in the documentation; the sources of the
 documentation are in [`docs/`](docs/). For anything else, write to
 [cloud-service@elixir-europe.org](mailto:cloud-service@elixir-europe.org).
