@@ -28,7 +28,7 @@
 # all releases are GitHub pre-releases (but stable ones still update the
 # `latest` image). Release commits are on `dev`, and `main` is moved
 # forward to them before they are tagged. See "Releasing" in
-# `CONTRIBUTING.md` for the steps and the repository settings it needs.
+# `docs/development.md` for the steps and the repository settings it needs.
 # Adapted from cloud-registry's release workflow.
 
 name: Release
@@ -73,7 +73,7 @@ jobs:
                   # Full history and all tags, to check that the release commit
                   # is on `main`
                   fetch-depth: 0
-            # "Releasing" in `CONTRIBUTING.md` runs the checks of this job that
+            # "Releasing" in `docs/development.md` runs the checks of this job that
             # need no tag before tagging: keep them in sync.
             # Guards against accidental releases, e.g., of unmerged commits;
             # the `release` environment's protection rules (required reviewer)
