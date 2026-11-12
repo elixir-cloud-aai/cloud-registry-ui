@@ -1,27 +1,28 @@
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
+import type { TextFieldForm, TextFieldName } from "@/types/service-update-form";
 
-type TextareaFieldProps = {
-    form: any;
-    name: string;
+type TextareaFieldProps<T> = {
+    form: TextFieldForm<T>;
+    name: TextFieldName<T>;
     label: string;
     placeholder?: string;
     rows?: number;
     className?: string;
 };
 
-export function TextareaField({
+export function TextareaField<T>({
     form,
     name,
     label,
     placeholder,
     rows = 5,
     className,
-}: TextareaFieldProps) {
+}: TextareaFieldProps<T>) {
     return (
         <div className={className}>
             <form.Field name={name}>
-                {(field: any) => {
+                {(field) => {
                     const isInvalid =
                         field.state.meta.isTouched && !field.state.meta.isValid;
 

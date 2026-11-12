@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
+import type { ServiceUpdationFormType } from "@/types/service-update-form";
 
 type Props = {
-    form: any;
+    form: ServiceUpdationFormType;
     updating: boolean;
 };
 
