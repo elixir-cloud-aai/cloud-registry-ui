@@ -5,25 +5,26 @@ import {
     FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import type { TextFieldForm, TextFieldName } from "@/types/service-update-form";
 
-type TextFieldProps = {
-    form: any;
-    name: string;
+type TextFieldProps<T> = {
+    form: TextFieldForm<T>;
+    name: TextFieldName<T>;
     label: string;
     placeholder?: string;
     description?: string;
 };
 
-export function TextField({
+export function TextField<T>({
     form,
     name,
     label,
     placeholder,
     description,
-}: TextFieldProps) {
+}: TextFieldProps<T>) {
     return (
         <form.Field name={name}>
-            {(field: any) => {
+            {(field) => {
                 const isInvalid =
                     field.state.meta.isTouched && !field.state.meta.isValid;
 

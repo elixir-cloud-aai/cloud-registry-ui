@@ -7,15 +7,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import type { TextFieldForm, TextFieldName } from "@/types/service-update-form";
 
 type Option = {
     label: string;
     value: string;
 };
 
-type SelectFieldProps = {
-    form: any;
-    name: string;
+type SelectFieldProps<T> = {
+    form: TextFieldForm<T>;
+    name: TextFieldName<T>;
     label: string;
     placeholder?: string;
     options: Option[];
@@ -27,17 +28,17 @@ type SelectFieldProps = {
 // that a registry allows) would be taken for no value
 const emptyValue = ",";
 
-export function SelectField({
+export function SelectField<T>({
     form,
     name,
     label,
     placeholder,
     options,
     emptyLabel,
-}: SelectFieldProps) {
+}: SelectFieldProps<T>) {
     return (
         <form.Field name={name}>
-            {(field: any) => {
+            {(field) => {
                 const isInvalid =
                     field.state.meta.isTouched && !field.state.meta.isValid;
                 const value: string = field.state.value;

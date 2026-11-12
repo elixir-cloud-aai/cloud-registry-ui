@@ -43,7 +43,8 @@ run `bun run build` and `bun run start`.
 
 [Biome](https://biomejs.dev/) (`biome.json`) checks the lint rules, the
 formatting and the order of imports of the code; Markdown, YAML and CFF
-files are left out. CI's `lint` job runs it:
+files are left out. Warnings fail the check as errors do
+(`--error-on-warnings`). CI's `lint` job runs it:
 
 ```
 bun run lint
