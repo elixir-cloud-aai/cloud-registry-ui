@@ -151,9 +151,11 @@ function syncFailedReason(err: unknown) {
     );
 }
 
-// longest wait before "Sync now" works again, in seconds: a day; the registry
-// asks for at most an hour, and timers can't wait much longer than 24 days
-const maxSyncWait = 86400;
+// longest wait before "Sync now" works again, in seconds: an hour, the most
+// that the registry asks for (its window of fetches per user), so that the
+// time of day in `syncAgainText()` is unambiguous; a longer wait from
+// elsewhere gets another 429 after it
+const maxSyncWait = 3600;
 
 /**
  * Get the message for a sync now that failed (not for `404`, sync off)
@@ -163,7 +165,7 @@ const maxSyncWait = 86400;
  * and a fetch that failed (502) or values that don't fit the service (400,
  * 409) change neither the values nor the sync's state, though another
  * request may have changed the service (`service-busy`, no description);
- * and the seconds to wait, if the registry sent them (at most a day)
+ * and the seconds to wait, if the registry sent them (at most an hour)
  */
 function syncNowError(err: unknown): {
     message: string;

@@ -238,10 +238,13 @@ describe("syncNowError", () => {
         expect(syncNowError(failure(429)).retryAfter).toBeUndefined();
     });
 
-    it("waits at most a day", () => {
+    it("waits at most an hour", () => {
+        expect(
+            syncNowError(failure(429, { retryAfter: 3600 })).retryAfter,
+        ).toBe(3600);
         expect(
             syncNowError(failure(429, { retryAfter: 3_000_000 })).retryAfter,
-        ).toBe(86400);
+        ).toBe(3600);
     });
 
     it.each([
