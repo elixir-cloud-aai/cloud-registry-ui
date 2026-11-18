@@ -7,7 +7,9 @@ how to verify services and approve new service types.
 !!! note "Your deployment may look different"
 
     The screenshots show the app in its default branding. Deployments can
-    change the title and the logos, and may offer other login providers.
+    change the title and the logos, may offer other login providers, and
+    may show links to their privacy notice and other legal information at
+    the bottom of each page.
     Which login provider you use, which groups grant which rights, and whom
     to contact are described by your deployment, e.g. in the [ELIXIR On-Cloud
     docs](https://docs.elixir-on.cloud/) for ELIXIR On-Cloud.

@@ -4,6 +4,7 @@
  */
 import { accessSettings } from "./access-settings";
 import { brandingSettings } from "./branding";
+import { footerSettings } from "./footer-links";
 import { registrySettings } from "./registry-settings";
 
 // settings that the app no longer reads, with what replaces them
@@ -31,6 +32,7 @@ function publicSettingsChecks() {
     registrySettings();
     accessSettings();
     brandingSettings();
+    footerSettings();
     removedSettingsWarnings();
 }
 

@@ -47,6 +47,14 @@ export default defineConfig({
                       },
                   ]),
                   LOGIN_REDIRECT_URI: `${baseURL}/auth/api/callback`,
+                  NEXT_PUBLIC_FOOTER_LINKS: JSON.stringify([
+                      {
+                          label: "Privacy notice",
+                          url: "https://example.org/privacy",
+                      },
+                      { label: "Imprint", url: "/imprint" },
+                      { label: "Contact", url: "mailto:support@example.org" },
+                  ]),
               },
           },
 });

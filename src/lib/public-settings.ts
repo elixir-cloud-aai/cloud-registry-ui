@@ -26,6 +26,7 @@ const builtIn = {
     NEXT_PUBLIC_FOOTER_LOGO: process.env.NEXT_PUBLIC_FOOTER_LOGO,
     NEXT_PUBLIC_FOOTER_LOGO_DARK: process.env.NEXT_PUBLIC_FOOTER_LOGO_DARK,
     NEXT_PUBLIC_FOOTER_START_YEAR: process.env.NEXT_PUBLIC_FOOTER_START_YEAR,
+    NEXT_PUBLIC_FOOTER_LINKS: process.env.NEXT_PUBLIC_FOOTER_LINKS,
 };
 
 type PublicSettingName = keyof typeof builtIn;

@@ -2,6 +2,7 @@
 import { MailCheck } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { FooterLinks } from "@/components/shared/footer-links";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { Button } from "@/components/ui/button";
 import {
@@ -170,17 +171,20 @@ function Page() {
         );
 
     return (
-        <div className="flex justify-center items-center min-h-screen px-4">
-            <Card className="w-full max-w-md">
-                {content}
-                <CardFooter>
-                    <Button asChild variant="link" className="px-0">
-                        <Link href="/dashboard/services">
-                            Go to the services
-                        </Link>
-                    </Button>
-                </CardFooter>
-            </Card>
+        <div className="flex flex-col min-h-screen">
+            <div className="flex flex-1 justify-center items-center px-4">
+                <Card className="w-full max-w-md">
+                    {content}
+                    <CardFooter>
+                        <Button asChild variant="link" className="px-0">
+                            <Link href="/dashboard/services">
+                                Go to the services
+                            </Link>
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </div>
+            <FooterLinks />
         </div>
     );
 }
