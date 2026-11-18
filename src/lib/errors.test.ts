@@ -16,6 +16,7 @@ import {
     isVerificationMismatch,
     mutationError,
     renameError,
+    retryAfterSeconds,
     retryAfterText,
     selfListingError,
     serviceTypeConflict,
@@ -554,5 +555,19 @@ describe("retryAfterText", () => {
         [61, "Please try again in about 2 minutes."],
     ])("for %s seconds says: %s", (seconds, text) => {
         expect(retryAfterText(limited(seconds))).toBe(text);
+    });
+});
+
+describe("retryAfterSeconds", () => {
+    it("takes the wait of the registry", () => {
+        expect(retryAfterSeconds(failure(429, { retryAfter: 42 }))).toBe(42);
+    });
+
+    it("has none without one", () => {
+        expect(retryAfterSeconds(failure(429))).toBeUndefined();
+        expect(
+            retryAfterSeconds(failure(429, { retryAfter: "42" })),
+        ).toBeUndefined();
+        expect(retryAfterSeconds(undefined)).toBeUndefined();
     });
 });

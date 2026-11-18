@@ -16,9 +16,10 @@ import {
     isSyncIdentityMismatch,
     isSyncUnavailable,
     mutationError,
+    retryAfterSeconds,
     retryAfterText,
 } from "./errors";
-import { hasStatus } from "./permissions";
+import { hasStatus, isConflict } from "./permissions";
 import { matchesVerification } from "./verifications";
 
 const hoursPerDay = 24;
@@ -87,17 +88,36 @@ function syncStartedMessage({ status, reason }: ServiceSync) {
 }
 
 /**
+ * Get the message for a sync now (`onlyIfEnabled`), which the registry ran
+ * @param sync The state of the sync, which the registry returned
+ * @returns The kind of message, and the message: the registry also answers
+ * with the state if it can't apply the values (`reason`)
+ */
+function syncNowMessage({ status, reason }: ServiceSync) {
+    return status === "synced" && reason === undefined
+        ? {
+              kind: "success" as const,
+              message: "Synced: the service has the values of its service info.",
+          }
+        : {
+              kind: "warning" as const,
+              message: `The registry fetched the service info, but it can't be applied: ${syncReasonText(reason)}`,
+          };
+}
+
+/**
  * Get the reason for a sync that couldn't be turned on, or a sync that failed;
  * the registry changes nothing if it answers with a failure
  * @param err Error of the request
  * @returns The reason, for all problems of fetching the same one, as the
- * registry doesn't tell them apart
+ * registry doesn't tell them apart; above a limit (429), which one, if the
+ * registry says, and how long to wait
  */
 function syncFailedReason(err: unknown) {
     if (hasStatus(err, 502))
         return "The registry could not fetch the service info. It must be publicly available at the service's URL followed by /service-info.";
     if (hasStatus(err, 429))
-        return `Service info was fetched too often, or the registry is busy. ${retryAfterText(err)}`;
+        return `${errorMessage(err, "Service info was fetched too often, or the registry is busy.")} ${retryAfterText(err)}`;
     if (hasStatus(err, 400))
         return errorMessage(
             err,
@@ -109,7 +129,42 @@ function syncFailedReason(err: unknown) {
         return "The service info describes another type of service than the one registered.";
     if (isServiceBusy(err))
         return "The service changed during the sync. Please try again.";
-    return mutationError(err, "Cannot sync this service currently.");
+    return mutationError(
+        err,
+        "Cannot sync this service currently.",
+        "Only owners, maintainers and admins of this service can sync it.",
+    );
+}
+
+/**
+ * Get the message for a sync now that failed (not for `404`, sync off)
+ * @param err Error of the request
+ * @returns The message (see `syncFailedReason()`); a description if the
+ * registry tells that nothing changed: nothing was fetched above a limit
+ * (429), and a fetch that failed (502) or values that don't fit the service
+ * (400, 409) change neither the values nor the sync's state; and the seconds
+ * to wait, if the registry sent them
+ */
+function syncNowError(err: unknown): {
+    message: string;
+    description?: string;
+    retryAfter?: number;
+} {
+    const message = syncFailedReason(err);
+    if (hasStatus(err, 429))
+        return {
+            message,
+            description:
+                "Nothing was fetched, and nothing changed: the registry syncs each service on request at most once a minute, and limits how often each user has service info fetched.",
+            retryAfter: retryAfterSeconds(err),
+        };
+    if (hasStatus(err, 502) || hasStatus(err, 400) || isConflict(err))
+        return {
+            message,
+            description:
+                "Nothing changed: the service keeps its values, and its label stays as it was.",
+        };
+    return { message };
 }
 
 /**
@@ -162,6 +217,8 @@ export {
     syncFailedReason,
     syncFailedTitle,
     syncFrequency,
+    syncNowError,
+    syncNowMessage,
     syncReasonText,
     syncStartedMessage,
 };

@@ -164,18 +164,27 @@ function isTimedOut(err: unknown) {
 }
 
 /**
+ * Get how long to wait after too many requests (429)
+ * @param err Error of the request
+ * @returns The seconds of the registry's `Retry-After`, if it sent one that
+ * the app may read (CORS)
+ */
+function retryAfterSeconds(err: unknown) {
+    return err instanceof Error &&
+        "retryAfter" in err &&
+        typeof err.retryAfter === "number"
+        ? err.retryAfter
+        : undefined;
+}
+
+/**
  * Say how long to wait after too many requests (429)
  * @param err Error of the request
  * @returns E.g. "Please try again in about 5 minutes."; without a wait from
  * the registry (`Retry-After`), to try again later
  */
 function retryAfterText(err: unknown) {
-    const seconds =
-        err instanceof Error &&
-        "retryAfter" in err &&
-        typeof err.retryAfter === "number"
-            ? err.retryAfter
-            : undefined;
+    const seconds = retryAfterSeconds(err);
     if (seconds === undefined) return "Please try again later.";
     if (seconds < 60)
         return `Please try again in ${seconds} second${seconds === 1 ? "" : "s"}.`;
@@ -504,6 +513,7 @@ export {
     isVerificationMismatch,
     mutationError,
     renameError,
+    retryAfterSeconds,
     retryAfterText,
     selfListingError,
     serviceTypeConflict,
