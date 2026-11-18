@@ -1,8 +1,9 @@
 # Operator guide
 
 This guide is for people who deploy and run the Cloud Registry UI for a
-registry: the Docker image, its settings, login, branding, admins and
-upgrading. For using the app, see the [User guide](../user-guide/index.md).
+registry: the Docker image, its settings, login, branding, legal notices
+and cookies, admins and upgrading. For using the app, see the [User
+guide](../user-guide/index.md).
 
 The app is a [Next.js](https://nextjs.org/) web app. Browsers talk to the
 registry directly; the app's server handles the login and serves the
@@ -32,6 +33,9 @@ pages. A deployment needs:
     ```
 
     [Login](login.md) has an example of `LOGIN_PROVIDERS` for LS Login.
+    Add the links to your privacy notice and other legal information
+    with `NEXT_PUBLIC_FOOTER_LINKS` (see [Legal notices and
+    cookies](legal.md)).
 
 4. Start the image of the matching version, behind a reverse proxy that
    serves it over HTTPS:

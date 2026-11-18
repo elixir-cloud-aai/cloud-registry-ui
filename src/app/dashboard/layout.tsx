@@ -3,6 +3,7 @@ import {
     AppSidebar,
     AppTopbarActions,
 } from "@/components/shared/app-sidebar";
+import { FooterLinks } from "@/components/shared/footer-links";
 import { Separator } from "@/components/ui/separator";
 import {
     SidebarInset,
@@ -32,6 +33,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <main className="relative px-4 md:px-8 py-4 h-full overflow-y-auto">
                     {children}
                 </main>
+                <FooterLinks className="border-t" />
             </SidebarInset>
         </SidebarProvider>
     );

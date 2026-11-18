@@ -33,6 +33,16 @@ describe("publicSettingsChecks", () => {
         expect(publicSettingsChecks).toThrow(/APP_TITLE/);
     });
 
+    it("checks the links of the footer", async () => {
+        vi.stubEnv(
+            "NEXT_PUBLIC_CLOUD_REGISTRY_URL",
+            "https://registry.example.org/ga4gh/registry/v1",
+        );
+        vi.stubEnv("NEXT_PUBLIC_FOOTER_LINKS", "not JSON");
+        const { publicSettingsChecks } = await load();
+        expect(publicSettingsChecks).toThrow(/FOOTER_LINKS/);
+    });
+
     it("checks the page size of the access dialog", async () => {
         vi.stubEnv(
             "NEXT_PUBLIC_CLOUD_REGISTRY_URL",

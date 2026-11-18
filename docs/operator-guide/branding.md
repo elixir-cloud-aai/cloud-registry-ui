@@ -32,6 +32,9 @@ logos at other sites load without further settings; logos at `http` URLs
 are blocked and not shown. The logo of each login
 provider is set in `LOGIN_PROVIDERS` (see [Login](login.md)).
 
+Links to legal information, such as the privacy notice and the imprint,
+are set separately (see [Legal notices and cookies](legal.md)).
+
 The icon of the browser tab is the ELIXIR On-Cloud mark
 (`src/app/icon.png`). No setting changes it: to use another icon, replace
 that file (a square PNG) and build the image.

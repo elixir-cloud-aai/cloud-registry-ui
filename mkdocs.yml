@@ -80,6 +80,7 @@ nav:
       - Configuration: operator-guide/configuration.md
       - Login: operator-guide/login.md
       - Branding: operator-guide/branding.md
+      - Legal notices and cookies: operator-guide/legal.md
       - Admins and admin mode: operator-guide/admins.md
       - Upgrading: operator-guide/upgrading.md
   - Development: development.md

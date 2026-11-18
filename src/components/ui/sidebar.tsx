@@ -1,6 +1,11 @@
 "use client";
 
+// shadcn/ui's sidebar, with one local change: no `sidebar_state` cookie
+// (see `setOpen` below), and the one of earlier versions is removed; keep
+// it so when updating from upstream
+
 import { cva, type VariantProps } from "class-variance-authority";
+import { deleteCookie } from "cookies-next/client";
 import { PanelLeftIcon } from "lucide-react";
 import { Slot } from "radix-ui";
 import * as React from "react";
@@ -23,8 +28,6 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
-const SIDEBAR_COOKIE_NAME = "sidebar_state";
-const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = "20rem";
 const SIDEBAR_WIDTH_MOBILE = "22rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
@@ -70,6 +73,12 @@ function SidebarProvider({
     // This is the internal state of the sidebar.
     // We use openProp and setOpenProp for control from outside the component.
     const [_open, _setOpen] = React.useState(defaultOpen);
+
+    // the cookie that versions up to 1.0.0-rc2 kept the state in, for up
+    // to 7 days; nothing reads it
+    React.useEffect(() => {
+        deleteCookie("sidebar_state", { path: "/" });
+    }, []);
     const open = openProp ?? _open;
     const setOpen = React.useCallback(
         (value: boolean | ((value: boolean) => boolean)) => {
@@ -80,9 +89,9 @@ function SidebarProvider({
                 _setOpen(openState);
             }
 
-            // This sets the cookie to keep the sidebar state.
-            // biome-ignore lint/suspicious/noDocumentCookie: shadcn/ui's sidebar, as upstream has it
-            document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+            // unlike upstream, no cookie keeps the state: the app doesn't
+            // read it, and stores nothing it doesn't need (see "Cookies and
+            // storage" in `docs/operator-guide/legal.md`)
         },
         [setOpenProp, open],
     );

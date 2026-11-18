@@ -17,6 +17,7 @@ The settings are read when the app starts (`bun run start`, `docker run`, `bun r
 | `NEXT_PUBLIC_FOOTER_LOGO`               | no       | [Branding](branding.md)         |
 | `NEXT_PUBLIC_FOOTER_LOGO_DARK`          | no       | [Branding](branding.md)         |
 | `NEXT_PUBLIC_FOOTER_START_YEAR`         | no       | [Branding](branding.md)         |
+| `NEXT_PUBLIC_FOOTER_LINKS`              | no       | [Legal notices](legal.md)       |
 | `LOGIN_PROVIDERS`                       | yes      | [Login](login.md)               |
 | `LOGIN_REDIRECT_URI`                    | yes      | [Login](login.md)               |
 
@@ -27,7 +28,8 @@ Missing or invalid settings stop the app with a message that names the setting:
 - On Vercel, which deploys what it builds, they also stop the build (`vercel build`, or the build on Vercel's servers), so set them for every environment that builds, Preview included. `vercel pull` can't read sensitive variables: for those, such as `LOGIN_PROVIDERS` with the client secret, `vercel build` only checks that they are set, and checks the others as usual.
 
 The defaults are given in each section. The login settings are described
-in [Login](login.md), the branding in [Branding](branding.md).
+in [Login](login.md), the branding in [Branding](branding.md), and the
+links of the footer in [Legal notices and cookies](legal.md).
 
 ## Registry
 

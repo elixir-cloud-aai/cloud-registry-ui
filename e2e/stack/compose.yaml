@@ -139,6 +139,10 @@ services:
                 "clientId": "cloud-registry-ui-e2e",
                 "clientSecret": "e2e-secret"}]
             LOGIN_REDIRECT_URI: http://localhost:3100/auth/api/callback
+            NEXT_PUBLIC_FOOTER_LINKS: >-
+                [{"label": "Privacy notice", "url": "https://example.org/privacy"},
+                {"label": "Imprint", "url": "/imprint"},
+                {"label": "Contact", "url": "mailto:support@example.org"}]
         depends_on:
             oidc:
                 condition: service_healthy
