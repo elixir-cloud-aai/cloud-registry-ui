@@ -1,5 +1,8 @@
 "use client";
 
+// shadcn/ui's sidebar, with one local change: no `sidebar_state` cookie
+// (see `setOpen` below); keep it so when updating from upstream
+
 import { cva, type VariantProps } from "class-variance-authority";
 import { PanelLeftIcon } from "lucide-react";
 import { Slot } from "radix-ui";
