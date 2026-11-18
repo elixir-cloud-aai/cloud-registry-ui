@@ -52,4 +52,21 @@ test.describe("footer", () => {
         await page.goto("/auth/error?type=state");
         await expectLinks(page);
     });
+
+    test("shows the links on the page for unknown paths", async ({
+        page,
+        problems,
+    }) => {
+        const response = await page.goto("/no-such-page");
+        expect(response?.status()).toBe(404);
+        await expect(
+            page.getByText("This page could not be found."),
+        ).toBeVisible();
+        await expectLinks(page);
+        // the 404 of the page itself, which some browsers log
+        const others = problems.filter(
+            (val) => !val.includes("404 (Not Found) (http"),
+        );
+        problems.splice(0, problems.length, ...others);
+    });
 });

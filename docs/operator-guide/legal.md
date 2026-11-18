@@ -19,8 +19,8 @@ The links are shown in a footer at the bottom of the app's pages, separate
 from the copyright line and logo at the bottom of the sidebar (see
 [Branding](branding.md)): below the content of the pages with the sidebar,
 and on the login page, the invitation page and the error page of the
-login; not on the "page not found" page. Links to other sites open in a new
-tab, so that unsaved changes in the app stay.
+login, and on the page for unknown paths. Links to other sites open in a
+new tab, so that unsaved changes in the app stay.
 
 | Key     | Description                                                                                                                                                                                                                                                                                                    |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -78,6 +78,10 @@ needs and what users choose themselves:
   opens an invitation link, kept in that tab, and deleted when the
   invitation is accepted or can't be used; it keeps the invitation to
   accept after the login.
+
+Versions up to 1.0.0-rc2 also kept whether the sidebar is collapsed in a
+cookie (`sidebar_state`, 7 days), which nothing read; the app now removes
+it when a page with the sidebar opens.
 
 Development servers (`bun run dev`) use the cookie names without the
 `__Host-` prefix. A guest who only browses, without logging in or changing

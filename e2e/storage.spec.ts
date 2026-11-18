@@ -19,4 +19,21 @@ test.describe("storage", () => {
         }));
         expect(storage).toEqual({ local: [], session: [] });
     });
+
+    test("the sidebar's cookie of earlier versions is removed", async ({
+        page,
+        baseURL,
+    }) => {
+        await page.context().addCookies([
+            {
+                name: "sidebar_state",
+                value: "false",
+                url: baseURL as string,
+            },
+        ]);
+        await openPage(page, "/dashboard/services", [isRead("/services")]);
+        await expect
+            .poll(async () => await page.context().cookies())
+            .toEqual([]);
+    });
 });

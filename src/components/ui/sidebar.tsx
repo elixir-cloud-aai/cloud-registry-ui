@@ -1,9 +1,11 @@
 "use client";
 
 // shadcn/ui's sidebar, with one local change: no `sidebar_state` cookie
-// (see `setOpen` below); keep it so when updating from upstream
+// (see `setOpen` below), and the one of earlier versions is removed; keep
+// it so when updating from upstream
 
 import { cva, type VariantProps } from "class-variance-authority";
+import { deleteCookie } from "cookies-next/client";
 import { PanelLeftIcon } from "lucide-react";
 import { Slot } from "radix-ui";
 import * as React from "react";
@@ -71,6 +73,12 @@ function SidebarProvider({
     // This is the internal state of the sidebar.
     // We use openProp and setOpenProp for control from outside the component.
     const [_open, _setOpen] = React.useState(defaultOpen);
+
+    // the cookie that versions up to 1.0.0-rc2 kept the state in, for up
+    // to 7 days; nothing reads it
+    React.useEffect(() => {
+        deleteCookie("sidebar_state", { path: "/" });
+    }, []);
     const open = openProp ?? _open;
     const setOpen = React.useCallback(
         (value: boolean | ((value: boolean) => boolean)) => {
