@@ -72,7 +72,10 @@ Only publicly available service info can be synced, as no tokens are sent.
 **Sync now** fetches each service at most once a minute, whoever asks, and each user may
 have service info fetched only so often per hour (also for imports). Sooner, nothing is
 fetched: the app says which limit applies and when to try again, and keeps **Sync now**
-off until then. Registries up to cloud-registry 1.0.0rc2 have no minute per service.
+off until then (see the registry's
+[limits](https://cloud-registry.readthedocs.io/en/latest/api/#synced-services)). If your
+session expired, the app asks you to log in again; if you lost your role on the service
+meanwhile, it says who may sync.
 
 ## Changes while sync is on
 

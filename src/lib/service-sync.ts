@@ -69,21 +69,26 @@ function syncReasonText(reason: string | undefined) {
         : "the service info can't be applied.";
 }
 
+/** Check if a sync applied the service info: synced, and no reason */
+function syncApplied({ status, reason }: ServiceSync) {
+    return status === "synced" && reason === undefined;
+}
+
 /**
  * Get the message for a sync that was turned on
  * @param sync The state of the sync, which the registry returned
  * @returns The kind of message, and the message: sync is also on if the values
  * can't be applied (`reason`)
  */
-function syncStartedMessage({ status, reason }: ServiceSync) {
-    return status === "synced" && reason === undefined
+function syncStartedMessage(sync: ServiceSync) {
+    return syncApplied(sync)
         ? {
               kind: "success" as const,
               message: "Sync is on: the service follows its service info.",
           }
         : {
               kind: "warning" as const,
-              message: `Sync is on, but the service is out of sync: ${syncReasonText(reason)}`,
+              message: `Sync is on, but the service is out of sync: ${syncReasonText(sync.reason)}`,
           };
 }
 
@@ -93,16 +98,26 @@ function syncStartedMessage({ status, reason }: ServiceSync) {
  * @returns The kind of message, and the message: the registry also answers
  * with the state if it can't apply the values (`reason`)
  */
-function syncNowMessage({ status, reason }: ServiceSync) {
-    return status === "synced" && reason === undefined
+function syncNowMessage(sync: ServiceSync) {
+    return syncApplied(sync)
         ? {
               kind: "success" as const,
-              message: "Synced: the service has the values of its service info.",
+              message:
+                  "Synced: the service has the values of its service info.",
           }
         : {
               kind: "warning" as const,
-              message: `The registry fetched the service info, but it can't be applied: ${syncReasonText(reason)}`,
+              message: `The registry fetched the service info, but it can't be applied: ${syncReasonText(sync.reason)}`,
           };
+}
+
+/**
+ * Say when "Sync now" works again, after a wait of the registry (429)
+ * @param time When, in milliseconds since the epoch
+ * @returns The text, with the time for the user's locale
+ */
+function syncAgainText(time: number) {
+    return `The registry asks to wait: you can sync again at ${new Date(time).toLocaleTimeString()}.`;
 }
 
 /**
@@ -136,14 +151,19 @@ function syncFailedReason(err: unknown) {
     );
 }
 
+// longest wait before "Sync now" works again, in seconds: a day; the registry
+// asks for at most an hour, and timers can't wait much longer than 24 days
+const maxSyncWait = 86400;
+
 /**
  * Get the message for a sync now that failed (not for `404`, sync off)
  * @param err Error of the request
  * @returns The message (see `syncFailedReason()`); a description if the
- * registry tells that nothing changed: nothing was fetched above a limit
- * (429), and a fetch that failed (502) or values that don't fit the service
- * (400, 409) change neither the values nor the sync's state; and the seconds
- * to wait, if the registry sent them
+ * registry tells that the sync changed nothing: nothing was fetched (429),
+ * and a fetch that failed (502) or values that don't fit the service (400,
+ * 409) change neither the values nor the sync's state, though another
+ * request may have changed the service (`service-busy`, no description);
+ * and the seconds to wait, if the registry sent them (at most a day)
  */
 function syncNowError(err: unknown): {
     message: string;
@@ -151,13 +171,18 @@ function syncNowError(err: unknown): {
     retryAfter?: number;
 } {
     const message = syncFailedReason(err);
-    if (hasStatus(err, 429))
+    if (hasStatus(err, 429)) {
+        const seconds = retryAfterSeconds(err);
         return {
             message,
-            description:
-                "Nothing was fetched, and nothing changed: the registry syncs each service on request at most once a minute, and limits how often each user has service info fetched.",
-            retryAfter: retryAfterSeconds(err),
+            description: "Nothing was fetched, and nothing changed.",
+            retryAfter:
+                seconds === undefined
+                    ? undefined
+                    : Math.min(seconds, maxSyncWait),
         };
+    }
+    if (isServiceBusy(err)) return { message };
     if (hasStatus(err, 502) || hasStatus(err, 400) || isConflict(err))
         return {
             message,
@@ -213,6 +238,7 @@ function formatSyncTime(time?: string) {
 
 export {
     formatSyncTime,
+    syncAgainText,
     syncedServices,
     syncFailedReason,
     syncFailedTitle,

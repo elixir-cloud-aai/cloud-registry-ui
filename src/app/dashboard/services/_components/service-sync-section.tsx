@@ -20,6 +20,7 @@ import { mutationError } from "@/lib/errors";
 import { hasStatus } from "@/lib/permissions";
 import {
     formatSyncTime,
+    syncAgainText,
     syncFailedReason,
     syncFrequency,
     syncNowError,
@@ -118,8 +119,7 @@ function ServiceSyncSection({
                     "Sync was turned off in the meantime, or the service was deleted, so nothing was synced.",
                 );
             else if (onlyIfEnabled) {
-                const { message, description, retryAfter } =
-                    syncNowError(err);
+                const { message, description, retryAfter } = syncNowError(err);
                 toast.error(message, { description });
                 if (retryAfter !== undefined) waitBeforeSync(retryAfter);
             } else toast.error(syncFailedReason(err));
@@ -272,9 +272,7 @@ function ServiceSyncSection({
                         )}
                     {sync && syncAgainAt !== undefined && (
                         <p className="text-sm text-muted-foreground">
-                            Service info was fetched too recently: you can sync
-                            again at{" "}
-                            {new Date(syncAgainAt).toLocaleTimeString()}.
+                            {syncAgainText(syncAgainAt)}
                         </p>
                     )}
                 </div>

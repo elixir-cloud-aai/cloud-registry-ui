@@ -209,7 +209,7 @@ test.describe("syncing services", () => {
                       status: 429,
                       contentType: "application/problem+json",
                       headers: {
-                          "Retry-After": "42",
+                          "Retry-After": "3",
                           "Access-Control-Allow-Origin": "*",
                           "Access-Control-Expose-Headers": "Retry-After",
                       },
@@ -225,21 +225,21 @@ test.describe("syncing services", () => {
         const syncNow = page.getByRole("button", { name: "Sync now" });
         await syncNow.click();
         await expect(
-            page.getByText(`${detail} Please try again in 42 seconds.`),
+            page.getByText(`${detail} Please try again in 3 seconds.`),
         ).toBeVisible();
         await expect(page.getByText("Nothing was fetched")).toBeVisible();
         await expect(page.getByText("you can sync again at")).toBeVisible();
         await expect(syncNow).toBeDisabled();
         await expect(page.getByText("Synced", { exact: true })).toBeVisible();
+        // and on again after the wait
+        await expect(syncNow).toBeEnabled({ timeout: 10_000 });
+        await expect(page.getByText("you can sync again at")).toHaveCount(0);
         // the 429, which the app handles
-        problems.splice(0);
+        const expected = problems.splice(0);
+        expect(expected.every((val) => val.includes("/sync"))).toBe(true);
     });
 
-    test("sync now says who may sync", async ({
-        page,
-        browser,
-        problems,
-    }) => {
+    test("sync now says who may sync", async ({ page, browser, problems }) => {
         await addTesType(browser);
         const token = await login(page, "owner");
         const service = await syncedService(token);
@@ -259,8 +259,11 @@ test.describe("syncing services", () => {
         await expect(
             page.getByText("Only owners, maintainers and admins"),
         ).toBeVisible();
-        await expect(page.getByRole("button", { name: "Sync now" })).toBeEnabled();
-        problems.splice(0);
+        await expect(
+            page.getByRole("button", { name: "Sync now" }),
+        ).toBeEnabled();
+        const expected = problems.splice(0);
+        expect(expected.every((val) => val.includes("/sync"))).toBe(true);
     });
 
     test("the edit form says that the URL is locked", async ({

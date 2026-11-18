@@ -3,6 +3,7 @@ import { failure } from "@/test/errors";
 import type { ServiceSync } from "./cloud-registry.types";
 import {
     formatSyncTime,
+    syncAgainText,
     syncedServices,
     syncFailedReason,
     syncFailedTitle,
@@ -134,9 +135,9 @@ describe("syncFailedReason", () => {
     it("says which limit, and how long to wait", () => {
         const detail =
             "The registry fetched the service info of this service less than 60 seconds ago; try again later.";
-        expect(
-            syncFailedReason(failure(429, { detail, retryAfter: 42 })),
-        ).toBe(`${detail} Please try again in 42 seconds.`);
+        expect(syncFailedReason(failure(429, { detail, retryAfter: 42 }))).toBe(
+            `${detail} Please try again in 42 seconds.`,
+        );
     });
 
     it("names the field of invalid service info", () => {
@@ -190,33 +191,57 @@ describe("syncNowMessage", () => {
     });
 });
 
-describe("syncNowError", () => {
-    const unchanged = "Nothing changed";
+describe("syncAgainText", () => {
+    it("says when to sync again", () => {
+        const time = Date.UTC(2026, 10, 18, 12, 0, 42);
+        expect(syncAgainText(time)).toBe(
+            `The registry asks to wait: you can sync again at ${new Date(time).toLocaleTimeString()}.`,
+        );
+    });
+});
 
+describe("syncNowError", () => {
+    const unchanged =
+        "Nothing changed: the service keeps its values, and its label stays as it was.";
+
+    // the registry changes nothing if it answers with a failure, also for
+    // conflicts that the app doesn't tell apart
     it.each([
-        [failure(502), "could not fetch the service info"],
-        [failure(400), "checks"],
-        [failure(409, { code: "sync-identity-mismatch" }), "another type"],
-        [failure(409, { code: "service-busy" }), "try again"],
-        [failure(409, { code: "sync-unavailable" }), "doesn't sync"],
-    ])("says that nothing changed: %o", (err, text) => {
-        const { message, description, retryAfter } = syncNowError(err);
-        expect(message).toContain(text);
-        expect(description).toContain(unchanged);
-        expect(retryAfter).toBeUndefined();
+        failure(502),
+        failure(400),
+        failure(409, { code: "sync-identity-mismatch" }),
+        failure(409, { code: "sync-unavailable" }),
+        failure(409, { code: "other", detail: "Other." }),
+    ])("says that nothing changed: %o", (err) => {
+        expect(syncNowError(err)).toEqual({
+            message: syncFailedReason(err),
+            description: unchanged,
+        });
+    });
+
+    it("doesn't claim that a service changed by another request is unchanged", () => {
+        const err = failure(409, { code: "service-busy" });
+        expect(syncNowError(err)).toEqual({ message: syncFailedReason(err) });
     });
 
     it("says how long to wait, and that nothing was fetched", () => {
-        const { message, description, retryAfter } = syncNowError(
-            failure(429, { detail: "Too soon.", retryAfter: 42 }),
-        );
-        expect(message).toBe("Too soon. Please try again in 42 seconds.");
-        expect(description).toContain("Nothing was fetched");
-        expect(retryAfter).toBe(42);
+        expect(
+            syncNowError(failure(429, { detail: "Too soon.", retryAfter: 42 })),
+        ).toEqual({
+            message: "Too soon. Please try again in 42 seconds.",
+            description: "Nothing was fetched, and nothing changed.",
+            retryAfter: 42,
+        });
     });
 
     it("has no wait if the registry sends none", () => {
         expect(syncNowError(failure(429)).retryAfter).toBeUndefined();
+    });
+
+    it("waits at most a day", () => {
+        expect(
+            syncNowError(failure(429, { retryAfter: 3_000_000 })).retryAfter,
+        ).toBe(86400);
     });
 
     it.each([
