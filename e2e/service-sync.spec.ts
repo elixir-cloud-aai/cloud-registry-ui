@@ -197,6 +197,8 @@ test.describe("syncing services", () => {
         browser,
         problems,
     }) => {
+        // it waits for the hold to end
+        test.slow();
         await addTesType(browser);
         const token = await login(page, "owner");
         const service = await syncedService(token);
@@ -209,7 +211,7 @@ test.describe("syncing services", () => {
                       status: 429,
                       contentType: "application/problem+json",
                       headers: {
-                          "Retry-After": "3",
+                          "Retry-After": "10",
                           "Access-Control-Allow-Origin": "*",
                           "Access-Control-Expose-Headers": "Retry-After",
                       },
@@ -225,14 +227,14 @@ test.describe("syncing services", () => {
         const syncNow = page.getByRole("button", { name: "Sync now" });
         await syncNow.click();
         await expect(
-            page.getByText(`${detail} Please try again in 3 seconds.`),
+            page.getByText(`${detail} Please try again in 10 seconds.`),
         ).toBeVisible();
         await expect(page.getByText("Nothing was fetched")).toBeVisible();
         await expect(page.getByText("you can sync again at")).toBeVisible();
         await expect(syncNow).toBeDisabled();
         await expect(page.getByText("Synced", { exact: true })).toBeVisible();
         // and on again after the wait
-        await expect(syncNow).toBeEnabled({ timeout: 10_000 });
+        await expect(syncNow).toBeEnabled({ timeout: 20_000 });
         await expect(page.getByText("you can sync again at")).toHaveCount(0);
         // the 429, which the app handles
         const expected = problems.splice(0);

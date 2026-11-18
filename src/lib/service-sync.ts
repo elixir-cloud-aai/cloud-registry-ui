@@ -75,6 +75,21 @@ function syncApplied({ status, reason }: ServiceSync) {
 }
 
 /**
+ * Say why a sync isn't applied, in the details of the service
+ * @param sync The state of the sync
+ * @returns The text, if out of sync or with a reason (synced, as an earlier
+ * sync succeeded in time, but the last one couldn't apply the values);
+ * undefined if the last sync applied the service info
+ */
+function syncStatusText(sync: ServiceSync) {
+    if (sync.status === "out-of-sync")
+        return `Out of sync: ${syncReasonText(sync.reason)}`;
+    return sync.reason === undefined
+        ? undefined
+        : `The last sync couldn't apply the service info: ${syncReasonText(sync.reason)}`;
+}
+
+/**
  * Get the message for a sync that was turned on
  * @param sync The state of the sync, which the registry returned
  * @returns The kind of message, and the message: sync is also on if the values
@@ -249,4 +264,5 @@ export {
     syncNowMessage,
     syncReasonText,
     syncStartedMessage,
+    syncStatusText,
 };

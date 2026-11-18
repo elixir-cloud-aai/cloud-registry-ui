@@ -12,6 +12,7 @@ import {
     syncNowMessage,
     syncReasonText,
     syncStartedMessage,
+    syncStatusText,
 } from "./service-sync";
 
 const synced: ServiceSync = {
@@ -188,6 +189,30 @@ describe("syncNowMessage", () => {
         expect(kind).toBe("warning");
         expect(message).toContain("can't be applied");
         expect(message).toContain("only admins may add it");
+    });
+});
+
+describe("syncStatusText", () => {
+    it("says nothing if the last sync applied the service info", () => {
+        expect(syncStatusText(synced)).toBeUndefined();
+    });
+
+    it("says why a service is out of sync", () => {
+        expect(
+            syncStatusText({
+                ...synced,
+                status: "out-of-sync",
+                reason: "unreachable",
+            }),
+        ).toBe(`Out of sync: ${syncReasonText("unreachable")}`);
+    });
+
+    it("says why the last sync wasn't applied, also while synced", () => {
+        expect(
+            syncStatusText({ ...synced, reason: "version not allowed" }),
+        ).toBe(
+            `The last sync couldn't apply the service info: ${syncReasonText("version not allowed")}`,
+        );
     });
 });
 

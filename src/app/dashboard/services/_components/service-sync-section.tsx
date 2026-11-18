@@ -25,8 +25,8 @@ import {
     syncFrequency,
     syncNowError,
     syncNowMessage,
-    syncReasonText,
     syncStartedMessage,
+    syncStatusText,
 } from "@/lib/service-sync";
 import { Field, SectionCard } from "./service-dailog-card-misc";
 
@@ -81,25 +81,29 @@ function ServiceSyncSection({
     );
     const [busy, setBusy] = useState(false);
     const [confirmOn, setConfirmOn] = useState(false);
-    // when the registry allows the next sync now, after a 429 with a wait
-    const [syncAgainAt, setSyncAgainAt] = useState<number>();
+    // when the registry allows the next sync now of a service, after a 429
+    // with a wait; only for that service, as the section may show another
+    // one meanwhile
+    const [hold, setHold] = useState<{ serviceId: string; until: number }>();
+    const syncAgainAt = hold?.serviceId === serviceId ? hold.until : undefined;
 
     useEffect(() => {
-        if (syncAgainAt === undefined) return;
+        if (hold === undefined) return;
         const timer = setTimeout(
-            () => setSyncAgainAt(undefined),
-            Math.max(syncAgainAt - Date.now(), 0),
+            () => setHold(undefined),
+            Math.max(hold.until - Date.now(), 0),
         );
         return () => clearTimeout(timer);
-    }, [syncAgainAt]);
+    }, [hold]);
 
     // a sync shows also if the rules can't be read
     if (loading || (!rule?.enabled && !sync)) return null;
     const frequency = rule ? syncFrequency(rule.intervalHours) : "regularly";
+    const statusText = sync && syncStatusText(sync);
 
-    /** Hold off "Sync now" for as long as the registry says */
+    /** Hold off "Sync now" of this service for as long as the registry says */
     const waitBeforeSync = (seconds: number) =>
-        setSyncAgainAt(Date.now() + seconds * 1000);
+        setHold({ serviceId, until: Date.now() + seconds * 1000 });
 
     const runSync = async (onlyIfEnabled: boolean) => {
         if (!provider) return;
@@ -211,12 +215,12 @@ function ServiceSyncSection({
                                     value={formatSyncTime(sync.lastAttemptAt)}
                                 />
                             </div>
-                            {sync.status === "out-of-sync" && (
+                            {statusText !== undefined && (
                                 <p
                                     role="status"
                                     className="text-sm text-amber-800 dark:text-amber-200"
                                 >
-                                    Out of sync: {syncReasonText(sync.reason)}
+                                    {statusText}
                                 </p>
                             )}
                         </>
