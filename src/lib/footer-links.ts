@@ -19,17 +19,19 @@ const urlMessage =
 /**
  * Check the URL of a link
  * @param url URL
- * @returns Whether it is an `https` URL (`http` only for the local
- * machine), a `mailto:` URL with an address, or a path of the app; no
+ * @returns Whether it is an `https` URL with a host (`http` only for the
+ * local machine), a `mailto:` URL with an address, or a path of the app; no
  * whitespace or control characters, which browsers drop or change, and no
  * `//` or `/\` at the start of a path, which browsers read as another host
  */
 function isLinkUrl(url: string) {
     if (/[\s\p{Cc}]/u.test(url)) return false;
     if (url.startsWith("/")) return !/^\/[/\\]/.test(url);
-    if (url.startsWith("mailto:"))
-        return url.length > "mailto:".length && URL.canParse(url);
-    return isSecureUrl(url);
+    if (/^mailto:/i.test(url))
+        return /^mailto:[^?]/i.test(url) && URL.canParse(url);
+    // `https:example.org` and `https:/example.org` parse, but browsers
+    // read them as paths of the app
+    return /^https?:\/\//i.test(url) && isSecureUrl(url);
 }
 
 /**
@@ -38,7 +40,7 @@ function isLinkUrl(url: string) {
  * @returns Whether it is an `http` or `https` URL
  */
 function isExternalLink(url: string) {
-    return /^https?:/.test(url);
+    return /^https?:/i.test(url);
 }
 
 /**
@@ -128,10 +130,4 @@ function footerSettings() {
         throw new Error(`Invalid setting NEXT_PUBLIC_FOOTER_LINKS: ${error}`);
 }
 
-export {
-    type FooterLink,
-    footerLinks,
-    footerSettings,
-    isExternalLink,
-    parseFooterLinks,
-};
+export { footerLinks, footerSettings, isExternalLink, parseFooterLinks };

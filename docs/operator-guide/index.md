@@ -2,7 +2,8 @@
 
 This guide is for people who deploy and run the Cloud Registry UI for a
 registry: the Docker image, its settings, login, branding, legal notices
-and cookies, admins and upgrading. For using the app, see the [User guide](../user-guide/index.md).
+and cookies, admins and upgrading. For using the app, see the [User
+guide](../user-guide/index.md).
 
 The app is a [Next.js](https://nextjs.org/) web app. Browsers talk to the
 registry directly; the app's server handles the login and serves the

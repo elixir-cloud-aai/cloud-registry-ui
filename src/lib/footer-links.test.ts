@@ -110,6 +110,9 @@ describe("parseFooterLinks", () => {
         "/privacy notice",
         "privacy.html",
         "mailto:",
+        "mailto:?subject=Registry",
+        "https:example.org/privacy",
+        "https:/example.org/privacy",
         "https://",
         "",
     ])("refuses the url %j", async (url) => {
@@ -155,6 +158,7 @@ describe("footerLinks", () => {
 describe("isExternalLink", () => {
     it.each([
         ["https://example.org/privacy", true],
+        ["HTTPS://example.org/privacy", true],
         ["http://localhost:8000/terms", true],
         ["/imprint", false],
         ["mailto:support@example.org", false],

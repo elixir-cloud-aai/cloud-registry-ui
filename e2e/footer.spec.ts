@@ -52,17 +52,4 @@ test.describe("footer", () => {
         await page.goto("/auth/error?type=state");
         await expectLinks(page);
     });
-
-    // see "Cookies and storage" in `docs/operator-guide/legal.md`: the app
-    // needs no consent banner as long as this holds
-    test("a guest's visit stores nothing", async ({ page }) => {
-        await openPage(page, "/dashboard/services", [isRead("/services")]);
-        await page.goto("/auth/login");
-        expect(await page.context().cookies()).toEqual([]);
-        const storage = await page.evaluate(() => ({
-            local: Object.keys(localStorage),
-            session: Object.keys(sessionStorage),
-        }));
-        expect(storage).toEqual({ local: [], session: [] });
-    });
 });

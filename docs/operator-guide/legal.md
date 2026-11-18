@@ -11,14 +11,16 @@ advice.
 ## Footer links
 
 `NEXT_PUBLIC_FOOTER_LINKS` sets the links of the footer, as a JSON list of
-links with a `label` and a `url`. Without it, the app shows no footer.
+links with a `label` and a `url`. Without it, the app shows no links.
 
 ![The footer with three links](../images/footer-links.png)
 
-The footer is shown at the bottom of every page: below the content of the
-pages with the sidebar, and on the login page, the invitation page and the
-error page of the login. Links to other sites open in a new tab, so that
-unsaved changes in the app stay.
+The links are shown in a footer at the bottom of the app's pages, separate
+from the copyright line and logo at the bottom of the sidebar (see
+[Branding](branding.md)): below the content of the pages with the sidebar,
+and on the login page, the invitation page and the error page of the
+login; not on the "page not found" page. Links to other sites open in a new
+tab, so that unsaved changes in the app stay.
 
 | Key     | Description                                                                                                                                                                                                                                                                                                    |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -28,7 +30,7 @@ unsaved changes in the app stay.
 The list may have at most 12 links, shown in its order. Invalid settings
 stop the app with a message that names the problem, as other settings do
 (see [Configuration](configuration.md)); a blank setting, or `[]`, shows no
-footer.
+links.
 
 For example, a deployment with the usual links:
 
@@ -54,29 +56,39 @@ Policy would block them.
 ## Cookies and storage
 
 The app has no cookie banner, as it stores nothing that needs consent: no
-analytics, no tracking, no advertising, and no content from other sites
-(its fonts are served by the app itself, and its Content Security Policy
-lets pages load scripts only from the app). It stores only what the login
+analytics, no tracking and no advertising. It stores only what the login
 needs and what users choose themselves:
 
-| Name                                                                    | Kind                            | Set when                                       | Kept for                                                         | Purpose                                                                                                   |
-| ----------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `__Host-access_token`, `__Host-id_token`, `__Host-login_provider`         | Cookies                         | a user logs in                                 | the session, at most 12 hours; deleted when the user logs out    | the login: the tokens of the login provider, and which provider it was                                  |
-| `__Host-authState`, `__Host-authProvider`, `__Host-authVerifier`, `__Host-authNonce`, `__Host-authReturnTo` | Cookies (server only) | a user starts to log in | at most 30 minutes; deleted when the login ends | protection of the login against forged answers (OpenID Connect `state`, PKCE, `nonce`), and the page to return to |
-| `admin_mode`                                                            | Cookie                          | an admin switches on admin mode                | the browser session; deleted when switched off or on logout      | the admin mode that the admin chose                                                                       |
-| `sidebar_state`                                                         | Cookie                          | a user collapses or expands the sidebar        | 7 days                                                           | whether the sidebar is collapsed                                                                          |
-| `theme`                                                                 | Local storage                   | a user switches between light and dark mode    | until the user clears the site's data                            | the colour scheme that the user chose                                                                     |
-| `pendingInvitation`                                                     | Session storage                 | a guest opens an invitation link               | the tab; deleted when the invitation is accepted                 | the invitation to accept after the login                                                                  |
+- **Session** (cookies `__Host-access_token`, `__Host-id_token` and
+  `__Host-login_provider`): set when a user logs in, kept for the session
+  (at most 12 hours) and deleted when the user logs out; the tokens of the
+  login provider, and which provider it was.
+- **Login in progress** (cookies `__Host-authState`, `__Host-authProvider`,
+  `__Host-authVerifier`, `__Host-authNonce` and `__Host-authReturnTo`, read
+  by the server only): set when a user starts to log in, kept for at most 30
+  minutes and deleted when the login ends; they protect the login against
+  forged answers (OpenID Connect `state` and `nonce`, PKCE) and keep the
+  page to return to.
+- **Admin mode** (cookie `admin_mode`): set when an admin switches admin
+  mode on, kept until the browser closes, and deleted when it is switched
+  off or the admin logs out.
+- **Colour scheme** (local storage `theme`): set when a user switches
+  between light and dark mode, kept until the user clears the site's data.
+- **Invitation** (session storage `pendingInvitation`): set when someone
+  opens an invitation link, kept in that tab, and deleted when the
+  invitation is accepted or can't be used; it keeps the invitation to
+  accept after the login.
 
 Development servers (`bun run dev`) use the cookie names without the
 `__Host-` prefix. A guest who only browses, without logging in or changing
-these settings, gets no cookies and nothing in the browser's storage (the
-end-to-end tests check this).
+these settings or opening an invitation link, gets no cookies and nothing
+in the browser's storage (the end-to-end tests check this for the services
+list, the invitation page and the login page).
 
 Under the EU's ePrivacy rules, and most similar laws, storage that is strictly
 necessary for a service that the user asked for (here: the login, and the
 settings that users change themselves) needs no consent; the privacy notice
-must still describe it. The table above is meant for that notice, together
+must still describe it. The list above is meant for that notice, together
 with what the deployment processes otherwise, e.g.:
 
 - the user's identity from the login provider (name, e-mail address,
@@ -84,7 +96,16 @@ with what the deployment processes otherwise, e.g.:
   invitations and notifications of the user (see the registry's
   documentation);
 - the logs of the app's server, of the reverse proxy in front of it and of
-  the registry, e.g. with IP addresses.
+  the registry, e.g. with IP addresses;
+- logos at URLs of other sites (`NEXT_PUBLIC_APP_LOGO`,
+  `NEXT_PUBLIC_FOOTER_LOGO` and their `_DARK` variants, see
+  [Branding](branding.md), and the logos of the login providers, see
+  [Login](login.md)): browsers load them from those sites, which see the
+  visitor's IP address. The default logos, the fonts and the scripts are
+  served by the app itself, and its Content Security Policy lets pages
+  load scripts only from the app. To keep visitors' browsers away from
+  other sites, use logos served from the app (paths in `public/`, which
+  needs a build of your own) or from a site that the privacy notice names.
 
 If a deployment adds anything that needs consent, such as analytics in a
 modified build or in a proxy in front of the app, it also needs a way to

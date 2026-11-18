@@ -23,8 +23,6 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
-const SIDEBAR_COOKIE_NAME = "sidebar_state";
-const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = "20rem";
 const SIDEBAR_WIDTH_MOBILE = "22rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
@@ -80,9 +78,9 @@ function SidebarProvider({
                 _setOpen(openState);
             }
 
-            // This sets the cookie to keep the sidebar state.
-            // biome-ignore lint/suspicious/noDocumentCookie: shadcn/ui's sidebar, as upstream has it
-            document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+            // unlike upstream, no cookie keeps the state: the app doesn't
+            // read it, and stores nothing it doesn't need (see "Cookies and
+            // storage" in `docs/operator-guide/legal.md`)
         },
         [setOpenProp, open],
     );
