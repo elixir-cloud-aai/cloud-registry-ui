@@ -35,6 +35,16 @@ async function syncedService(token: string) {
 }
 
 /**
+ * Match the sync of a service, also with a query (`?onlyIfEnabled=true`)
+ * @param id ID of the service
+ * @returns The matcher, for `page.route()`
+ */
+function syncOf(id: string) {
+    const path = new URL(`${registry}/services/${id}/sync`).pathname;
+    return (url: URL) => url.pathname === path;
+}
+
+/**
  * Get the row of a service in the list
  * @param page Page with the list
  * @param name Name of the service
@@ -122,6 +132,9 @@ test.describe("syncing services", () => {
         await changeServiceInfo(service.key, { name: `${service.name} new` });
         await page.getByRole("button", { name: "Sync now" }).click();
         await expect(
+            page.getByText("Synced: the service has the values"),
+        ).toBeVisible();
+        await expect(
             page.getByText(`${service.name} new`).first(),
         ).toBeVisible();
 
@@ -171,7 +184,86 @@ test.describe("syncing services", () => {
         await expect(
             page.getByText("The registry could not fetch the service info."),
         ).toBeVisible();
+        await expect(
+            page.getByText("Nothing changed: the service keeps its values"),
+        ).toBeVisible();
         await expect(page.getByText("Synced", { exact: true })).toBeVisible();
+        const expected = problems.splice(0);
+        expect(expected.every((val) => val.includes("/sync"))).toBe(true);
+    });
+
+    test("sync now says when to try again", async ({
+        page,
+        browser,
+        problems,
+    }) => {
+        // it waits for the hold to end
+        test.slow();
+        await addTesType(browser);
+        const token = await login(page, "owner");
+        const service = await syncedService(token);
+        const detail =
+            "The registry fetched the service info of this service less than 60 seconds ago; try again later.";
+        // as cloud-registry answers within the minute after a sync on request
+        await page.route(syncOf(service.id), (route) =>
+            route.request().method() === "PUT"
+                ? route.fulfill({
+                      status: 429,
+                      contentType: "application/problem+json",
+                      headers: {
+                          "Retry-After": "10",
+                          "Access-Control-Allow-Origin": "*",
+                          "Access-Control-Expose-Headers": "Retry-After",
+                      },
+                      body: JSON.stringify({
+                          status: 429,
+                          title: "Too Many Requests",
+                          detail,
+                      }),
+                  })
+                : route.fallback(),
+        );
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        const syncNow = page.getByRole("button", { name: "Sync now" });
+        await syncNow.click();
+        await expect(
+            page.getByText(`${detail} Please try again in 10 seconds.`),
+        ).toBeVisible();
+        await expect(page.getByText("Nothing was fetched")).toBeVisible();
+        await expect(page.getByText("you can sync again at")).toBeVisible();
+        await expect(syncNow).toBeDisabled();
+        await expect(page.getByText("Synced", { exact: true })).toBeVisible();
+        // and on again after the wait
+        await expect(syncNow).toBeEnabled({ timeout: 20_000 });
+        await expect(page.getByText("you can sync again at")).toHaveCount(0);
+        // the 429, which the app handles
+        const expected = problems.splice(0);
+        expect(expected.every((val) => val.includes("/sync"))).toBe(true);
+    });
+
+    test("sync now says who may sync", async ({ page, browser, problems }) => {
+        await addTesType(browser);
+        const token = await login(page, "owner");
+        const service = await syncedService(token);
+        // e.g. a role removed after the page loaded
+        await page.route(syncOf(service.id), (route) =>
+            route.request().method() === "PUT"
+                ? route.fulfill({
+                      status: 403,
+                      contentType: "application/problem+json",
+                      headers: { "Access-Control-Allow-Origin": "*" },
+                      body: JSON.stringify({ status: 403 }),
+                  })
+                : route.fallback(),
+        );
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        await page.getByRole("button", { name: "Sync now" }).click();
+        await expect(
+            page.getByText("Only owners, maintainers and admins"),
+        ).toBeVisible();
+        await expect(
+            page.getByRole("button", { name: "Sync now" }),
+        ).toBeEnabled();
         const expected = problems.splice(0);
         expect(expected.every((val) => val.includes("/sync"))).toBe(true);
     });

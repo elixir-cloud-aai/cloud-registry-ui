@@ -1,6 +1,6 @@
 "use client";
 import { RefreshCwIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
     AlertDialog,
@@ -20,10 +20,13 @@ import { mutationError } from "@/lib/errors";
 import { hasStatus } from "@/lib/permissions";
 import {
     formatSyncTime,
+    syncAgainText,
     syncFailedReason,
     syncFrequency,
-    syncReasonText,
+    syncNowError,
+    syncNowMessage,
     syncStartedMessage,
+    syncStatusText,
 } from "@/lib/service-sync";
 import { Field, SectionCard } from "./service-dailog-card-misc";
 
@@ -78,10 +81,29 @@ function ServiceSyncSection({
     );
     const [busy, setBusy] = useState(false);
     const [confirmOn, setConfirmOn] = useState(false);
+    // when the registry allows the next sync now of a service, after a 429
+    // with a wait; only for that service, as the section may show another
+    // one meanwhile
+    const [hold, setHold] = useState<{ serviceId: string; until: number }>();
+    const syncAgainAt = hold?.serviceId === serviceId ? hold.until : undefined;
+
+    useEffect(() => {
+        if (hold === undefined) return;
+        const timer = setTimeout(
+            () => setHold(undefined),
+            Math.max(hold.until - Date.now(), 0),
+        );
+        return () => clearTimeout(timer);
+    }, [hold]);
 
     // a sync shows also if the rules can't be read
     if (loading || (!rule?.enabled && !sync)) return null;
     const frequency = rule ? syncFrequency(rule.intervalHours) : "regularly";
+    const statusText = sync && syncStatusText(sync);
+
+    /** Hold off "Sync now" of this service for as long as the registry says */
+    const waitBeforeSync = (seconds: number) =>
+        setHold({ serviceId, until: Date.now() + seconds * 1000 });
 
     const runSync = async (onlyIfEnabled: boolean) => {
         if (!provider) return;
@@ -91,14 +113,20 @@ function ServiceSyncSection({
                 onlyIfEnabled,
             });
             onSyncChange(state);
-            const { kind, message } = syncStartedMessage(state);
+            const { kind, message } = onlyIfEnabled
+                ? syncNowMessage(state)
+                : syncStartedMessage(state);
             toast[kind](message);
         } catch (err) {
             if (onlyIfEnabled && hasStatus(err, 404))
                 toast.info(
                     "Sync was turned off in the meantime, or the service was deleted, so nothing was synced.",
                 );
-            else toast.error(syncFailedReason(err));
+            else if (onlyIfEnabled) {
+                const { message, description, retryAfter } = syncNowError(err);
+                toast.error(message, { description });
+                if (retryAfter !== undefined) waitBeforeSync(retryAfter);
+            } else toast.error(syncFailedReason(err));
             // the service is gone, or sync was turned off
             if (hasStatus(err, 404)) onSyncChange(undefined);
             else onRefresh();
@@ -187,12 +215,12 @@ function ServiceSyncSection({
                                     value={formatSyncTime(sync.lastAttemptAt)}
                                 />
                             </div>
-                            {sync.status === "out-of-sync" && (
+                            {statusText !== undefined && (
                                 <p
                                     role="status"
                                     className="text-sm text-amber-800 dark:text-amber-200"
                                 >
-                                    Out of sync: {syncReasonText(sync.reason)}
+                                    {statusText}
                                 </p>
                             )}
                         </>
@@ -217,7 +245,10 @@ function ServiceSyncSection({
                                         <Button
                                             size="sm"
                                             variant={"outline"}
-                                            disabled={busy}
+                                            disabled={
+                                                busy ||
+                                                syncAgainAt !== undefined
+                                            }
                                             onClick={handleSyncNow}
                                         >
                                             Sync now
@@ -243,6 +274,11 @@ function ServiceSyncSection({
                                 )}
                             </div>
                         )}
+                    {sync && syncAgainAt !== undefined && (
+                        <p className="text-sm text-muted-foreground">
+                            {syncAgainText(syncAgainAt)}
+                        </p>
+                    )}
                 </div>
             </SectionCard>
             <AlertDialog open={confirmOn} onOpenChange={setConfirmOn}>

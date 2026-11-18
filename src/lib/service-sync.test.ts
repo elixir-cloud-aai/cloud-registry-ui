@@ -3,12 +3,16 @@ import { failure } from "@/test/errors";
 import type { ServiceSync } from "./cloud-registry.types";
 import {
     formatSyncTime,
+    syncAgainText,
     syncedServices,
     syncFailedReason,
     syncFailedTitle,
     syncFrequency,
+    syncNowError,
+    syncNowMessage,
     syncReasonText,
     syncStartedMessage,
+    syncStatusText,
 } from "./service-sync";
 
 const synced: ServiceSync = {
@@ -126,6 +130,15 @@ describe("syncFailedReason", () => {
 
     it("asks to wait above the limit", () => {
         expect(syncFailedReason(failure(429))).toContain("too often");
+        expect(syncFailedReason(failure(429))).toContain("try again later");
+    });
+
+    it("says which limit, and how long to wait", () => {
+        const detail =
+            "The registry fetched the service info of this service less than 60 seconds ago; try again later.";
+        expect(syncFailedReason(failure(429, { detail, retryAfter: 42 }))).toBe(
+            `${detail} Please try again in 42 seconds.`,
+        );
     });
 
     it("names the field of invalid service info", () => {
@@ -150,9 +163,122 @@ describe("syncFailedReason", () => {
     });
 
     it("falls back to the message for failed changes", () => {
-        expect(syncFailedReason(failure(403))).toContain("permission");
+        expect(syncFailedReason(failure(401))).toContain("log in again");
+        expect(syncFailedReason(failure(403))).toBe(
+            "Only owners, maintainers and admins of this service can sync it.",
+        );
         expect(syncFailedReason(new Error("x"))).toBe(
             "Cannot sync this service currently.",
         );
+    });
+});
+
+describe("syncNowMessage", () => {
+    it("confirms a sync that applied the service info", () => {
+        const { kind, message } = syncNowMessage(synced);
+        expect(kind).toBe("success");
+        expect(message).toContain("Synced");
+        expect(message).not.toContain("Sync is on");
+    });
+
+    it.each<Partial<ServiceSync>>([
+        { status: "out-of-sync", reason: "version not allowed" },
+        { status: "synced", reason: "version not allowed" },
+    ])("warns if the values can't be applied: %o", (state) => {
+        const { kind, message } = syncNowMessage({ ...synced, ...state });
+        expect(kind).toBe("warning");
+        expect(message).toContain("can't be applied");
+        expect(message).toContain("only admins may add it");
+    });
+});
+
+describe("syncStatusText", () => {
+    it("says nothing if the last sync applied the service info", () => {
+        expect(syncStatusText(synced)).toBeUndefined();
+    });
+
+    it("says why a service is out of sync", () => {
+        expect(
+            syncStatusText({
+                ...synced,
+                status: "out-of-sync",
+                reason: "unreachable",
+            }),
+        ).toBe(`Out of sync: ${syncReasonText("unreachable")}`);
+    });
+
+    it("says why the last sync wasn't applied, also while synced", () => {
+        expect(
+            syncStatusText({ ...synced, reason: "version not allowed" }),
+        ).toBe(
+            `The last sync couldn't apply the service info: ${syncReasonText("version not allowed")}`,
+        );
+    });
+});
+
+describe("syncAgainText", () => {
+    it("says when to sync again", () => {
+        const time = Date.UTC(2026, 10, 18, 12, 0, 42);
+        expect(syncAgainText(time)).toBe(
+            `The registry asks to wait: you can sync again at ${new Date(time).toLocaleTimeString()}.`,
+        );
+    });
+});
+
+describe("syncNowError", () => {
+    const unchanged =
+        "Nothing changed: the service keeps its values, and its label stays as it was.";
+
+    // the registry changes nothing if it answers with a failure, also for
+    // conflicts that the app doesn't tell apart
+    it.each([
+        failure(502),
+        failure(400),
+        failure(409, { code: "sync-identity-mismatch" }),
+        failure(409, { code: "sync-unavailable" }),
+        failure(409, { code: "other", detail: "Other." }),
+    ])("says that nothing changed: %o", (err) => {
+        expect(syncNowError(err)).toEqual({
+            message: syncFailedReason(err),
+            description: unchanged,
+        });
+    });
+
+    it("doesn't claim that a service changed by another request is unchanged", () => {
+        const err = failure(409, { code: "service-busy" });
+        expect(syncNowError(err)).toEqual({ message: syncFailedReason(err) });
+    });
+
+    it("says how long to wait, and that nothing was fetched", () => {
+        expect(
+            syncNowError(failure(429, { detail: "Too soon.", retryAfter: 42 })),
+        ).toEqual({
+            message: "Too soon. Please try again in 42 seconds.",
+            description: "Nothing was fetched, and nothing changed.",
+            retryAfter: 42,
+        });
+    });
+
+    it("has no wait if the registry sends none", () => {
+        expect(syncNowError(failure(429)).retryAfter).toBeUndefined();
+    });
+
+    it("waits at most an hour", () => {
+        expect(
+            syncNowError(failure(429, { retryAfter: 3600 })).retryAfter,
+        ).toBe(3600);
+        expect(
+            syncNowError(failure(429, { retryAfter: 3_000_000 })).retryAfter,
+        ).toBe(3600);
+    });
+
+    it.each([
+        [failure(401), "log in again"],
+        [failure(403), "Only owners, maintainers and admins"],
+        [new TypeError("Failed to fetch"), "Cannot sync"],
+    ])("claims nothing about changes otherwise: %o", (err, text) => {
+        const { message, description } = syncNowError(err);
+        expect(message).toContain(text);
+        expect(description).toBeUndefined();
     });
 });

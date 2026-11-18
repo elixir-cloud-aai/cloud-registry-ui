@@ -58,15 +58,24 @@ syncs):
   service's URL followed by `/service-info`, and replaces the entry's values with it,
   overriding manual changes. If the fetch fails, or the service info doesn't fit the
   service, nothing changes and the app says so.
-- **Sync now**: syncs at once, unless someone turned sync off since the page loaded: then
-  it does nothing, and says so. A service info that can't be applied shows as **Out of
-  sync**, with the reason. If the fetch fails, or the service info describes another
-  service, nothing changes and the app says so; the regular syncs record these as
-  reasons.
+- **Sync now**: syncs at once, e.g. after a new version of the service, unless someone
+  turned sync off since the page loaded: then it does nothing, and says so. If the sync
+  worked, the app says **Synced** and shows the new values and times. A service info
+  that can't be applied shows as **Out of sync**, with the reason. If the fetch fails,
+  the service info doesn't pass the checks or describes another service, or the service
+  changed meanwhile, nothing changes, not even the label, and the app says so; the
+  regular syncs record these as reasons.
 - **Turn sync off**: the entry keeps its values.
 
-Only publicly available service info can be synced, as no tokens are sent. If service
-info was fetched too often, the app says how long to wait.
+Only publicly available service info can be synced, as no tokens are sent.
+
+**Sync now** fetches each service at most once a minute, whoever asks, and each user may
+have service info fetched only so often per hour (also for imports). Sooner, nothing is
+fetched: the app says which limit applies and when to try again, and keeps **Sync now**
+off until then (see the registry's
+[limits](https://cloud-registry.readthedocs.io/en/latest/api/#synced-services)). If your
+session expired, the app asks you to log in again; if you lost your role on the service
+meanwhile, it says who may sync.
 
 ## Changes while sync is on
 
