@@ -15,6 +15,11 @@ import {
     tokenOf,
 } from "./fixtures";
 
+// a minute, with a margin for the clocks; and when `syncedService()` last
+// turned sync on
+const syncHoldMs = 62_000;
+let lastSyncStart = 0;
+
 /**
  * Register a service of the stack with service info, with sync on
  * @param token Access token of its owner
@@ -29,9 +34,23 @@ async function syncedService(token: string) {
     const created = await api(token, "POST", "/services", values.body);
     expect(created.status).toBe(201);
     const id = String(created.body);
+    lastSyncStart = Date.now();
     const sync = await api(token, "PUT", `/services/${id}/sync`);
     expect(sync.status).toBe(200);
     return { ...service, id };
+}
+
+/**
+ * Wait until the services of the last `syncedService()` may be synced on
+ * request again: cloud-registry refuses (429) a sync on request of a service
+ * within a minute of the last one, also of turning sync on (fixed, not
+ * configurable, cloud-registry#417)
+ * @param page Page, for its clock
+ */
+async function waitForSyncHold(page: Page) {
+    await page.waitForTimeout(
+        Math.max(0, lastSyncStart + syncHoldMs - Date.now()),
+    );
 }
 
 /**
@@ -123,23 +142,31 @@ test.describe("syncing services", () => {
         browser,
         problems,
     }) => {
+        // one service per sync now, as the registry syncs a service on
+        // request at most once a minute, also after turning sync on
+        test.setTimeout(150_000);
         await addTesType(browser);
         const token = await login(page, "owner");
+        const renamed = await syncedService(token);
+        const otherApi = await syncedService(token);
         const service = await syncedService(token);
-        await page.goto(`/dashboard/services/view/${service.id}`);
-        await expect(page.getByText("Synced", { exact: true })).toBeVisible();
+        await waitForSyncHold(page);
 
-        await changeServiceInfo(service.key, { name: `${service.name} new` });
+        await page.goto(`/dashboard/services/view/${renamed.id}`);
+        await expect(page.getByText("Synced", { exact: true })).toBeVisible();
+        await changeServiceInfo(renamed.key, { name: `${renamed.name} new` });
         await page.getByRole("button", { name: "Sync now" }).click();
         await expect(
             page.getByText("Synced: the service has the values"),
         ).toBeVisible();
         await expect(
-            page.getByText(`${service.name} new`).first(),
+            page.getByText(`${renamed.name} new`).first(),
         ).toBeVisible();
 
         // another API: refused at once, and nothing changes
-        await changeServiceInfo(service.key, {
+        await page.goto(`/dashboard/services/view/${otherApi.id}`);
+        await expect(page.getByText("Synced", { exact: true })).toBeVisible();
+        await changeServiceInfo(otherApi.key, {
             type: { group: "org.ga4gh", artifact: "wes", version: "1.1.0" },
         });
         await page.getByRole("button", { name: "Sync now" }).click();
@@ -150,6 +177,8 @@ test.describe("syncing services", () => {
         problems.splice(0);
 
         // an unknown version: the registry keeps the values, and tells why
+        await page.goto(`/dashboard/services/view/${service.id}`);
+        await expect(page.getByText("Synced", { exact: true })).toBeVisible();
         await changeServiceInfo(service.key, {
             type: { group: "org.ga4gh", artifact: "tes", version: "9.9.9" },
         });
@@ -173,9 +202,12 @@ test.describe("syncing services", () => {
         browser,
         problems,
     }) => {
+        // the registry syncs a service on request at most once a minute
+        test.setTimeout(120_000);
         await addTesType(browser);
         const token = await login(page, "owner");
         const service = await syncedService(token);
+        await waitForSyncHold(page);
         await page.goto(`/dashboard/services/view/${service.id}`);
         await expect(page.getByText("Synced", { exact: true })).toBeVisible();
 

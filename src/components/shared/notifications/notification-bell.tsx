@@ -13,6 +13,7 @@ import {
 import { useCloudRegistry, useLatestRequest } from "@/hooks";
 import { isAborted } from "@/lib/abort";
 import type { AppNotification } from "@/lib/cloud-registry.types";
+import { failuresPath } from "@/lib/failures";
 import {
     notificationCount,
     notificationView,
@@ -303,6 +304,17 @@ function NotificationBell() {
                         Nothing needs your attention.
                     </p>
                 )}
+                {/* why something failed, also on phones, where the top bar
+                    has no room for the link next to the bell */}
+                <div className="border-t px-4 py-2 text-xs">
+                    <Link
+                        href={failuresPath}
+                        onClick={() => setOpen(false)}
+                        className="text-primary underline underline-offset-2"
+                    >
+                        View failed operations
+                    </Link>
+                </div>
             </PopoverContent>
         </Popover>
     );
