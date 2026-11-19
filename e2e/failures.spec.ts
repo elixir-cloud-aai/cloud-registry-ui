@@ -12,6 +12,7 @@ import {
     serviceWithInfo,
     test,
     tokenOf,
+    waitForReads,
 } from "./fixtures";
 
 const path = "/dashboard/failed-operations";
@@ -57,6 +58,33 @@ async function openFailures(page: Page, query = "") {
  */
 function row(page: Page, text: string) {
     return page.getByRole("row").filter({ hasText: text });
+}
+
+/**
+ * Wait until the page shows the list that it read, or that there is none
+ * @param page Page with the view
+ */
+async function expectLoaded(page: Page) {
+    await expect(page.getByText("Loading...")).toHaveCount(0);
+    await expect(
+        page.getByRole("table").or(page.getByText(/^No failed operations/)),
+    ).toBeVisible();
+}
+
+/**
+ * Choose a filter, and wait for the list that it reads
+ * @param page Page with the view
+ * @param label Label of the filter
+ * @param option The option
+ */
+async function filterBy(page: Page, label: string, option: string) {
+    await page.getByLabel(label).click();
+    await waitForReads(
+        page,
+        () => page.getByRole("option", { name: option }).click(),
+        [isRead("/failures")],
+    );
+    await expectLoaded(page);
 }
 
 test.describe("failed operations", () => {
@@ -114,9 +142,7 @@ test.describe("failed operations", () => {
         const service = await failedImport(await tokenOf(browser, "owner"));
         await login(page, "other");
         await openFailures(page);
-        await expect(
-            page.getByRole("heading", { name: "Failed Operations" }),
-        ).toBeVisible();
+        await expectLoaded(page);
         await expect(row(page, service.url)).toHaveCount(0);
     });
 
@@ -140,20 +166,34 @@ test.describe("failed operations", () => {
         await openFailures(page);
         await expect(row(page, service.url)).toHaveCount(1);
 
-        await page.getByLabel("Filter by operation").click();
-        await page.getByRole("option", { name: "Sync" }).click();
+        // the registry filters: the list asks for the operation
+        const asked: string[] = [];
+        page.on("request", (request) => {
+            const url = new URL(request.url());
+            if (isFailures(url)) asked.push(url.search);
+        });
+        await filterBy(page, "Filter by operation", "Sync");
         await page.waitForURL(`**${path}?operation=sync`);
         await expect(row(page, service.url)).toHaveCount(0);
+        expect(asked.at(-1)).toContain("operation=sync");
 
-        await page.getByLabel("Filter by operation").click();
-        await page.getByRole("option", { name: "Import" }).click();
-        await page.getByLabel("Filter by reason").click();
-        await page.getByRole("option", { name: "Fetch failed" }).click();
+        await filterBy(page, "Filter by operation", "Import");
+        await filterBy(page, "Filter by reason", "Not JSON");
+        await page.waitForURL(`**${path}?operation=import&reason=not+JSON`);
+        await expect(row(page, service.url)).toHaveCount(0);
+
+        await filterBy(page, "Filter by reason", "Fetch failed");
         await page.waitForURL(`**${path}?operation=import&reason=fetch+failed`);
         await expect(row(page, service.url)).toHaveCount(1);
+        expect(asked.at(-1)).toContain("reason=fetch+failed");
 
-        await page.getByRole("button", { name: "Clear filters" }).click();
+        await waitForReads(
+            page,
+            () => page.getByRole("button", { name: "Clear filters" }).click(),
+            [isRead("/failures")],
+        );
         await page.waitForURL(`**${path}`);
+        await expectLoaded(page);
         await expect(row(page, service.url)).toHaveCount(1);
     });
 
