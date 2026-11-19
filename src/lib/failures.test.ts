@@ -3,6 +3,7 @@ import type { Failure } from "./cloud-registry.types";
 import {
     appendFailures,
     failedOperations,
+    failureActor,
     failureReasonLabel,
     failureReasons,
     failureReasonText,
@@ -10,6 +11,7 @@ import {
     failuresHref,
     failuresPath,
     failuresQuery,
+    maxServiceIdLength,
     operationLabel,
     readFailuresFilter,
 } from "./failures";
@@ -111,6 +113,13 @@ describe("readFailuresFilter", () => {
         );
     });
 
+    it("takes the longest identifier that the registry takes", () => {
+        const serviceId = "x".repeat(maxServiceIdLength);
+        expect(readFailuresFilter(new URLSearchParams({ serviceId }))).toEqual({
+            serviceId,
+        });
+    });
+
     it("has no filters without parameters", () => {
         expect(readFailuresFilter(new URLSearchParams())).toEqual({});
     });
@@ -184,10 +193,32 @@ describe("failuresError", () => {
         });
     });
 
-    it("has a fixed text for other failures", () => {
+    it("has a fixed text for invalid requests without a detail", () => {
+        expect(failuresError(err(400)).message).toBe(
+            "Could not load the failed operations. Please try again.",
+        );
+    });
+
+    it("has a fixed text for other failures, also with a detail", () => {
         expect(failuresError(new Error("network"))).toEqual({
             kind: "error",
             message: "Could not load the failed operations. Please try again.",
         });
+        expect(failuresError(err(500, "Traceback")).message).toBe(
+            "Could not load the failed operations. Please try again.",
+        );
+    });
+});
+
+describe("failureActor", () => {
+    it("names the user who acted, if served", () => {
+        expect(failureActor({ ...failure("a"), userId: "u" }, false)).toBe("u");
+    });
+
+    it("names the registry only for admins in admin mode", () => {
+        // admins see who acted on every failure but the registry's syncs
+        expect(failureActor(failure("a"), true)).toBe("Registry");
+        // others don't see who acted on failures of others either
+        expect(failureActor(failure("a"), false)).toBe("Not shown");
     });
 });

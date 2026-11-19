@@ -8,7 +8,8 @@ import {
 } from "@/components/ui/tooltip";
 import { readSessionCookie } from "@/lib/session";
 import { AdminModeToggle } from "../admin-mode";
-import { FailedOperationsLink, NotificationBell } from "../notifications";
+import { FailedOperationsLink } from "../failed-operations";
+import { NotificationBell } from "../notifications";
 import { ThemeToggle } from "../theme";
 
 async function AppTopbarActions() {

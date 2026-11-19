@@ -2,7 +2,7 @@
 import { XIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { PageSubtitle } from "@/components/shared/page-subtitle";
 import { Button } from "@/components/ui/button";
@@ -27,13 +27,16 @@ import { isAborted } from "@/lib/abort";
 import type { Failure } from "@/lib/cloud-registry.types";
 import {
     appendFailures,
+    type FailuresError,
     type FailuresFilter,
     failedOperations,
+    failureActor,
     failureReasonLabel,
     failureReasons,
     failureReasonText,
     failuresError,
     failuresHref,
+    maxServiceIdLength,
     operationLabel,
     readFailuresFilter,
 } from "@/lib/failures";
@@ -53,15 +56,18 @@ type ListState =
           loadingMore: boolean;
           moreFailed?: string;
       }
-    | ReturnType<typeof failuresError>;
+    | FailuresError;
 
 /** One failure in the list */
 function FailureRow({
     failure,
     showUser,
+    admin,
 }: {
     failure: Failure;
     showUser: boolean;
+    /** Whether the user is an admin in admin mode */
+    admin: boolean;
 }) {
     const time = timeAgo(failure.occurredAt);
     const date = Date.parse(failure.occurredAt);
@@ -118,7 +124,9 @@ function FailureRow({
             {showUser && (
                 <TableCell className="max-w-48 whitespace-normal wrap-anywhere">
                     {failure.userId ?? (
-                        <span className="text-muted-foreground">Registry</span>
+                        <span className="text-muted-foreground">
+                            {failureActor(failure, admin)}
+                        </span>
                     )}
                 </TableCell>
             )}
@@ -142,8 +150,9 @@ function Page() {
     const [serviceInput, setServiceInput] = useState("");
     // also aborted on unmount; a new filter aborts the pages of the last one
     const latestRequest = useLatestRequest();
-    const filter = readFailuresFilter(new URLSearchParams(query));
-    const { operation, reason, serviceId } = filter;
+    const { operation, reason, serviceId } = readFailuresFilter(
+        new URLSearchParams(query),
+    );
 
     useEffect(() => {
         setServiceInput(serviceId ?? "");
@@ -232,15 +241,12 @@ function Page() {
             });
     };
 
-    const applyFilter = useCallback(
-        (change: FailuresFilter) => {
-            router.replace(
-                failuresHref({ operation, reason, serviceId, ...change }),
-                { scroll: false },
-            );
-        },
-        [operation, reason, router, serviceId],
-    );
+    const applyFilter = (change: FailuresFilter) => {
+        router.replace(
+            failuresHref({ operation, reason, serviceId, ...change }),
+            { scroll: false },
+        );
+    };
 
     const submitService = (e: FormEvent) => {
         e.preventDefault();
@@ -294,6 +300,7 @@ function Page() {
                                 key={val.id}
                                 failure={val}
                                 showUser={showUser}
+                                admin={!!me?.admin}
                             />
                         ))}
                     </TableBody>
@@ -396,7 +403,7 @@ function Page() {
                         aria-label="Filter by service ID"
                         placeholder="Service ID"
                         value={serviceInput}
-                        maxLength={1024}
+                        maxLength={maxServiceIdLength}
                         onChange={(e) => setServiceInput(e.target.value)}
                         disabled={filtersDisabled}
                         className="sm:w-56"
