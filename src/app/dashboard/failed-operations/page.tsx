@@ -2,7 +2,7 @@
 import { XIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { LoginPrompt } from "@/components/shared/login-prompt";
 import { PageSubtitle } from "@/components/shared/page-subtitle";
 import { Button } from "@/components/ui/button";
@@ -61,11 +61,9 @@ type ListState =
 /** One failure in the list */
 function FailureRow({
     failure,
-    showUser,
     admin,
 }: {
     failure: Failure;
-    showUser: boolean;
     /** Whether the user is an admin in admin mode */
     admin: boolean;
 }) {
@@ -121,15 +119,13 @@ function FailureRow({
                     <span className="text-muted-foreground">Unknown</span>
                 )}
             </TableCell>
-            {showUser && (
-                <TableCell className="max-w-48 whitespace-normal wrap-anywhere">
-                    {failure.userId ?? (
-                        <span className="text-muted-foreground">
-                            {failureActor(failure, admin)}
-                        </span>
-                    )}
-                </TableCell>
-            )}
+            <TableCell className="max-w-48 whitespace-normal wrap-anywhere">
+                {failure.userId ?? (
+                    <span className="text-muted-foreground">
+                        {failureActor(failure, admin)}
+                    </span>
+                )}
+            </TableCell>
         </TableRow>
     );
 }
@@ -153,10 +149,14 @@ function Page() {
     const { operation, reason, serviceId } = readFailuresFilter(
         new URLSearchParams(query),
     );
+    // the filters asked for last, so that changes in quick succession build
+    // on each other before the address follows
+    const pendingFilter = useRef<FailuresFilter>({});
 
     useEffect(() => {
+        pendingFilter.current = { operation, reason, serviceId };
         setServiceInput(serviceId ?? "");
-    }, [serviceId]);
+    }, [operation, reason, serviceId]);
 
     useEffect(() => {
         if (!cloudRegistryProvider || !isLoggedIn) return;
@@ -242,10 +242,8 @@ function Page() {
     };
 
     const applyFilter = (change: FailuresFilter) => {
-        router.replace(
-            failuresHref({ operation, reason, serviceId, ...change }),
-            { scroll: false },
-        );
+        pendingFilter.current = { ...pendingFilter.current, ...change };
+        router.replace(failuresHref(pendingFilter.current), { scroll: false });
     };
 
     const submitService = (e: FormEvent) => {
@@ -254,9 +252,6 @@ function Page() {
     };
 
     const filtered = !!(operation || reason || serviceId);
-    const failures = state.kind === "loaded" ? state.failures : [];
-    // who acted: only admins in admin mode and the users themselves see it
-    const showUser = failures.some((val) => val.userId !== undefined);
 
     let content: React.ReactNode;
     if (cloudRegistryProvider === null)
@@ -291,7 +286,7 @@ function Page() {
                             <TableHead>Operation</TableHead>
                             <TableHead>Reason</TableHead>
                             <TableHead>Service</TableHead>
-                            {showUser && <TableHead>User</TableHead>}
+                            <TableHead>User</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -299,7 +294,6 @@ function Page() {
                             <FailureRow
                                 key={val.id}
                                 failure={val}
-                                showUser={showUser}
                                 admin={!!me?.admin}
                             />
                         ))}

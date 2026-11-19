@@ -4,8 +4,9 @@ When an import, registration, update or sync fails, the message on the page tell
 only about that one request, and syncs run without you. If you're logged in, the
 triangle icon next to the [notification](notifications.md) bell leads to the list of
 recent failures, so that you can find out why without access to the registry's logs.
-On narrow screens, such as phones, **View failed operations** at the bottom of the
-list of notifications leads there:
+So do **View failed operations** at the bottom of the list of notifications and
+**Failed operations** in the menu at the bottom of the sidebar (your name), also on
+narrow screens, such as phones, where the top bar has no room for the triangle:
 
 ![The list of failed operations](../images/failed-operations.png)
 

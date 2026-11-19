@@ -138,8 +138,26 @@ test.describe("failed operations", () => {
         ).toBeVisible();
     });
 
+    test("the user menu leads there", async ({ page }) => {
+        await login(page, "owner");
+        await page
+            .getByRole("button", { name: "bob@lifescience-ri.eu" })
+            .click();
+        await page.getByRole("menuitem", { name: "Failed operations" }).click();
+        await page.waitForURL(`**${path}`);
+        await expectLoaded(page);
+    });
+
     test("other users don't see them", async ({ page, browser }) => {
-        const service = await failedImport(await tokenOf(browser, "owner"));
+        const owner = await tokenOf(browser, "owner");
+        const service = await failedImport(owner);
+        // recorded: the owner sees it
+        const own = await api(owner, "GET", "/failures");
+        expect(
+            own.body.failures.some(
+                (val: { url?: string }) => val.url === service.url,
+            ),
+        ).toBe(true);
         await login(page, "other");
         await openFailures(page);
         await expectLoaded(page);
