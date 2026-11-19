@@ -68,6 +68,7 @@ offer them with older registries:
 | [Import and sync of service info](../user-guide/registering.md#importing-from-service-info)  | 1.0.0rc2             |
 | [Notifications](../user-guide/notifications.md)                                              | 1.0.0rc2             |
 | [Reasons at each refused field](../user-guide/registering.md#editing-a-service)              | 1.0.0rc2             |
+| [Failed operations](../user-guide/failed-operations.md) (`GET /failures`)                    | next after 1.0.0rc2  |
 | [Registration rules](configuration.md#registry) (environments, URL schemes)                  | 0.6.0                |
 | Names of the registry's API in camelCase (see below), required                               | 1.0.0rc2             |
 

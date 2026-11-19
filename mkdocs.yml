@@ -72,6 +72,7 @@ nav:
       - Verifications: user-guide/verifications.md
       - Syncing services: user-guide/syncing.md
       - Notifications: user-guide/notifications.md
+      - Failed operations: user-guide/failed-operations.md
       - Pending entries: user-guide/pending.md
       - Admin mode: user-guide/admin-mode.md
   - Operator guide:

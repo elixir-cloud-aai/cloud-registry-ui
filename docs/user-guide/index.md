@@ -37,6 +37,9 @@ The top bar has these buttons, from left to right:
 - the light and dark colour scheme;
 - **Notifications** (the bell), if you're logged in: what needs your attention,
   with a red number if anything does (see [Notifications](notifications.md));
+- **Failed operations** (the triangle), if you're logged in: recent failed
+  imports, registrations, updates and syncs (see [Failed
+  operations](failed-operations.md));
 - **Log in**, or, for admins, the switch between **User mode** and **Admin
   mode** (see [Admin mode](admin-mode.md)).
 
