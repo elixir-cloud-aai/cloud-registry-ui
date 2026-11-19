@@ -15,15 +15,14 @@ import {
     tokenOf,
 } from "./fixtures";
 
-// a minute, with a margin for the clocks; and when `syncedService()` last
-// turned sync on
+// a minute, with a margin for the clocks
 const syncHoldMs = 62_000;
-let lastSyncStart = 0;
 
 /**
  * Register a service of the stack with service info, with sync on
  * @param token Access token of its owner
- * @returns The service, with its ID
+ * @returns The service, with its ID, and when sync was turned on
+ * (`syncedAt`, for `waitForSyncHold()`)
  */
 async function syncedService(token: string) {
     const service = serviceWithInfo();
@@ -34,23 +33,25 @@ async function syncedService(token: string) {
     const created = await api(token, "POST", "/services", values.body);
     expect(created.status).toBe(201);
     const id = String(created.body);
-    lastSyncStart = Date.now();
+    const syncedAt = Date.now();
     const sync = await api(token, "PUT", `/services/${id}/sync`);
     expect(sync.status).toBe(200);
-    return { ...service, id };
+    return { ...service, id, syncedAt };
 }
 
 /**
- * Wait until the services of the last `syncedService()` may be synced on
- * request again: cloud-registry refuses (429) a sync on request of a service
- * within a minute of the last one, also of turning sync on (fixed, not
- * configurable, cloud-registry#417)
+ * Wait until services may be synced on request again: cloud-registry
+ * refuses (429) a sync on request of a service within a minute of the last
+ * one, also of turning sync on (fixed, not configurable, cloud-registry#417)
  * @param page Page, for its clock
+ * @param services The services, from `syncedService()`
  */
-async function waitForSyncHold(page: Page) {
-    await page.waitForTimeout(
-        Math.max(0, lastSyncStart + syncHoldMs - Date.now()),
-    );
+async function waitForSyncHold(
+    page: Page,
+    ...services: { syncedAt: number }[]
+) {
+    const last = Math.max(...services.map((val) => val.syncedAt));
+    await page.waitForTimeout(Math.max(0, last + syncHoldMs - Date.now()));
 }
 
 /**
@@ -150,7 +151,7 @@ test.describe("syncing services", () => {
         const renamed = await syncedService(token);
         const otherApi = await syncedService(token);
         const service = await syncedService(token);
-        await waitForSyncHold(page);
+        await waitForSyncHold(page, renamed, otherApi, service);
 
         await page.goto(`/dashboard/services/view/${renamed.id}`);
         await expect(page.getByText("Synced", { exact: true })).toBeVisible();
@@ -207,7 +208,7 @@ test.describe("syncing services", () => {
         await addTesType(browser);
         const token = await login(page, "owner");
         const service = await syncedService(token);
-        await waitForSyncHold(page);
+        await waitForSyncHold(page, service);
         await page.goto(`/dashboard/services/view/${service.id}`);
         await expect(page.getByText("Synced", { exact: true })).toBeVisible();
 

@@ -30,7 +30,9 @@ Each row has:
   others).
 
 The most recent come first. **Load more** shows older ones. The registry keeps
-failures for a limited time (by default 30 days).
+failures for a limited time, set by its operators (by default 30 days; see the
+registry's [Failed operations](https://cloud-registry.readthedocs.io/en/latest/configuration/#failed-operations)
+settings).
 
 ## Reasons
 
@@ -60,4 +62,5 @@ service. The filters are part of the page's address, so you can bookmark or shar
 filtered list; others see only what they may see. **Clear filters** shows all again.
 
 Registries without this list (up to cloud-registry 1.0.0rc2) say so on the page; so do
-registries whose access policy refuses it (ask the registry's admins).
+registries whose access policy refuses it (ask the registry's admins; see
+[Compatibility](../operator-guide/index.md#compatibility)).
