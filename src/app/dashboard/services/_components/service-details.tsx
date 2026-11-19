@@ -1,6 +1,6 @@
 "use client";
 import type { ExternalService } from "@elixir-cloud/cloud-registry/providers";
-import { KeyRound, Share2 } from "lucide-react";
+import { KeyRound, Share2, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import {
     type ComponentType,
@@ -20,6 +20,7 @@ import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-clo
 import { copyText } from "@/lib/clipboard";
 import type { Me, Verification } from "@/lib/cloud-registry.types";
 import { isVerificationMismatch, mutationError } from "@/lib/errors";
+import { failuresHref } from "@/lib/failures";
 import {
     canApproveServiceType,
     canChangeSelfListing,
@@ -265,6 +266,18 @@ function ServiceDetails({
                         >
                             <KeyRound />
                             Manage access
+                        </Button>
+                    )}
+                    {/* those with a role on it, and admins in admin mode,
+                        see its failures */}
+                    {canEdit && (
+                        <Button size="sm" variant={"outline"} asChild>
+                            <Link
+                                href={failuresHref({ serviceId: service.id })}
+                            >
+                                <TriangleAlert />
+                                Failed operations
+                            </Link>
                         </Button>
                     )}
                 </div>
