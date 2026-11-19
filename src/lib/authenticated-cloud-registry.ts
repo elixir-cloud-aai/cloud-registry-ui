@@ -11,6 +11,7 @@ import type {
     AppNotification,
     Approvals,
     CloudRegistryProviderOptions,
+    FailurePage,
     GroupName,
     GroupPermission,
     Invitation,
@@ -31,6 +32,11 @@ import type {
     VerifiedServices,
 } from "./cloud-registry.types";
 import { invalidFields } from "./errors";
+import {
+    type FailuresFilter,
+    type FailuresPageOptions,
+    failuresQuery,
+} from "./failures";
 import { hasStatus } from "./permissions";
 import { registrationRules } from "./registration-rules";
 
@@ -972,6 +978,31 @@ class AuthenticatedCloudRegistryProvider implements CloudRegistryProvider {
         return this.request(`/notifications/${this.idPath(notificationId)}`, {
             method: "DELETE",
             authenticated: true,
+        });
+    }
+
+    // --------------------------------------------------
+    // Failed operations
+    // --------------------------------------------------
+
+    /**
+     * GET /failures
+     * Authenticated.
+     *
+     * Recent failed imports, registrations, updates and syncs, most recent
+     * first: the user's own and those of their services; in admin mode, all.
+     *
+     * @param filter Only those of an operation, reason or service
+     * @param page Size of the page, and `nextPageToken` of the one before
+     */
+    async getFailures(
+        filter: FailuresFilter = {},
+        page: FailuresPageOptions = {},
+        { signal }: ReadOptions = {},
+    ): Promise<FailurePage> {
+        return this.request(`/failures${failuresQuery(filter, page)}`, {
+            authenticated: true,
+            signal,
         });
     }
 

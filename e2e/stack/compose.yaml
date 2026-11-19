@@ -67,12 +67,14 @@ services:
             retries: 30
 
     registry:
-        # cloud-registry 1.0.0rc2, the release the app needs (camelCase names
-        # of its API, the paths of users' roles, labels, expired invitations,
-        # the listing of the registry itself, import and sync of service info,
-        # notifications, the invalid fields of cloud-registry#378);
-        # pinned by digest for repeatable runs
-        image: ${E2E_REGISTRY_IMAGE:-docker.io/elixircloud/cloud-registry:1.0.0rc2@sha256:8630fe58d0c85d48f33822d8ac99c4518f370f91b126f9b8f2146d17f312e20d}
+        # cloud-registry's dev image of cloud-registry#418 (the failed
+        # operations, `GET /failures`), until the release after 1.0.0rc2;
+        # the app needs 1.0.0rc2 (camelCase names of its API, the paths of
+        # users' roles, labels, expired invitations, the listing of the
+        # registry itself, import and sync of service info, notifications,
+        # the invalid fields of cloud-registry#378) and shows the failed
+        # operations with later versions; pinned by digest for repeatable runs
+        image: ${E2E_REGISTRY_IMAGE:-docker.io/elixircloud/cloud-registry:sha-a3273a81a29df29a12d45e259278e59462d8a993@sha256:28097c7866d66910d04c2621065976a567ce112ce4b14fb444a9e460e6b0f2f8}
         depends_on:
             mongodb:
                 condition: service_healthy

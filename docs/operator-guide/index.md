@@ -68,8 +68,16 @@ offer them with older registries:
 | [Import and sync of service info](../user-guide/registering.md#importing-from-service-info)  | 1.0.0rc2             |
 | [Notifications](../user-guide/notifications.md)                                              | 1.0.0rc2             |
 | [Reasons at each refused field](../user-guide/registering.md#editing-a-service)              | 1.0.0rc2             |
+| [Failed operations](../user-guide/failed-operations.md) (`GET /failures`)                    | next after 1.0.0rc2  |
 | [Registration rules](configuration.md#registry) (environments, URL schemes)                  | 0.6.0                |
 | Names of the registry's API in camelCase (see below), required                               | 1.0.0rc2             |
+
+The [failed operations](../user-guide/failed-operations.md) need the registry's
+access rule `list-failures` (`GET /failures` for all authenticated users), which its
+default policy has from that version on: registries with a policy of their own add
+it, else the page says that the registry refuses the list. The registry sets how long
+it keeps failures (see its [Failed
+operations](https://cloud-registry.readthedocs.io/en/latest/configuration/#failed-operations)).
 
 **From 1.0.0-rc2, the app must ship together with a registry that has the new
 paths of users' roles (`/services/{serviceId}/permissions/users/{userId}`):

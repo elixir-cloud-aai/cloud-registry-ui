@@ -28,11 +28,13 @@ async function outOfSyncService(token: string) {
     });
     const created = await api(token, "POST", "/services", values.body);
     const id = String(created.body);
-    expect((await api(token, "PUT", `/services/${id}/sync`)).status).toBe(200);
+    // changed before sync is turned on, which syncs at once: the registry
+    // refuses another sync on request of the service within a minute
     await changeServiceInfo(service.key, {
         type: { group: "org.ga4gh", artifact: "tes", version: "9.9.9" },
     });
     const sync = await api(token, "PUT", `/services/${id}/sync`);
+    expect(sync.status).toBe(200);
     expect(sync.body.status).toBe("out-of-sync");
     return { ...service, id };
 }

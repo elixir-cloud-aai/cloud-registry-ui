@@ -352,6 +352,48 @@ try {
     await owner.getByRole("button", { name: /^Notifications/ }).click();
     await shoot(owner, "notifications");
     await owner.unroute(notificationsPath);
+    // some failed operations: real ones would take failing services
+    const ago = (minutes) =>
+        new Date(Date.now() - minutes * 60_000).toISOString();
+    const failuresPath = (url) =>
+        `${url.origin}${url.pathname}` === `${registry}/failures`;
+    await owner.route(failuresPath, (route) =>
+        route.fulfill({
+            json: {
+                failures: [
+                    {
+                        id: "1",
+                        occurredAt: ago(12),
+                        operation: "sync",
+                        reason: "version awaiting approval",
+                        serviceId: "tes-north",
+                        url: "https://tes-north.example.org/ga4gh/tes/v1",
+                    },
+                    {
+                        id: "2",
+                        occurredAt: ago(95),
+                        operation: "update",
+                        reason: "invalid field",
+                        serviceId: "tes-south",
+                        url: "https://tes-south.example.org/ga4gh/tes/v1",
+                        userId: users.owner.sub,
+                        fields: ["organization.url"],
+                    },
+                    {
+                        id: "3",
+                        occurredAt: ago(26 * 60),
+                        operation: "import",
+                        reason: "fetch failed",
+                        url: "https://wes.example.org/ga4gh/wes/v1/service-info",
+                        userId: users.owner.sub,
+                    },
+                ],
+            },
+        }),
+    );
+    await owner.goto(`${appUrl}/dashboard/failed-operations`);
+    await shoot(owner, "failed-operations");
+    await owner.unroute(failuresPath);
     await owner.goto(`${appUrl}/dashboard/services`);
     await shoot(owner, "services");
     await owner.getByLabel("Search services").fill("tes");

@@ -23,6 +23,10 @@ fix a problem, a link in the notification leads there.
 
 The list updates every minute while the page is visible.
 
+Notifications show what needs attention now. Why an import, registration, update or
+sync failed is in the list of [failed operations](failed-operations.md): **View failed
+operations** at the bottom of the list, or the triangle next to the bell.
+
 ## Dismissing a notification
 
 **X** dismisses a notification, not only for you. Outside admin mode, it's gone for all

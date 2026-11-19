@@ -134,6 +134,7 @@ describe("abort", () => {
         ["getServiceSync", (p, signal) => p.getServiceSync("a", { signal })],
         ["getSyncs", (p, signal) => p.getSyncs({ signal })],
         ["getNotifications", (p, signal) => p.getNotifications({ signal })],
+        ["getFailures", (p, signal) => p.getFailures({}, {}, { signal })],
         ["getServiceInfo", (p, signal) => p.getServiceInfo({ signal })],
         ["getSelfListing", (p, signal) => p.getSelfListing({ signal })],
     ])("%s stops when the caller aborts", async (_name, read) => {
@@ -308,6 +309,46 @@ describe("notifications", () => {
             method: "DELETE",
             auth: "Bearer t",
         });
+    });
+});
+
+describe("getFailures", () => {
+    it("reads them with the user's token and roles", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider({
+            baseUrl: base,
+            token: "t",
+            roles: ["admin"],
+        });
+        const page = { failures: [], nextPageToken: "1.abc" };
+        fetchMock.mockResolvedValue(json(page));
+        await expect(provider.getFailures()).resolves.toEqual(page);
+        expect(lastRequest()).toMatchObject({
+            url: `${base}/failures`,
+            method: "GET",
+            auth: "Bearer t",
+        });
+        const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
+        expect(headers.get("X-Request-Roles")).toBe("admin");
+    });
+
+    it("asks for the filters and the page", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base, "t");
+        fetchMock.mockResolvedValue(json({ failures: [] }));
+        await provider.getFailures(
+            { operation: "sync", reason: "not JSON", serviceId: "a/b" },
+            { pageSize: 50, pageToken: "1.abc" },
+        );
+        expect(lastRequest().url).toBe(
+            `${base}/failures?operation=sync&reason=not+JSON&serviceId=a%2Fb&pageSize=50&pageToken=1.abc`,
+        );
+    });
+
+    it("needs a login", async () => {
+        const provider = new AuthenticatedCloudRegistryProvider(base);
+        await expect(provider.getFailures()).rejects.toThrow(
+            "Authentication is required",
+        );
+        expect(fetchMock).not.toHaveBeenCalled();
     });
 });
 

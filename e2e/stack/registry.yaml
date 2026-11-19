@@ -44,3 +44,7 @@ custom:
                 # the test users import in every run (the tests of the limit
                 # fake it)
                 fetches_per_hour: 100000
+            # the test users fail on purpose in every run: all failures are
+            # recorded, so that the tests find theirs
+            failures:
+                max_per_user_per_hour: 100000

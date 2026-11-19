@@ -231,6 +231,58 @@ export interface AppNotification {
     since?: string;
 }
 
+/** Operation that failed (`GET /failures`, cloud-registry#415). */
+export type FailedOperation = "import" | "register" | "update" | "sync";
+
+/**
+ * Why an operation failed, from a fixed set (`GET /failures`); `fetch failed`
+ * stands for `unreachable` and `address not allowed` of the fetches that users
+ * started, as served to all but admins.
+ */
+export type FailureReason =
+    | SyncReason
+    | "fetch failed"
+    | "not JSON"
+    | "invalid field"
+    | "duplicate service"
+    | "services limit reached"
+    | "pending service"
+    | "url locked by sync";
+
+/**
+ * GET /failures
+ *
+ * A failed import, registration, update or sync. It has no values of fields,
+ * response bodies or network errors.
+ */
+export interface Failure {
+    id: string;
+    /** RFC 3339 date-time. */
+    occurredAt: string;
+    operation: FailedOperation;
+    /** The registry may add reasons, which `failureReasonText()` handles. */
+    reason: FailureReason;
+    /** Identifier of the service at the time, for registered services. */
+    serviceId?: ServiceId;
+    /** URL of the service, if known, without query and fragment. */
+    url?: string;
+    /** Who acted; only for admins in admin mode and the user themselves. */
+    userId?: UserId;
+    /** Names of the invalid fields, e.g. `organization.url`. */
+    fields?: string[];
+}
+
+/**
+ * GET /failures
+ *
+ * A page of failures, most recent first.
+ */
+export interface FailurePage {
+    failures: Failure[];
+    /** `pageToken` of the next page; missing on the last one. */
+    nextPageToken?: string;
+}
+
 /**
  * GET /approvals
  *

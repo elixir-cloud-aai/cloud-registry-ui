@@ -1,5 +1,6 @@
 import { getCookie } from "cookies-next/client";
-import { Copy, LogOut } from "lucide-react";
+import { Copy, LogOut, TriangleAlert } from "lucide-react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -9,6 +10,7 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { useSidebar } from "@/components/ui/sidebar";
+import { failuresPath } from "@/lib/failures";
 import { sessionCookie } from "@/lib/session-cookies";
 
 // copying the access token puts a bearer token on the clipboard, so only
@@ -98,8 +100,15 @@ function AppSidebarFooterMenu({ user, userId }: Props) {
                     Copy token to Dashboard
                 </DropdownMenuItem>
             )}
-            {/* only between items, e.g. not without a user ID in production */}
-            {(userId || canCopyToken) && <DropdownMenuSeparator />}
+            {/* also on phones, where the top bar has no room for its link,
+                and with registries without notifications */}
+            <DropdownMenuItem asChild>
+                <Link href={failuresPath}>
+                    <TriangleAlert />
+                    Failed operations
+                </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={logOut} className="text-red-500">
                 <LogOut />
                 Log out
