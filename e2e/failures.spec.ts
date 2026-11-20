@@ -239,8 +239,7 @@ test.describe("failed operations", () => {
         // the service's, at the top of its details, not the one next to
         // the bell
         await page
-            .locator("[data-slot=card]")
-            .getByRole("link", { name: "Failed operations" })
+            .getByRole("link", { name: "Failed operations of this service" })
             .click();
         await page.waitForURL(`**${path}?serviceId=${id}`);
         await expect(page.getByLabel("Filter by service ID")).toHaveValue(id);

@@ -48,13 +48,13 @@ the details, also on a phone.
 
 At the top, next to the **X** that closes the details, are the buttons
 that leave the service as it is (point at one, or move to it with the Tab
-key, to see its name):
+key, to see its name; phones show no tooltips, so this guide names them):
 
 - **Share link** (the share icon, for everyone) copies a link to the
   service's own page, e.g. to send it to others; if the browser can't copy
   it, the link is shown below the title, to copy it from there.
-- **Failed operations** (the triangle, for those with a role on the
-  service and admins in admin mode) opens the [failed
+- **Failed operations of this service** (the triangle, for those with a
+  role on the service and admins in admin mode) opens the [failed
   operations](failed-operations.md) of the service.
 
 The buttons below the details change the service, and depend on your

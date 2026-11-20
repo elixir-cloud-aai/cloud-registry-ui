@@ -71,7 +71,9 @@ async function topOf(locator: Locator) {
  */
 async function expectFits(page: Page, container: Locator) {
     const header = [
-        container.getByRole("link", { name: "Failed operations" }),
+        container.getByRole("link", {
+            name: "Failed operations of this service",
+        }),
         container.getByRole("button", { name: "Share link" }),
     ];
     const actions = [
@@ -273,7 +275,9 @@ test.describe("service details", () => {
         await expect(page.getByRole("tooltip")).toHaveCount(0);
         await page.keyboard.press("Tab");
         await expect(
-            dialog.getByRole("link", { name: "Failed operations" }),
+            dialog.getByRole("link", {
+                name: "Failed operations of this service",
+            }),
         ).toBeFocused();
         await page.keyboard.press("Tab");
         await expect(
@@ -315,7 +319,7 @@ test.describe("service details", () => {
         await card.getByRole("button", { name: "Share link" }).click();
         await expect(
             page.getByText(
-                "Cannot copy the link. Copy it from the field below.",
+                "Cannot copy the link. Copy it from the field below the title.",
             ),
         ).toBeVisible();
         const field = card.getByRole("textbox", {
@@ -330,7 +334,7 @@ test.describe("service details", () => {
         );
     });
 
-    for (const [width, label] of [
+    for (const [width, showsText] of [
         [360, false],
         [1280, true],
     ] as const)
@@ -348,8 +352,12 @@ test.describe("service details", () => {
             );
             const access = page.getByRole("button", { name: "Manage access" });
             // on phones, only the icon
-            if (label) await expect(access.getByText("Access")).toBeVisible();
-            else await expect(access.getByText("Access")).toBeHidden();
+            if (showsText)
+                await expect(access.getByText("Access")).toBeVisible();
+            else {
+                await expect(access.getByText("Access")).toHaveCount(1);
+                await expect(access.getByText("Access")).toBeHidden();
+            }
             await access.hover();
             await expect(
                 page.getByRole("tooltip", { name: "Manage access" }),
@@ -361,4 +369,32 @@ test.describe("service details", () => {
                 }),
             ).toBeVisible();
         });
+
+    test("the actions of a verified service fit one row (360 px)", async ({
+        page,
+        browser,
+    }) => {
+        await page.setViewportSize({ width: 360, height: 740 });
+        const service = await registerService(browser, "owner", "Verified");
+        await login(page, "admin", { adminMode: true });
+        await openPage(
+            page,
+            `/dashboard/services/view/${service.id}`,
+            serviceReads(service.id),
+        );
+        const card = page.locator("[data-slot=card]");
+        await card.getByRole("button", { name: "Verify", exact: true }).click();
+        // the longest label of the button, for an admin with all actions
+        const actions = [
+            card.getByRole("button", { name: "Manage access" }),
+            card.getByRole("button", { name: "Unverify" }),
+            card.getByRole("link", { name: "Edit" }),
+            card.getByRole("button", { name: "Delete" }),
+        ];
+        for (const action of actions) await expect(action).toBeVisible();
+        expect(await overflowing(card)).toEqual([]);
+        const row = await topOf(actions[0]);
+        for (const action of actions)
+            expect(Math.abs((await topOf(action)) - row)).toBeLessThan(1);
+    });
 });

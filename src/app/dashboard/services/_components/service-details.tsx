@@ -140,6 +140,7 @@ function ServiceDetails({
     const canVerify =
         canVerifyService(me) && pending === false && verificationLoaded;
     const canApprove = !!pending && canApproveServiceType(me);
+    const hasServiceActions = canApprove || canVerify || canEdit || canDelete;
 
     const handleShare = () => {
         const url = servicePageUrl(service.id);
@@ -147,7 +148,9 @@ function ServiceDetails({
         // dialog is open
         const showUrl = () => {
             setShareUrl(url);
-            toast.error("Cannot copy the link. Copy it from the field below.");
+            toast.error(
+                "Cannot copy the link. Copy it from the field below the title.",
+            );
         };
         copyText(url)
             .then(() => {
@@ -252,12 +255,12 @@ function ServiceDetails({
                         sharing, for all, right next to the close button */}
                     <div className="flex shrink-0 gap-2">
                         {canEdit && (
-                            <HeaderAction label="Failed operations">
+                            <HeaderAction label="Failed operations of this service">
                                 <Link
                                     href={failuresHref({
                                         serviceId: service.id,
                                     })}
-                                    aria-label="Failed operations"
+                                    aria-label="Failed operations of this service"
                                 >
                                     <TriangleAlert />
                                 </Link>
@@ -325,11 +328,7 @@ function ServiceDetails({
                 and on the page, in one row also on phones: access on the
                 left (only its icon on phones, the tooltip names it), the
                 actions on the service itself on the right */}
-            {(manageAccess ||
-                canApprove ||
-                canVerify ||
-                canEdit ||
-                canDelete) && (
+            {(manageAccess || hasServiceActions) && (
                 <div className="flex flex-wrap gap-2 px-4 py-4 border-t">
                     {manageAccess && (
                         <Tooltip>
@@ -349,7 +348,7 @@ function ServiceDetails({
                             <TooltipContent>Manage access</TooltipContent>
                         </Tooltip>
                     )}
-                    {(canApprove || canVerify || canEdit || canDelete) && (
+                    {hasServiceActions && (
                         <div className="ml-auto flex flex-wrap justify-end gap-2">
                             {canApprove && (
                                 <ApproveTypeButton

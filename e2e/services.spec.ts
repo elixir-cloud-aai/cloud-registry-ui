@@ -104,6 +104,12 @@ test.describe("services", () => {
         for (const name of ["Delete", "Manage access", "Verify"])
             await expect(page.getByRole("button", { name })).toHaveCount(0);
         await expect(page.getByRole("link", { name: "Edit" })).toHaveCount(0);
+        // nor the failed operations of the service
+        await expect(
+            page.getByRole("link", {
+                name: "Failed operations of this service",
+            }),
+        ).toHaveCount(0);
     });
 
     test("owners give other users roles", async ({
@@ -176,6 +182,12 @@ test.describe("services", () => {
         for (const name of ["Delete", "Manage access", "Verify"])
             await expect(page.getByRole("button", { name })).toHaveCount(0);
         await expect(page.getByRole("link", { name: "Edit" })).toHaveCount(0);
+        // nor the failed operations of the service
+        await expect(
+            page.getByRole("link", {
+                name: "Failed operations of this service",
+            }),
+        ).toHaveCount(0);
     });
 
     test("users filter the services they are responsible for", async ({
