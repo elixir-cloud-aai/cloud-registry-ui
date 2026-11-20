@@ -31,9 +31,9 @@ it. This needs cloud-registry 1.0.0rc2 or later (see
 [Compatibility](../operator-guide/index.md#compatibility)); 0.6.0 and 1.0.0rc1
 give roles to the wrong user:
 
-1. Open the service and select **Manage access**. The dialog has two tabs:
-   **Current Access**, described here, and **Invitations** (see [Inviting
-   by link](#inviting-by-link)).
+1. Open the service and select **Access** (the key, **Manage access** in
+   its tooltip). The dialog has two tabs: **Current Access**, described
+   here, and **Invitations** (see [Inviting by link](#inviting-by-link)).
 2. The list shows the users and groups with a role, also those who joined
    through an invitation: users by name and user ID once they have used the
    registry (before, by user ID only), groups by their name in the login
@@ -80,7 +80,7 @@ Notes:
 Instead of asking for a user ID, owners of a service, and admins, can
 invite a colleague with a link:
 
-1. Open the service, select **Manage access**, and open the **Invitations**
+1. Open the service, select **Access** (the key), and open the **Invitations**
    tab, which shows the number of open invitations.
 2. Choose the role the invitation is for, enter a label that says who it is
    for, e.g. `Bob (variant calling team)`, and select **Create link**. The

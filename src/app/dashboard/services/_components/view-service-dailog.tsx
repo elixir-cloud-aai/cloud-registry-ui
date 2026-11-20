@@ -40,8 +40,18 @@ function ServiceDetailsDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             {/* scrolls if the details are taller than the viewport; the
                 column may not grow wider than the dialog, so that wide
-                content wraps instead of scrolling the dialog sideways */}
-            <DialogContent className="sm:max-w-lg grid-cols-1 p-0 gap-0 max-h-[90vh] overflow-y-auto">
+                content wraps instead of scrolling the dialog sideways. Focus
+                starts on the dialog itself, which screen readers announce
+                by its title, not on its first button (sharing, at the top),
+                whose tooltip would open with it; Tab leads to the buttons */}
+            <DialogContent
+                className="sm:max-w-lg grid-cols-1 p-0 gap-0 max-h-[90vh] overflow-y-auto"
+                onOpenAutoFocus={(e) => {
+                    e.preventDefault();
+                    if (e.currentTarget instanceof HTMLElement)
+                        e.currentTarget.focus();
+                }}
+            >
                 <ServiceDetails
                     service={service}
                     verification={verification}

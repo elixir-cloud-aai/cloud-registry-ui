@@ -58,9 +58,10 @@ the registry itself aren't listed.
 ## Filters
 
 Filter by operation, by reason and by service ID (type it, then **Apply**). **Failed
-operations** in the details of a service you have a role on opens the list for that
-service. The filters are part of the page's address, so you can bookmark or share a
-filtered list; others see only what they may see. **Clear filters** shows all again.
+operations of this service** (the triangle at the top) in the details of a service you
+have a role on opens the list for that service. The filters are part of the page's
+address, so you can bookmark or share a filtered list; others see only what they may
+see. **Clear filters** shows all again.
 
 Registries without this list (up to cloud-registry 1.0.0rc2) say so on the page; so do
 registries whose access policy refuses it (ask the registry's admins; see
