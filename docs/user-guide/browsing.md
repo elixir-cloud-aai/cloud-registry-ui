@@ -46,13 +46,23 @@ the details, also on a phone.
 
 ![Details of a service](../images/service-details.png){ width="512" }
 
-The buttons below the details depend on your rights (see [Access and
-permissions](access.md)). They come in two groups, which share a row
-where they fit, and otherwise each take a row of their own:
+At the top, next to the **X** that closes the details, are the buttons
+that leave the service as it is (point at one, or move to it with the Tab
+key, to see its name):
 
-- On the left, **Share** copies a link to the service's own page, e.g. to
-  send it to others; if the browser can't copy it, the link is shown below
-  the buttons. **Manage access** is there for owners and admins.
+- **Share link** (the share icon, for everyone) copies a link to the
+  service's own page, e.g. to send it to others; if the browser can't copy
+  it, the link is shown below the title, to copy it from there.
+- **Failed operations** (the triangle, for those with a role on the
+  service and admins in admin mode) opens the [failed
+  operations](failed-operations.md) of the service.
+
+The buttons below the details change the service, and depend on your
+rights (see [Access and permissions](access.md)). They fit in one row,
+also on a phone:
+
+- On the left, **Access** (the key; **Manage access** in its tooltip, and
+  only the key on phones) for owners and admins.
 - On the right, the actions on the service itself: **Approve** (see
   [Pending entries](pending.md)) and **Verify** (see
   [Verifications](verifications.md)) for admins in admin mode, **Edit** for
