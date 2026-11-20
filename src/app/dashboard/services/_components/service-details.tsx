@@ -15,6 +15,11 @@ import { ManageAccessDialog } from "@/components/shared/manage-access";
 import { PendingBadge, PendingBanner } from "@/components/shared/pending";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useServiceSync } from "@/hooks";
 import type { AuthenticatedCloudRegistryProvider } from "@/lib/authenticated-cloud-registry";
 import { copyText } from "@/lib/clipboard";
@@ -60,6 +65,35 @@ type Props = {
 /** url of the service's page, to share it */
 function servicePageUrl(serviceId: string) {
     return `${window.location.origin}/dashboard/services/view/${encodeURIComponent(serviceId)}`;
+}
+
+/**
+ * an icon button of the header, in the style of the dialog's close button,
+ * with its label as tooltip; the child (a button or a link) carries the
+ * label for screen readers
+ */
+function HeaderAction({
+    label,
+    children,
+}: {
+    label: string;
+    children: ReactNode;
+}) {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="bg-secondary"
+                    asChild
+                >
+                    {children}
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent>{label}</TooltipContent>
+        </Tooltip>
+    );
 }
 
 /** details and actions of a service, the same in the dialog of the list and on the service's page */
@@ -109,7 +143,7 @@ function ServiceDetails({
 
     const handleShare = () => {
         const url = servicePageUrl(service.id);
-        // the field below the actions, as toasts can't be reached while a
+        // the field below the title, as toasts can't be reached while a
         // dialog is open
         const showUrl = () => {
             setShareUrl(url);
@@ -192,21 +226,61 @@ function ServiceDetails({
     return (
         <>
             {/* the classes of DialogHeader, the same in the dialog and on the
-                page; in the dialog, the text keeps clear of its close button */}
-            <div className="flex flex-col gap-1.5 px-4 py-4 in-data-[slot=dialog-content]:pr-14 border-b">
-                <Title className="text-lg font-bold leading-none">
-                    Service Details
-                </Title>
-                <Description className="wrap-break-word">
-                    Complete metadata of the service{" "}
-                    <Breakable value={service.id} />.
-                </Description>
-                {(verification || sync || pending) && (
-                    <div className="flex gap-2">
-                        {verification && <VerifiedBadge />}
-                        {sync && <SyncBadge status={sync.status} />}
-                        {pending && <PendingBadge />}
+                page; in the dialog, the text and the buttons keep clear of
+                its close button, so that the buttons sit next to it */}
+            <div className="flex flex-col gap-3 px-4 py-4 in-data-[slot=dialog-content]:pr-14 border-b">
+                <div className="flex items-start gap-2">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                        <Title className="text-lg font-bold leading-none">
+                            Service Details
+                        </Title>
+                        <Description className="wrap-break-word">
+                            Complete metadata of the service{" "}
+                            <Breakable value={service.id} />.
+                        </Description>
+                        {(verification || sync || pending) && (
+                            <div className="flex gap-2">
+                                {verification && <VerifiedBadge />}
+                                {sync && <SyncBadge status={sync.status} />}
+                                {pending && <PendingBadge />}
+                            </div>
+                        )}
                     </div>
+                    {/* what leaves the service as it is, in the style of
+                        the close button: its failed operations, for those
+                        with a role on it and admins in admin mode, and
+                        sharing, for all, right next to the close button */}
+                    <div className="flex shrink-0 gap-2">
+                        {canEdit && (
+                            <HeaderAction label="Failed operations">
+                                <Link
+                                    href={failuresHref({
+                                        serviceId: service.id,
+                                    })}
+                                    aria-label="Failed operations"
+                                >
+                                    <TriangleAlert />
+                                </Link>
+                            </HeaderAction>
+                        )}
+                        <HeaderAction label="Share link">
+                            <button
+                                type="button"
+                                aria-label="Share link"
+                                onClick={handleShare}
+                            >
+                                <Share2 />
+                            </button>
+                        </HeaderAction>
+                    </div>
+                </div>
+                {shareUrl && (
+                    <Input
+                        readOnly
+                        value={shareUrl}
+                        aria-label="Link to this service"
+                        onFocus={(e) => e.target.select()}
+                    />
                 )}
             </div>
 
@@ -247,90 +321,74 @@ function ServiceDetails({
                 verification={verification}
             />
 
-            {/* two groups of actions, the same in the dialog and on the
-                page: sharing and access on the left, the actions on the
-                service itself on the right; if both don't fit in one row,
-                the right group moves to a row of its own, and each group
-                wraps further on narrow screens */}
-            <div className="flex flex-wrap gap-2 px-4 py-4 border-t">
-                <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant={"outline"} onClick={handleShare}>
-                        <Share2 />
-                        Share
-                    </Button>
+            {/* the actions that change the service, the same in the dialog
+                and on the page, in one row also on phones: access on the
+                left (only its icon on phones, the tooltip names it), the
+                actions on the service itself on the right */}
+            {(manageAccess ||
+                canApprove ||
+                canVerify ||
+                canEdit ||
+                canDelete) && (
+                <div className="flex flex-wrap gap-2 px-4 py-4 border-t">
                     {manageAccess && (
-                        <Button
-                            size="sm"
-                            variant={"outline"}
-                            onClick={() => setManageOpen(true)}
-                        >
-                            <KeyRound />
-                            Manage access
-                        </Button>
-                    )}
-                    {/* those with a role on it, and admins in admin mode,
-                        see its failures */}
-                    {canEdit && (
-                        <Button size="sm" variant={"outline"} asChild>
-                            <Link
-                                href={failuresHref({ serviceId: service.id })}
-                            >
-                                <TriangleAlert />
-                                Failed operations
-                            </Link>
-                        </Button>
-                    )}
-                </div>
-                {(canApprove || canVerify || canEdit || canDelete) && (
-                    <div className="ml-auto flex flex-wrap justify-end gap-2">
-                        {canApprove && (
-                            <ApproveTypeButton
-                                serviceType={service.type}
-                                provider={cloudRegistryProvider}
-                                onApproved={onChange}
-                            />
-                        )}
-                        {canVerify && (
-                            <Button
-                                size="sm"
-                                variant={"outline"}
-                                onClick={handleServiceVerify}
-                                disabled={isVerifying}
-                            >
-                                {verification ? "Unverify" : "Verify"}
-                            </Button>
-                        )}
-                        {canEdit && (
-                            <Button size="sm" asChild>
-                                <Link
-                                    href={`/dashboard/services/update/${encodeURIComponent(service.id)}`}
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    size="sm"
+                                    variant={"outline"}
+                                    aria-label="Manage access"
+                                    onClick={() => setManageOpen(true)}
                                 >
-                                    Edit
-                                </Link>
-                            </Button>
-                        )}
-                        {canDelete && (
-                            <Button
-                                size="sm"
-                                variant={"destructive"}
-                                onClick={handleServiceDelete}
-                                disabled={isDeleting}
-                            >
-                                {isDeleting ? "Deleting..." : "Delete"}
-                            </Button>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {shareUrl && (
-                <div className="px-4 pb-4">
-                    <Input
-                        readOnly
-                        value={shareUrl}
-                        aria-label="Link to this service"
-                        onFocus={(e) => e.target.select()}
-                    />
+                                    <KeyRound />
+                                    <span className="hidden sm:inline">
+                                        Access
+                                    </span>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Manage access</TooltipContent>
+                        </Tooltip>
+                    )}
+                    {(canApprove || canVerify || canEdit || canDelete) && (
+                        <div className="ml-auto flex flex-wrap justify-end gap-2">
+                            {canApprove && (
+                                <ApproveTypeButton
+                                    serviceType={service.type}
+                                    provider={cloudRegistryProvider}
+                                    onApproved={onChange}
+                                />
+                            )}
+                            {canVerify && (
+                                <Button
+                                    size="sm"
+                                    variant={"outline"}
+                                    onClick={handleServiceVerify}
+                                    disabled={isVerifying}
+                                >
+                                    {verification ? "Unverify" : "Verify"}
+                                </Button>
+                            )}
+                            {canEdit && (
+                                <Button size="sm" asChild>
+                                    <Link
+                                        href={`/dashboard/services/update/${encodeURIComponent(service.id)}`}
+                                    >
+                                        Edit
+                                    </Link>
+                                </Button>
+                            )}
+                            {canDelete && (
+                                <Button
+                                    size="sm"
+                                    variant={"destructive"}
+                                    onClick={handleServiceDelete}
+                                    disabled={isDeleting}
+                                >
+                                    {isDeleting ? "Deleting..." : "Delete"}
+                                </Button>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
 

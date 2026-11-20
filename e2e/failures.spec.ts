@@ -236,10 +236,11 @@ test.describe("failed operations", () => {
         await openPage(page, `/dashboard/services/view/${id}`, [
             isRead(`/services/${id}`),
         ]);
-        // the service's, not the one next to the bell
+        // the service's, at the top of its details, not the one next to
+        // the bell
         await page
-            .getByRole("link")
-            .filter({ hasText: "Failed operations" })
+            .locator("[data-slot=card]")
+            .getByRole("link", { name: "Failed operations" })
             .click();
         await page.waitForURL(`**${path}?serviceId=${id}`);
         await expect(page.getByLabel("Filter by service ID")).toHaveValue(id);

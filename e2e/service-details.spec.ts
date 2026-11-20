@@ -7,6 +7,7 @@ import {
     login,
     newService,
     openPage,
+    registerService,
     serviceReads,
     test,
     tokenOf,
@@ -49,21 +50,38 @@ function overflowing(container: Locator) {
 }
 
 /**
+ * The top of an element's box
+ * @param locator The element
+ * @returns Its top, in pixels
+ */
+async function topOf(locator: Locator) {
+    const box = await locator.boundingBox();
+    if (!box) throw new Error("The element isn't rendered");
+    return box.y;
+}
+
+/**
  * Check that the service details fit their container: no sideways scrolling
- * and all actions inside it; for an admin in admin mode viewing a pending
- * service, who gets all actions but Verify
+ * and all buttons inside it; for an admin in admin mode viewing a pending
+ * service, who gets all actions but Verify. The failed operations and
+ * sharing sit at the top, next to the dialog's close button, if there is
+ * one, and the actions on the service in one row at the bottom
  * @param page Page with the details
  * @param container The dialog or the card around the details
  */
 async function expectFits(page: Page, container: Locator) {
+    const header = [
+        container.getByRole("link", { name: "Failed operations" }),
+        container.getByRole("button", { name: "Share link" }),
+    ];
     const actions = [
-        container.getByRole("button", { name: "Approve" }),
-        container.getByRole("button", { name: "Share" }),
         container.getByRole("button", { name: "Manage access" }),
+        container.getByRole("button", { name: "Approve" }),
         container.getByRole("link", { name: "Edit" }),
         container.getByRole("button", { name: "Delete" }),
     ];
-    for (const action of actions) await expect(action).toBeVisible();
+    for (const button of [...header, ...actions])
+        await expect(button).toBeVisible();
     expect(await scrollsSideways(container)).toBe(false);
     expect(await overflowing(container)).toEqual([]);
     expect(
@@ -75,14 +93,76 @@ async function expectFits(page: Page, container: Locator) {
     ).toBe(false);
     const box = await container.boundingBox();
     if (!box) throw new Error("The details aren't rendered");
-    for (const action of actions) {
-        const actionBox = await action.boundingBox();
-        if (!actionBox) throw new Error("An action isn't rendered");
-        expect(actionBox.x).toBeGreaterThanOrEqual(box.x);
-        expect(actionBox.x + actionBox.width).toBeLessThanOrEqual(
+    for (const button of [...header, ...actions]) {
+        const buttonBox = await button.boundingBox();
+        if (!buttonBox) throw new Error("A button isn't rendered");
+        expect(buttonBox.x).toBeGreaterThanOrEqual(box.x);
+        expect(buttonBox.x + buttonBox.width).toBeLessThanOrEqual(
             box.x + box.width + 0.5,
         );
     }
+    // one row each: the actions at the bottom, below the header's buttons
+    const row = await topOf(actions[0]);
+    for (const action of actions)
+        expect(Math.abs((await topOf(action)) - row)).toBeLessThan(1);
+    const top = await topOf(header[0]);
+    expect(row).toBeGreaterThan(top);
+    for (const button of header)
+        expect(Math.abs((await topOf(button)) - top)).toBeLessThan(1);
+    // in the dialog, sharing sits right next to its close button
+    const close = container.getByRole("button", { name: "Close" });
+    if ((await close.count()) > 0) {
+        const share = await header[1].boundingBox();
+        const closeBox = await close.boundingBox();
+        if (!share || !closeBox) throw new Error("A button isn't rendered");
+        expect(Math.abs(closeBox.y - share.y)).toBeLessThan(1);
+        const gap = closeBox.x - (share.x + share.width);
+        expect(gap).toBeGreaterThanOrEqual(0);
+        expect(gap).toBeLessThanOrEqual(12);
+    }
+}
+
+/**
+ * Keep what the page copies, as not all browsers let tests read the
+ * clipboard, or make copying fail
+ * @param page Page, before it opens the app
+ * @param fail Whether copying fails, as if the browser denied it
+ */
+async function watchClipboard(page: Page, fail = false) {
+    await page.addInitScript((fail) => {
+        Object.defineProperty(navigator, "clipboard", {
+            value: {
+                writeText: async (text: string) => {
+                    if (fail) throw new Error("denied");
+                    document.documentElement.dataset.copied = text;
+                },
+            },
+        });
+    }, fail);
+}
+
+/**
+ * Open the details of a service in the dialog of the list
+ * @param page Page, logged in or not
+ * @param service The service
+ * @returns The dialog
+ */
+async function openDialog(
+    page: Page,
+    service: { id: string; name: string; url: string },
+) {
+    await openPage(page, "/dashboard/services", [isApprovalsRead]);
+    await page.getByLabel("Search services").fill(service.name);
+    // the details read the service's sync: requests cut off by leaving the
+    // page fail, and the app logs them
+    await waitForReads(
+        page,
+        () => page.getByText(service.name, { exact: true }).click(),
+        [isRead(`/services/${service.id}/sync`)],
+    );
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toContainText(service.url);
+    return dialog;
 }
 
 /**
@@ -177,4 +257,108 @@ test.describe("service details", () => {
                 await expect(card).toContainText("Service Details");
                 await expectFits(page, card);
             });
+
+    test("sharing copies the link, from next to the close button", async ({
+        page,
+        browser,
+        baseURL,
+    }) => {
+        const service = await registerService(browser, "owner", "Shared");
+        await watchClipboard(page);
+        await login(page, "owner");
+        const dialog = await openDialog(page, service);
+        // focus starts on the dialog, without a tooltip; Tab leads to the
+        // buttons at the top, in their order, each named by its tooltip
+        await expect(dialog).toBeFocused();
+        await expect(page.getByRole("tooltip")).toHaveCount(0);
+        await page.keyboard.press("Tab");
+        await expect(
+            dialog.getByRole("link", { name: "Failed operations" }),
+        ).toBeFocused();
+        await page.keyboard.press("Tab");
+        await expect(
+            dialog.getByRole("button", { name: "Share link" }),
+        ).toBeFocused();
+        await expect(
+            page.getByRole("tooltip", { name: "Share link" }),
+        ).toBeVisible();
+        await page.keyboard.press("Enter");
+        await expect(
+            page.getByText("Copied the link to this service."),
+        ).toBeVisible();
+        await expect(page.locator("html")).toHaveAttribute(
+            "data-copied",
+            `${baseURL}/dashboard/services/view/${service.id}`,
+        );
+        await expect(
+            dialog.getByRole("textbox", { name: "Link to this service" }),
+        ).toHaveCount(0);
+    });
+
+    test("a link that can't be copied is shown below the title", async ({
+        page,
+        browser,
+        baseURL,
+    }) => {
+        const service = await registerService(browser, "owner", "Uncopied");
+        await watchClipboard(page, true);
+        // also for guests, who have no actions on the service
+        await openPage(
+            page,
+            `/dashboard/services/view/${service.id}`,
+            serviceReads(service.id),
+        );
+        const card = page.locator("[data-slot=card]");
+        await expect(card.getByRole("button", { name: "Delete" })).toHaveCount(
+            0,
+        );
+        await card.getByRole("button", { name: "Share link" }).click();
+        await expect(
+            page.getByText(
+                "Cannot copy the link. Copy it from the field below.",
+            ),
+        ).toBeVisible();
+        const field = card.getByRole("textbox", {
+            name: "Link to this service",
+        });
+        await expect(field).toHaveValue(
+            `${baseURL}/dashboard/services/view/${service.id}`,
+        );
+        // right below the title, above the details
+        expect(await topOf(field)).toBeLessThan(
+            await topOf(card.getByText(service.url).first()),
+        );
+    });
+
+    for (const [width, label] of [
+        [360, false],
+        [1280, true],
+    ] as const)
+        test(`access is named by its tooltip (${width} px)`, async ({
+            page,
+            browser,
+        }) => {
+            await page.setViewportSize({ width, height: 800 });
+            const service = await registerService(browser, "owner", "Access");
+            await login(page, "owner");
+            await openPage(
+                page,
+                `/dashboard/services/view/${service.id}`,
+                serviceReads(service.id),
+            );
+            const access = page.getByRole("button", { name: "Manage access" });
+            // on phones, only the icon
+            if (label) await expect(access.getByText("Access")).toBeVisible();
+            else await expect(access.getByText("Access")).toBeHidden();
+            await access.hover();
+            await expect(
+                page.getByRole("tooltip", { name: "Manage access" }),
+            ).toBeVisible();
+            await access.click();
+            await expect(
+                page.getByRole("dialog").getByRole("tab", {
+                    name: /^Current Access/,
+                }),
+            ).toBeVisible();
+        });
 });
