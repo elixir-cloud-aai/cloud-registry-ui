@@ -35,6 +35,22 @@ The filters combine: e.g. search for "tes" and choose the environment
 
 ![The list, searched and filtered](../images/services-filtered.png)
 
+### Sorting
+
+The list is sorted by name, A to Z, unless the deployment sets another
+order. Select a column's header to sort by that column, ascending; select
+it again to sort descending. An arrow in the header shows the column and
+the direction. Sorting ignores case and accents, and compares numbers by
+their values, so that version `1.10.0` comes after `1.9.0`; the **Artifact**
+column sorts by the API, then by its version. Services without a value
+(e.g. without an environment) come last, in both directions, and services
+with the same value are sorted by name, then by ID.
+
+The order applies to the search results and filters, and a new order starts
+again at page 1. The address of the page keeps the order (e.g.
+`?sort=version&order=desc`), so a link to it, e.g. one you share, opens the
+same order.
+
 ### Details of a service
 
 Select a service in the list to see its details (**Service Details**): its
