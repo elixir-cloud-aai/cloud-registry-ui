@@ -240,4 +240,58 @@ test.describe("services", () => {
             page.getByRole("button", { name: "Show my services only" }),
         ).toHaveCount(0);
     });
+
+    test("anyone sorts the services by any column", async ({
+        page,
+        browser,
+    }) => {
+        // services of one test run, found by the search; their names start
+        // with the run, so that they sort by the letter after it
+        const run = uniqueId();
+        const services = [];
+        for (const letter of ["b", "c", "a"])
+            services.push(
+                await registerService(
+                    browser,
+                    "owner",
+                    `Sorted ${run} ${letter}`,
+                ),
+            );
+        const [b, c, a] = services.map((val) => val.name);
+
+        await openPage(page, "/dashboard/services", [isRead("/services")]);
+        await page.getByLabel("Search services").fill(run);
+        const names = page.locator("tbody tr td:nth-child(2)");
+        const header = (name: string) =>
+            page.getByRole("columnheader", { name, exact: true });
+
+        // by name, ascending, unless the deployment sets another order
+        await expect(names).toContainText([a, b, c]);
+        await expect(header("Name")).toHaveAttribute("aria-sort", "ascending");
+        await expect(header("ID")).not.toHaveAttribute("aria-sort");
+
+        // a second click switches the direction, and the URL keeps it
+        await header("Name").getByRole("button").click();
+        await expect(names).toContainText([c, b, a]);
+        await expect(header("Name")).toHaveAttribute("aria-sort", "descending");
+        await expect(page).toHaveURL(/[?&]sort=name&order=desc/);
+
+        // another column sorts ascending; equal versions keep the names'
+        // order
+        await header("Version").getByRole("button").click();
+        await expect(header("Version")).toHaveAttribute(
+            "aria-sort",
+            "ascending",
+        );
+        await expect(header("Name")).not.toHaveAttribute("aria-sort");
+        await expect(names).toContainText([a, b, c]);
+
+        // a link with the order opens it
+        await openPage(page, "/dashboard/services?sort=name&order=desc", [
+            isRead("/services"),
+        ]);
+        await page.getByLabel("Search services").fill(run);
+        await expect(names).toContainText([c, b, a]);
+        await expect(header("Name")).toHaveAttribute("aria-sort", "descending");
+    });
 });

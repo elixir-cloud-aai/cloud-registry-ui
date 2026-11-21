@@ -25,6 +25,13 @@ import { errorMessage } from "@/lib/errors";
 import { loginHref } from "@/lib/links";
 import { hasStatus, isUnauthorized } from "@/lib/permissions";
 import { syncedServices } from "@/lib/service-sync";
+import {
+    nextSort,
+    type ServicesSortKey,
+    servicesSort,
+    sortFromQuery,
+    withSortQuery,
+} from "@/lib/services-sort";
 import { verifiedServices } from "@/lib/verifications";
 import {
     ServicesTableBody,
@@ -41,6 +48,7 @@ import {
     type ServiceFilters,
 } from "./_components/filter-helper";
 import RegisterServiceDialog from "./_components/register-service-dialog";
+import { sortServices } from "./_components/sort-helper";
 
 const pageSize = 10;
 
@@ -61,6 +69,10 @@ function Page() {
     const [filters, setFilters] = useState<ServiceFilters>(defaultFilters);
     const [registering, setRegistering] = useState(false);
     const searchParams = useSearchParams();
+    // the order of a shared link (`?sort=…&order=…`), else the deployment's
+    const [sort, setSort] = useState(() =>
+        sortFromQuery(searchParams, servicesSort()),
+    );
 
     // the user's services; without a user (e.g. after the session
     // expired), the filter for them is hidden, and doesn't apply
@@ -69,12 +81,15 @@ function Page() {
     const filtered = isFiltered(search, activeFilters);
     const verified = verifiedServices(services, verifications);
     const syncs = syncedServices(services, syncStates);
-    const filteredServices = filterServices(services, search, activeFilters, {
-        verifications: verified,
-        pending,
-        mine,
-        syncs,
-    });
+    const filteredServices = sortServices(
+        filterServices(services, search, activeFilters, {
+            verifications: verified,
+            pending,
+            mine,
+            syncs,
+        }),
+        sort,
+    );
     const { page, pageCount, pageItems, start, end, setPage } = usePagination(
         filteredServices,
         pageSize,
@@ -88,6 +103,18 @@ function Page() {
     const handleFiltersChange = (value: ServiceFilters) => {
         setFilters(value);
         setPage(1);
+    };
+
+    // also in the URL, so that a link to the page opens the same order
+    const handleSortChange = (key: ServicesSortKey) => {
+        const value = nextSort(sort, key);
+        setSort(value);
+        setPage(1);
+        window.history.replaceState(
+            null,
+            "",
+            withSortQuery(window.location.href, value),
+        );
     };
 
     // one function per provider, so that the effect below loads the
@@ -231,7 +258,10 @@ function Page() {
                     />
                     <div className="rounded-xl border overflow-hidden">
                         <Table>
-                            <ServicesTableHeader />
+                            <ServicesTableHeader
+                                sort={sort}
+                                onSortChange={handleSortChange}
+                            />
                             {loading === true ? (
                                 <ServiceTableBodySkeleton />
                             ) : (
