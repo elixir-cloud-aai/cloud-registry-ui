@@ -94,6 +94,14 @@ function Page() {
         filteredServices,
         pageSize,
     );
+    // a new order starts at page 1, however it comes (a header, a link or
+    // the history); state adjusted while rendering, not in an effect
+    const sortId = `${sort.key} ${sort.order}`;
+    const [pagedSortId, setPagedSortId] = useState(sortId);
+    if (pagedSortId !== sortId) {
+        setPagedSortId(sortId);
+        setPage(1);
+    }
 
     const handleSearchChange = (value: string) => {
         setSearch(value);
@@ -108,7 +116,6 @@ function Page() {
     // Next syncs `useSearchParams()` with `window.history` (and keeps its
     // router's state), so this sets the order without a navigation
     const handleSortChange = (key: ServicesSortKey) => {
-        setPage(1);
         window.history.replaceState(
             null,
             "",

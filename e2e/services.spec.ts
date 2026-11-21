@@ -247,16 +247,28 @@ test.describe("services", () => {
     }) => {
         // services of one test run, found by the search; their names start
         // with the run, so that they sort by the letter after it
+        // with versions in another order than the names, compared by their
+        // numbers
         const run = uniqueId();
+        const token = await tokenOf(browser, "owner");
         const services = [];
-        for (const letter of ["b", "c", "a"])
-            services.push(
-                await registerService(
-                    browser,
-                    "owner",
-                    `Sorted ${run} ${letter}`,
-                ),
+        for (const [letter, version] of [
+            ["b", "2.0.0"],
+            ["c", "1.9.0"],
+            ["a", "1.10.0"],
+        ]) {
+            const { id, ...service } = await registerService(
+                browser,
+                "owner",
+                `Sorted ${run} ${letter}`,
             );
+            const updated = await api(token, "PUT", `/services/${id}`, {
+                ...service,
+                version,
+            });
+            expect(updated.status).toBeLessThan(300);
+            services.push(service);
+        }
         const [b, c, a] = services.map((val) => val.name);
 
         await openPage(page, "/dashboard/services", [isRead("/services")]);
@@ -276,15 +288,17 @@ test.describe("services", () => {
         await expect(header("Name")).toHaveAttribute("aria-sort", "descending");
         await expect(page).toHaveURL(/[?&]sort=name&order=desc/);
 
-        // another column sorts ascending; equal versions keep the names'
-        // order
+        // another column sorts ascending, by that column: 1.9.0 before
+        // 1.10.0
         await header("Version").getByRole("button").click();
         await expect(header("Version")).toHaveAttribute(
             "aria-sort",
             "ascending",
         );
         await expect(header("Name")).not.toHaveAttribute("aria-sort");
-        await expect(names).toContainText([a, b, c]);
+        await expect(names).toContainText([c, a, b]);
+        await header("Version").getByRole("button").click();
+        await expect(names).toContainText([b, a, c]);
 
         // a link with the order opens it
         await openPage(page, "/dashboard/services?sort=name&order=desc", [
