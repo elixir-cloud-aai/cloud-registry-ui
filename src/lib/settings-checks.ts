@@ -6,6 +6,7 @@ import { accessSettings } from "./access-settings";
 import { brandingSettings } from "./branding";
 import { footerSettings } from "./footer-links";
 import { registrySettings } from "./registry-settings";
+import { servicesSortWarnings } from "./services-sort";
 
 // settings that the app no longer reads, with what replaces them
 const removedSettings = {
@@ -33,6 +34,7 @@ function publicSettingsChecks() {
     accessSettings();
     brandingSettings();
     footerSettings();
+    servicesSortWarnings();
     removedSettingsWarnings();
 }
 

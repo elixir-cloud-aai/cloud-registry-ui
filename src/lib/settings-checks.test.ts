@@ -80,6 +80,22 @@ describe("publicSettingsChecks", () => {
         );
     });
 
+    it("warns of an invalid order of the services list", async () => {
+        vi.stubEnv(
+            "NEXT_PUBLIC_CLOUD_REGISTRY_URL",
+            "https://registry.example.org/ga4gh/registry/v1",
+        );
+        vi.stubEnv("NEXT_PUBLIC_SERVICES_SORT", "url");
+        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+        const { publicSettingsChecks } = await load();
+        expect(publicSettingsChecks).not.toThrow();
+        expect(warn).toHaveBeenCalledExactlyOnceWith(
+            expect.stringMatching(
+                /^Ignoring setting NEXT_PUBLIC_SERVICES_SORT:/,
+            ),
+        );
+    });
+
     it("warns of no removed settings that aren't set", async () => {
         vi.stubEnv(
             "NEXT_PUBLIC_CLOUD_REGISTRY_URL",
