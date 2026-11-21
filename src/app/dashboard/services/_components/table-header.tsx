@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import { TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { ServicesSort, ServicesSortKey } from "@/lib/services-sort";
+import { type HeaderSortState, headerSortState } from "./header-helper";
 
 // the columns, in the order of the table body
 const columns: { key: ServicesSortKey; label: string }[] = [
@@ -12,6 +13,12 @@ const columns: { key: ServicesSortKey; label: string }[] = [
     { key: "version", label: "Version" },
 ];
 
+const icons: Record<HeaderSortState, typeof ArrowUp> = {
+    none: ArrowUpDown,
+    ascending: ArrowUp,
+    descending: ArrowDown,
+};
+
 type Props = {
     sort: ServicesSort;
     onSortChange: (key: ServicesSortKey) => void;
@@ -22,24 +29,13 @@ function ServicesTableHeader({ sort, onSortChange }: Props) {
         <TableHeader>
             <TableRow>
                 {columns.map(({ key, label }) => {
-                    const active = sort.key === key;
-                    const ascending = sort.order === "asc";
-                    const Icon = !active
-                        ? ArrowUpDown
-                        : ascending
-                          ? ArrowUp
-                          : ArrowDown;
+                    const state = headerSortState(sort, key);
+                    const Icon = icons[state];
                     return (
                         <TableHead
                             key={key}
                             scope="col"
-                            aria-sort={
-                                !active
-                                    ? undefined
-                                    : ascending
-                                      ? "ascending"
-                                      : "descending"
-                            }
+                            aria-sort={state === "none" ? undefined : state}
                         >
                             <button
                                 type="button"
@@ -50,9 +46,9 @@ function ServicesTableHeader({ sort, onSortChange }: Props) {
                                 <Icon
                                     aria-hidden
                                     className={
-                                        active
-                                            ? "size-4"
-                                            : "size-4 text-muted-foreground/60"
+                                        state === "none"
+                                            ? "size-4 text-muted-foreground/60"
+                                            : "size-4"
                                     }
                                 />
                             </button>

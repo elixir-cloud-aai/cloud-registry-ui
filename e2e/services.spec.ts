@@ -293,5 +293,16 @@ test.describe("services", () => {
         await page.getByLabel("Search services").fill(run);
         await expect(names).toContainText([c, b, a]);
         await expect(header("Name")).toHaveAttribute("aria-sort", "descending");
+
+        // the order follows the URL: the sidebar's link, without one, shows
+        // the default order again
+        await page
+            .getByRole("link", { name: "Services", exact: true })
+            .first()
+            .click();
+        await expect(page).not.toHaveURL(/[?&]sort=/);
+        await expect(header("Name")).toHaveAttribute("aria-sort", "ascending");
+        await page.getByLabel("Search services").fill(run);
+        await expect(names).toContainText([a, b, c]);
     });
 });

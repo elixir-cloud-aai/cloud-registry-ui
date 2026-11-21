@@ -69,10 +69,10 @@ function Page() {
     const [filters, setFilters] = useState<ServiceFilters>(defaultFilters);
     const [registering, setRegistering] = useState(false);
     const searchParams = useSearchParams();
-    // the order of a shared link (`?sort=…&order=…`), else the deployment's
-    const [sort, setSort] = useState(() =>
-        sortFromQuery(searchParams, servicesSort()),
-    );
+    // the order of the URL (`?sort=…&order=…`, e.g. of a shared link), else
+    // the deployment's; the URL is the only state of the order, so it
+    // follows navigations and the history
+    const sort = sortFromQuery(searchParams, servicesSort());
 
     // the user's services; without a user (e.g. after the session
     // expired), the filter for them is hidden, and doesn't apply
@@ -105,15 +105,14 @@ function Page() {
         setPage(1);
     };
 
-    // also in the URL, so that a link to the page opens the same order
+    // Next syncs `useSearchParams()` with `window.history` (and keeps its
+    // router's state), so this sets the order without a navigation
     const handleSortChange = (key: ServicesSortKey) => {
-        const value = nextSort(sort, key);
-        setSort(value);
         setPage(1);
         window.history.replaceState(
             null,
             "",
-            withSortQuery(window.location.href, value),
+            withSortQuery(window.location.href, nextSort(sort, key)),
         );
     };
 
